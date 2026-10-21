@@ -1,0 +1,14 @@
+node_modules/
+_site/
+.DS_Store
+*.log
+.cache/
+.eleventy-cache/
+
+# Quarto cache (per-notebook _freeze dirs are also gitignored in notebooks/)
+.quarto/
+_freeze/
+
+# Python bytecode
+__pycache__/
+*.pyc

@@ -1,0 +1,170 @@
+---
+title: A look at five factors
+date: 2026-06-19
+tag: ANALYSIS
+description: A more complete notebook demo — cumulative returns, annualized stats, and a correlation heatmap of a simulated five-factor model.
+---
+
+A second sample notebook, showing what multi-panel output looks like.
+We simulate sixty months of returns for a five-factor model — market,
+size, value, profitability, investment — and look at three views:
+cumulative returns over time, annualized statistics by factor, and
+the correlation structure between them.
+
+## Setting up the simulation
+
+``` python
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
+import _oos_style
+
+rng = np.random.default_rng(42)
+factors = ["Mkt-RF", "SMB", "HML", "RMW", "CMA"]
+
+# Annualized means and vols (in line with long-run Fama-French estimates)
+ann_mu  = np.array([0.07, 0.02, 0.03, 0.04, 0.02])
+ann_vol = np.array([0.16, 0.10, 0.10, 0.08, 0.08])
+
+# Assumed correlation structure
+corr = np.array([
+    [ 1.00,  0.10,  0.05,  0.10, -0.05],
+    [ 0.10,  1.00,  0.15, -0.20,  0.05],
+    [ 0.05,  0.15,  1.00,  0.10,  0.55],
+    [ 0.10, -0.20,  0.10,  1.00,  0.25],
+    [-0.05,  0.05,  0.55,  0.25,  1.00],
+])
+
+# Monthly draws from MVN
+N = 60
+mu_m    = ann_mu / 12
+sigma_m = ann_vol / np.sqrt(12)
+cov_m   = corr * np.outer(sigma_m, sigma_m)
+returns = pd.DataFrame(
+    rng.multivariate_normal(mu_m, cov_m, size=N),
+    columns=factors,
+)
+returns.head()
+```
+
+|    |     Mkt-RF |        SMB |        HML |        RMW |       CMA |
+|---:|-----------:|-----------:|-----------:|-----------:|----------:|
+|  0 | -0.0127    |  0.0222    |  0.0491    | -0.0096    | -0.0121   |
+|  1 |  0.0658    | -0.0010    |  0.0102    |  0.0152    | -0.0105   |
+|  2 | -0.0307    | -0.0185    | -0.0153    | -0.0251    | -0.0087   |
+|  3 |  0.0491    | -0.0299    |  0.0056    |  0.0022    | -0.0023   |
+|  4 |  0.0100    |  0.0417    |  0.0190    | -0.0050    |  0.0009   |
+
+## Cumulative returns
+
+The default color cycle gives each factor its own line — same six colors
+Prism uses for syntax tokens, so the chart and the code reference the
+same palette.
+
+``` python
+cum = (1 + returns).cumprod()
+
+fig, ax = plt.subplots(figsize=(9, 4.2))
+for col in cum.columns:
+    ax.plot(cum.index, cum[col], lw=1.6, label=col)
+ax.set_xlabel("month")
+ax.set_ylabel("growth of $1")
+ax.set_title("Five factors, sixty months")
+ax.legend(loc="upper left", ncol=5, frameon=False, handlelength=1.4)
+plt.tight_layout()
+plt.show()
+```
+
+![](2026-06-19-five-factors_files/figure-commonmark/cell-3-output-1.png)
+
+## Annualized return and Sharpe
+
+``` python
+ann_ret      = returns.mean() * 12
+ann_vol_emp  = returns.std()  * np.sqrt(12)
+sharpe       = ann_ret / ann_vol_emp
+
+palette = [
+    _oos_style.OOS["accent"], _oos_style.OOS["cyan"],
+    _oos_style.OOS["amber"],  _oos_style.OOS["orange"],
+    _oos_style.OOS["purple"],
+]
+
+fig, axes = plt.subplots(1, 2, figsize=(9, 3.6))
+
+axes[0].bar(factors, ann_ret, color=palette,
+            edgecolor=_oos_style.OOS["bg"], linewidth=1.2)
+axes[0].axhline(0, color=_oos_style.OOS["rule"], lw=0.8)
+axes[0].set_title("annualized return")
+axes[0].set_ylabel("return")
+
+axes[1].bar(factors, sharpe, color=palette,
+            edgecolor=_oos_style.OOS["bg"], linewidth=1.2)
+axes[1].axhline(0, color=_oos_style.OOS["rule"], lw=0.8)
+axes[1].set_title("sharpe (no risk-free)")
+axes[1].set_ylabel("ratio")
+
+plt.tight_layout()
+plt.show()
+```
+
+![](2026-06-19-five-factors_files/figure-commonmark/cell-4-output-1.png)
+
+## Correlation matrix
+
+A small custom colormap, diverging from red (negative) through the page
+background (zero) to phosphor green (positive). Keeps the heatmap on
+the same palette as everything else.
+
+``` python
+# Custom diverging colormap matched to the site palette
+oos_diverging = LinearSegmentedColormap.from_list(
+    "oos_diverging",
+    [
+        (0.0, _oos_style.OOS["red"]),     # strong negative
+        (0.5, _oos_style.OOS["rule"]),    # ~zero — fades into the page
+        (1.0, _oos_style.OOS["accent"]),  # strong positive
+    ],
+)
+
+corr_emp = returns.corr()
+
+fig, ax = plt.subplots(figsize=(6.4, 5.2))
+im = ax.imshow(corr_emp, cmap=oos_diverging, vmin=-1, vmax=1, aspect="auto")
+
+ax.set_xticks(range(len(factors)), factors)
+ax.set_yticks(range(len(factors)), factors)
+ax.tick_params(length=0)
+ax.grid(False)
+
+# Cell labels — switch text color so they read against the cell color
+for i in range(len(factors)):
+    for j in range(len(factors)):
+        v = corr_emp.iloc[i, j]
+        text_color = (
+            _oos_style.OOS["bg"]
+            if abs(v) > 0.55
+            else _oos_style.OOS["ink"]
+        )
+        ax.text(j, i, f"{v:+.2f}", ha="center", va="center",
+                color=text_color, fontsize=9.5)
+
+ax.set_title("empirical correlation, 60 months")
+
+cbar = plt.colorbar(im, ax=ax, shrink=0.78, pad=0.02)
+cbar.outline.set_edgecolor(_oos_style.OOS["rule"])
+cbar.outline.set_linewidth(0.6)
+cbar.ax.tick_params(colors=_oos_style.OOS["ink_2"], length=3, width=0.6)
+plt.tight_layout()
+plt.show()
+```
+
+![](2026-06-19-five-factors_files/figure-commonmark/cell-5-output-1.png)
+
+A few quick reads off the chart. The HML–CMA pair comes out at $\rho
+\approx 0.55$, as it should — they're both value-flavored. SMB and RMW
+are mildly anti-correlated, which is the textbook story of small caps
+tilting toward less-profitable names. Sixty months is a small sample;
+some of the smaller off-diagonals would shrink or flip at a longer
+horizon.

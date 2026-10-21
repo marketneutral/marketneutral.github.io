@@ -1,0 +1,9 @@
+project:
+  type: default
+
+format:
+  gfm:
+    preserve-yaml: true
+
+execute:
+  freeze: auto

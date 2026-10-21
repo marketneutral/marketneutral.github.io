@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% if title %}{{ title }} — {% endif %}SPECULATIVE DECODING_</title>
+  {% if description %}<meta name="description" content="{{ description }}">{% endif %}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="left">
+      <span class="brand"><span class="live-dot"></span>SPECULATIVE DECODING_</span>
+    </div>
+    <div class="right">
+      <a href="/" class="{% if page.url == '/' %}active{% endif %}">MAIN</a>
+      <a href="/#archive">ARCHIVE</a>
+      <a href="/#about">ABOUT</a>
+      <a href="/feed.xml">RSS</a>
+    </div>
+  </div>
+
+  <div class="container">
+    {{ content | safe }}
+  </div>
+
+  <footer>
+    <div>SPECULATIVE DECODING_ &nbsp;·&nbsp; © 2026 Jonathan Larkin</div>
+    <div>Built with Eleventy</div>
+  </footer>
+
+</div>
+</body>
+</html>

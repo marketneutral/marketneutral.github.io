@@ -1,0 +1,5 @@
+_freeze/
+.quarto/
+*_files/
+*.md
+!README.md

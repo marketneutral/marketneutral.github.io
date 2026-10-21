@@ -1,0 +1,61 @@
+---
+title: A note on geometric Brownian motion
+date: 2026-06-12
+tag: NOTE
+description: A short demonstration of executable notebooks — simulated GBM paths and the terminal distribution.
+---
+
+This post exists to demonstrate the `.qmd` workflow. Notebooks are authored
+in Quarto, rendered locally to markdown with plots saved as PNGs, and
+committed alongside the rest of the posts.
+
+The setup is geometric Brownian motion:
+
+$$
+dS_t = \mu S_t \, dt + \sigma S_t \, dW_t
+$$
+
+We simulate $M=1000$ paths and look at a few facts about the terminal
+distribution.
+
+``` python
+import numpy as np
+import matplotlib.pyplot as plt
+import _oos_style                       # applies the site palette
+
+rng = np.random.default_rng(7)
+
+T, N, M = 1.0, 252, 1000
+S0, mu, sigma = 100.0, 0.05, 0.20
+
+dt = T / N
+t = np.linspace(0, T, N + 1)
+
+dW = rng.standard_normal(size=(M, N)) * np.sqrt(dt)
+W = np.concatenate([np.zeros((M, 1)), np.cumsum(dW, axis=1)], axis=1)
+S = S0 * np.exp((mu - 0.5 * sigma**2) * t + sigma * W)
+
+fig, ax = plt.subplots(figsize=(9, 4.2))
+ax.plot(t, S[:50].T, lw=0.8, alpha=0.35, color=_oos_style.OOS["accent"])
+ax.set_xlabel("time (years)")
+ax.set_ylabel("price")
+ax.set_title("50 simulated GBM paths")
+plt.tight_layout()
+plt.show()
+```
+
+![](2026-06-12-sample-geometric-brownian-motion_files/figure-commonmark/cell-2-output-1.png)
+
+The terminal distribution is lognormal. The standard deviation of
+$\log S_T$ should be $\sigma\sqrt{T}$:
+
+``` python
+sd_log = np.std(np.log(S[:, -1]))
+print(f"Empirical SD of log(S_T):  {sd_log:.4f}")
+print(f"Theoretical σ√T:           {sigma * np.sqrt(T):.4f}")
+```
+
+    Empirical SD of log(S_T):  0.2049
+    Theoretical σ√T:           0.2000
+
+The match is close at $M=1000$ paths and improves with more.

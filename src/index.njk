@@ -1,0 +1,122 @@
+---
+layout: base.njk
+title: Speculative Decoding
+---
+
+<!-- HERO — three layers: title, green subtitle, body paragraph -->
+<section class="hero">
+  <div class="kicker">Jonathan Larkin</div>
+
+  <h1>SPECULATIVE <span class="nobreak">DECODING<span class="cursor">_</span></span></h1>
+
+  <p class="hero-subtitle">One token at a time.</p>
+
+  <p class="hero-body">
+    A blog at the intersection of investing &amp; trading, machine learning,
+    and artificial intelligence.
+  </p>
+</section>
+
+<!-- STAT GRID -->
+<div class="statgrid">
+  <div class="stat">
+    <div class="label">POSTS PUBLISHED</div>
+    <div class="value"><span class="arrow">▲</span>{{ collections.posts | length }}</div>
+    <div class="sub">all-time</div>
+  </div>
+  <div class="stat">
+    <div class="label">AVG READ TIME</div>
+    <div class="value">06:30</div>
+    <div class="sub">across all posts</div>
+  </div>
+  <div class="stat">
+    <div class="label">LAST UPDATE</div>
+    <div class="value">{{ collections.posts[0].date | dateISO }}</div>
+    <div class="sub">most recent post</div>
+  </div>
+</div>
+
+{% set total = collections.posts | length %}
+{% set latest = collections.posts[0] %}
+
+<!-- LATEST (featured) -->
+{% if latest %}
+<section class="section" id="latest">
+  <div class="section-head">
+    <span class="section-num">001</span>
+    <span class="section-title">Latest</span>
+    <span class="section-meta">{{ latest.date | dateISO }}</span>
+  </div>
+
+  <a class="featured" href="{{ latest.url }}">
+    <div class="idx">{{ total | padNum }} / {{ total | padNum }}</div>
+    <div class="body">
+      <h2>{{ latest.data.title }}</h2>
+      <p class="excerpt">{{ latest.data.description }}</p>
+      <div class="taglist">
+        <span>▸ {{ latest.data.tag }}</span>
+        <span>▸ {{ latest.templateContent | readTime }}</span>
+      </div>
+    </div>
+    <div class="side">
+      <div class="date">{{ latest.date | dateISO }}</div>
+      <div class="read">{{ latest.templateContent | readTime }} READ</div>
+      <div class="arrow">→</div>
+    </div>
+  </a>
+</section>
+{% endif %}
+
+<!-- ARCHIVE -->
+<section class="section" id="archive">
+  <div class="section-head">
+    <span class="section-num">002</span>
+    <span class="section-title">Archive</span>
+    <span class="section-meta">{{ total }} entries</span>
+  </div>
+
+  <div class="post-list">
+    {% for post in collections.posts %}
+      {% if not loop.first %}
+        <a class="post-row" href="{{ post.url }}">
+          <span class="idx">{{ (total - loop.index + 1) | padNum }}</span>
+          <span class="date">{{ post.date | dateISO }}</span>
+          <span class="title">{{ post.data.title }}</span>
+          <span class="tag">{{ post.data.tag }}</span>
+          <span class="read">{{ post.templateContent | readTime }}</span>
+        </a>
+      {% endif %}
+    {% endfor %}
+  </div>
+</section>
+
+<!-- ABOUT + SUBSCRIBE -->
+<section class="section two-col">
+  <div class="colblock" id="about">
+    <h3>003 / About</h3>
+    <p>
+      I am currently an investor/allocator at Columbia Investment Management
+      Company, where I also lead Data Science and Research. Before that, it was
+      twenty years on the other side at Millennium, Quantopian, J.P. Morgan.
+      My academic focus was in finance, CS, and AI.
+    </p>
+    <p>
+      <a href="https://github.com/marketneutral">GitHub</a> ·
+      <a href="https://www.linkedin.com/in/quantfinance">LinkedIn</a>.
+    </p>
+  </div>
+
+  <div class="colblock" id="subscribe">
+    <h3>004 / Subscribe</h3>
+    <p>
+      New posts are published to the feed as they go out — follow in any RSS
+      reader to get them without having to check back.
+    </p>
+    <p>
+      <a href="/feed.xml">/feed.xml</a>
+    </p>
+    <p style="margin-top: 22px; color: var(--muted); font-size: 13px;">
+      An email list may follow later. For now, RSS is the only subscription.
+    </p>
+  </div>
+</section>

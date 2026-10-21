@@ -1,0 +1,142 @@
+---
+title: A note on confounding
+date: 2026-06-26
+tag: NOTE
+description: A simulated case where two strategies look correlated until you condition on the right variable.
+---
+
+A short example. Two strategies, A and B, each driven in part by a common
+factor Z (think: broad market). With no causal relationship between A and
+B, their returns will still co-move because of the shared driver — a
+textbook case of confounding.
+
+## Setup
+
+```{python}
+import numpy as np
+import pandas as pd
+from matplotlib.colors import LinearSegmentedColormap
+import _oos_style
+
+rng = np.random.default_rng(13)
+N = 60  # months
+
+Z  = rng.normal(0.008, 0.04, N)    # common factor (market-ish)
+eA = rng.normal(0, 0.02, N)        # A's idiosyncratic noise
+eB = rng.normal(0, 0.02, N)        # B's idiosyncratic noise
+
+A = 0.7 * Z + eA
+B = 0.5 * Z + eB
+
+df = pd.DataFrame({"Z": Z, "A": A, "B": B})
+df.describe().round(4)
+```
+
+## A helper for OOS-styled correlation tables
+
+```{python}
+OOS = _oos_style.OOS
+
+cmap = LinearSegmentedColormap.from_list(
+    "oos_diverging",
+    [(0.0, OOS["red"]), (0.5, OOS["rule"]), (1.0, OOS["accent"])],
+)
+
+def text_color(v):
+    """Flip text dark on bright cells, light on dark cells."""
+    return f"color: {OOS['bg'] if abs(v) > 0.55 else OOS['ink']}"
+
+def styled_corr(corr):
+    return (
+        corr.style
+            .background_gradient(cmap=cmap, vmin=-1, vmax=1)
+            .map(text_color)
+            .format("{:+.2f}")
+            .set_properties(**{
+                "font-family": "IBM Plex Mono, monospace",
+                "font-size": "12.5px",
+                "text-align": "center",
+                "padding": "10px 18px",
+                "border": f"1px solid {OOS['bg']}",
+            })
+            .set_table_styles([
+                {"selector": "th", "props": [
+                    ("color", OOS["ink"]),
+                    ("background-color", OOS["bg"]),
+                    ("font-weight", "600"),
+                    ("text-align", "center"),
+                    ("padding", "8px 18px"),
+                    ("border-bottom", f"1px solid {OOS['rule']}"),
+                ]},
+                {"selector": "table", "props": [
+                    ("border-collapse", "collapse"),
+                    ("margin", "20px auto"),
+                ]},
+            ])
+    )
+```
+
+## Marginal correlation
+
+```{python}
+styled_corr(df.corr())
+```
+
+A and B come out at $\rho \approx 0.5$ — high enough to look like signal.
+But it's all driven by Z.
+
+## Conditional correlation
+
+If we residualize A and B against Z and recompute the correlation, the
+relationship should disappear:
+
+```{python}
+beta_A = np.cov(df.A, df.Z, ddof=0)[0, 1] / np.var(df.Z)
+beta_B = np.cov(df.B, df.Z, ddof=0)[0, 1] / np.var(df.Z)
+
+resid = pd.DataFrame({
+    "A | Z": df.A - beta_A * df.Z,
+    "B | Z": df.B - beta_B * df.Z,
+})
+
+styled_corr(resid.corr())
+```
+
+The remaining correlation between $A \mid Z$ and $B \mid Z$ is small and
+not distinguishable from sampling noise — exactly what you'd expect when
+the apparent association ran through Z all along.
+
+## The DAG
+
+```{dot}
+digraph confounding {
+    bgcolor="#0a0e1a"
+    rankdir=LR
+    pad=0.3
+    nodesep=0.6
+    ranksep=0.7
+
+    node [shape=circle, style=filled, fillcolor="#131927",
+          color="#3ee87a", fontcolor="#e8eaf0",
+          fontname="IBM Plex Mono", fontsize=16,
+          penwidth=1.6, width=0.7, fixedsize=true]
+    edge [color="#c0c4cf", arrowsize=0.9, penwidth=1.3]
+
+    Z [color="#e8c97a", fontcolor="#e8c97a"]
+
+    Z -> A
+    Z -> B
+
+    A -> B [style=dashed, color="#6b7280", label="  spurious", fontsize=11, fontcolor="#6b7280"]
+
+    {rank=same; A; B}
+}
+```
+
+Z (in amber) is the confounder. The solid arrows from Z to both A and B
+account for the apparent association; the dashed arrow between A and B is
+the *spurious* relationship we'd see if we never measured Z. The applied
+lesson is older than ML and still ignored about half the time: if you
+can imagine a Z that would generate the pattern you see, you have to
+either measure Z and condition on it, or accept that your estimate is
+biased.
