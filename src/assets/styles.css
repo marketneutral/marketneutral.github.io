@@ -87,7 +87,7 @@ html, body {
 .hero h1 {
   font-family: 'IBM Plex Mono', monospace;
   font-weight: 700;
-  font-size: clamp(56px, 11vw, 156px);
+  font-size: clamp(50px, 9.9vw, 140px);
   line-height: 0.96;
   letter-spacing: -0.04em;
   margin-bottom: 18px;
@@ -119,6 +119,7 @@ html, body {
   line-height: 1.65;
   color: var(--ink-2);
   max-width: 72ch;
+  text-wrap: balance;
   font-weight: 400;
 }
 .hero-body em {
@@ -216,7 +217,7 @@ html, body {
   letter-spacing: 0.05em;
 }
 .featured .body h2 {
-  font-size: 40px;
+  font-size: 36px;
   line-height: 1.05;
   letter-spacing: -0.025em;
   font-weight: 500;
@@ -327,7 +328,7 @@ html, body {
   line-height: 1.7;
   color: var(--ink-2);
   margin-bottom: 14px;
-  max-width: 52ch;
+  max-width: 72ch;
 }
 .colblock p em { font-style: italic; color: var(--accent); }
 .colblock a {
@@ -336,46 +337,6 @@ html, body {
   border-bottom: 1px solid var(--accent-d);
 }
 .colblock a:hover { border-bottom-color: var(--accent); }
-
-.subscribe-form {
-  display: flex;
-  border: 1px solid var(--rule);
-  margin-top: 18px;
-  max-width: 440px;
-}
-.subscribe-form input {
-  flex: 1;
-  border: none;
-  background: transparent;
-  padding: 14px 16px;
-  font-family: inherit;
-  font-size: 14px;
-  color: var(--ink);
-  outline: none;
-}
-.subscribe-form input::placeholder { color: var(--muted); }
-.subscribe-form input:focus { background: var(--bg-2); }
-.subscribe-form button {
-  border: none;
-  border-left: 1px solid var(--rule);
-  background: var(--accent);
-  color: var(--bg);
-  font-family: inherit;
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  padding: 0 22px;
-  cursor: pointer;
-  font-weight: 700;
-  transition: background 0.18s ease;
-}
-.subscribe-form button:hover { background: #fff; }
-.form-note {
-  font-size: 11px;
-  color: var(--muted);
-  margin-top: 10px;
-  letter-spacing: 0.04em;
-}
 
 /* ─── footer ─────────────────────────────────────────────── */
 footer {
@@ -613,14 +574,14 @@ footer a:hover { color: var(--accent); }
   .topbar .left, .topbar .right { gap: 14px; }
   .container { padding: 48px 16px 16px; }
   .hero { padding-bottom: 40px; margin-bottom: 40px; }
-  .hero h1 { font-size: 13vw; }
+  .hero h1 { font-size: 11.7vw; }
   .hero-subtitle { font-size: 20px; }
   .statgrid { grid-template-columns: 1fr; }
   .stat { border-right: none; border-bottom: 1px solid var(--rule); }
   .stat:last-child { border-bottom: none; }
   .featured { grid-template-columns: 1fr; gap: 18px; }
   .featured .side { text-align: left; }
-  .featured .body h2 { font-size: 26px; }
+  .featured .body h2 { font-size: 23px; }
   .post-row { grid-template-columns: 50px 1fr 50px; gap: 12px; }
   .post-row .date, .post-row .tag { display: none; }
   .post-row .title { font-size: 15px; }
