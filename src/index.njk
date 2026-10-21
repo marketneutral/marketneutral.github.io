@@ -26,7 +26,9 @@ title: Speculative Decoding
   </div>
   <div class="stat">
     <div class="label">AVG READ TIME</div>
-    <div class="value">06:30</div>
+    {%- set bodies = [] -%}
+    {%- for post in collections.posts %}{% set _ = bodies.push(post.templateContent) %}{% endfor -%}
+    <div class="value">{{ bodies | avgReadTime }}</div>
     <div class="sub">across all posts</div>
   </div>
   <div class="stat">
@@ -67,7 +69,8 @@ title: Speculative Decoding
 </section>
 {% endif %}
 
-<!-- ARCHIVE -->
+<!-- ARCHIVE (only when there is more than the featured post) -->
+{% if total > 1 %}
 <section class="section" id="archive">
   <div class="section-head">
     <span class="section-num">002</span>
@@ -89,6 +92,7 @@ title: Speculative Decoding
     {% endfor %}
   </div>
 </section>
+{% endif %}
 
 <!-- ABOUT -->
 <section class="section">

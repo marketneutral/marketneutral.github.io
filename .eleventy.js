@@ -24,24 +24,40 @@ module.exports = function (eleventyConfig) {
   // RFC 3339 timestamp — required by the Atom feed
   eleventyConfig.addFilter("rfc3339", (date) => new Date(date).toISOString());
 
-  // 2026.05.28
+  // 2026.05.28 — front-matter dates are parsed as UTC midnight, so format
+  // in UTC too; otherwise builds west of Greenwich show the previous day.
   eleventyConfig.addFilter("dateISO", (date) => {
     const d = new Date(date);
-    const yr = d.getFullYear();
-    const mo = String(d.getMonth() + 1).padStart(2, "0");
-    const dy = String(d.getDate()).padStart(2, "0");
+    const yr = d.getUTCFullYear();
+    const mo = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const dy = String(d.getUTCDate()).padStart(2, "0");
     return `${yr}.${mo}.${dy}`;
   });
 
   // 047
   eleventyConfig.addFilter("padNum", (num) => String(num).padStart(3, "0"));
 
+  // word count of rendered content, tags stripped
+  const wordCount = (content) =>
+    String(content).replace(/<[^>]*>/g, " ").split(/\s+/).filter(Boolean).length;
+  const WPM = 220;
+
   // "8 MIN" — rough estimate
   eleventyConfig.addFilter("readTime", (content) => {
-    const text = String(content).replace(/<[^>]*>/g, " ");
-    const words = text.split(/\s+/).filter(Boolean).length;
-    const mins = Math.max(1, Math.round(words / 220));
+    const mins = Math.max(1, Math.round(wordCount(content) / WPM));
     return `${mins} MIN`;
+  });
+
+  // "06:30" — mean read time over an array of rendered post bodies, as MM:SS.
+  // Takes content strings (not post objects): templateContent must be read
+  // in the template so Eleventy can defer rendering until posts are ready.
+  eleventyConfig.addFilter("avgReadTime", (contents) => {
+    if (!contents || !contents.length) return "00:00";
+    const totalWords = contents.reduce((n, c) => n + wordCount(c), 0);
+    const secs = Math.round((totalWords / contents.length / WPM) * 60);
+    const mm = String(Math.floor(secs / 60)).padStart(2, "0");
+    const ss = String(secs % 60).padStart(2, "0");
+    return `${mm}:${ss}`;
   });
 
   // ── collections ───────────────────────────────────────────────────────

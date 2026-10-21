@@ -1,0 +1,41 @@
+// Source for quant-workflow.svg. Re-render with:
+//   dot -Tsvg quant-workflow.dot -o quant-workflow.svg
+digraph workflow {
+  rankdir=TB;
+  bgcolor="transparent";
+  pad=0.3;
+  nodesep=0.3;
+  ranksep=0.55;
+  fontname="IBM Plex Mono, DejaVu Sans Mono, monospace";
+  node [shape=box, style="rounded,filled", fillcolor="#131927", color="#2a3344",
+        fontcolor="#e8eaf0", fontname="IBM Plex Mono, DejaVu Sans Mono, monospace",
+        fontsize=15, margin="0.22,0.12", penwidth=1.2];
+  edge [color="#6b7280", arrowsize=0.7, penwidth=1.1];
+
+  DATA   [label="Data"];
+  UDEF   [label="Universe\nDefinition"];
+  A1     [label="alpha 1"];
+  A2     [label="alpha 2"];
+  ADOTS  [label="alpha ..."];
+  AN     [label="alpha N"];
+  ACOMBO [label="Alpha\nCombination"];
+  TARGET [label="Target"];
+  RISK   [label="Risk & T-Cost\nModels"];
+  PCON   [label="Optimization"];
+  PROD   [label="t-1 Portfolio", shape=hexagon, style=filled, margin="0.05,0.05", width=0, height=0, fillcolor="#0a0e1a", color="#3ee87a", fontcolor="#3ee87a"];
+  IDEAL  [label="Ideal Portfolio", shape=hexagon, style=filled, margin="0.05,0.05", width=0, height=0, fillcolor="#0a0e1a", color="#3ee87a", fontcolor="#3ee87a"];
+  EXEC   [label="Execution"];
+
+  DATA -> UDEF;
+  UDEF -> A1; UDEF -> A2; UDEF -> ADOTS; UDEF -> AN;
+  A1 -> ACOMBO; A2 -> ACOMBO; ADOTS -> ACOMBO; AN -> ACOMBO;
+  DATA -> TARGET;
+  TARGET -> ACOMBO;
+  TARGET -> PCON;
+  DATA -> RISK;
+  ACOMBO -> PCON;
+  RISK -> PCON;
+  PROD -> PCON;
+  PCON -> IDEAL;
+  IDEAL -> EXEC;
+}
