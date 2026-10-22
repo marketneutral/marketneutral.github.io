@@ -7,9 +7,8 @@ Universe: current S&P 500 members with a full price history back to mid-2009
 (survivorship-biased by construction). Adjusted daily OHLCV from Yahoo Finance,
 June 2009 through 2025-12-31.
 The alpha is ranked, sector-demeaned (so sector- and dollar-neutral), unit
-gross, rebalanced daily, and shown unsmoothed and with a 5- and 10-day linear
-decay. Returns are on the gross book, unlevered. Costs are charged per unit of
-turnover.
+gross, rebalanced daily, and shown unsmoothed and with a 10-day linear decay.
+Returns are on the gross book, unlevered. Costs are charged per unit of turnover.
 """
 import io
 import numpy as np
@@ -20,7 +19,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.ticker import PercentFormatter
-from qex import qex, compute_context
+from qex import qex, compute_context, QuantileAnalysis
 
 START = pd.Timestamp("2010-07-01")
 COSTS = (0.0002,)   # per unit turnover: a reasonable level
@@ -47,7 +46,6 @@ RANGE = "rank(-(close() - ts_min(low(), 5)) / (ts_max(high(), 5) - ts_min(low(),
 BOOK = f"group_demean({RANGE}, 'sector')"
 ALPHAS = {
     "no smoothing": BOOK,
-    "decay 5":      f"decay_linear({BOOK}, 5)",
     "decay 10":     f"decay_linear({BOOK}, 10)",
 }
 
@@ -78,6 +76,18 @@ table = pd.DataFrame(rows)
 print(table.to_string(index=False, float_format=lambda x: f"{x:.3f}"))
 print("decay 10, net 2 bps by year:", series[("decay 10", 0.0002)].groupby(lambda d: d.year).sum().round(3).to_dict())
 
+# Quintile analysis of the smoothed alpha, and rank IC by forecast horizon for
+# both, which is why smoothing is nearly free.
+quint = QuantileAnalysis(qex(ALPHAS["decay 10"]), n_quantiles=5).run(data, start_date=START)
+print(quint.summary())
+with compute_context():
+    sig = {name: qex(expr).evaluate(data).loc[START:] for name, expr in ALPHAS.items()}
+H = range(1, 21)
+ic = pd.DataFrame({n: [s.corrwith((data["close"].shift(-k) / data["close"] - 1).loc[START:], axis=1, method="spearman").mean() for k in H] for n, s in sig.items()}, index=H)
+print("rank IC by horizon:\n", ic.round(4).T.to_string())
+for n, s in sig.items():
+    print(f"{n}: lag-1 autocorrelation {s.corrwith(s.shift(1), axis=1, method='spearman').mean():.3f}")
+
 # ── charts, in the blog's palette ──────────────────────────────────────────
 INK, INK2, MUTED, RULE, ACCENT = "#e8eaf0", "#c0c4cf", "#6b7280", "#2a3344", "#3ee87a"
 plt.rcParams.update({
@@ -96,7 +106,7 @@ def finish(fig, path):
 
 cum = lambda x: (1 + x).cumprod() - 1
 panels = list(ALPHAS)
-fig, axes = plt.subplots(1, 3, figsize=(13, 5), sharey=True)
+fig, axes = plt.subplots(1, 2, figsize=(9, 5), sharey=True)
 for ax, name in zip(axes, panels):
     g, n = cum(series[(name, 0)]).iloc[::5], cum(series[(name, 0.0002)]).iloc[::5]   # weekly points keep the SVG small
     ax.plot(g.index, g.values, color=ACCENT, lw=2, label="gross")
@@ -110,7 +120,7 @@ for ax, name in zip(axes, panels):
     for v in (g.iloc[-1], n.iloc[-1]):
         ax.annotate(f"{v:+.0%}", (g.index[-1], v), xytext=(6, 0), textcoords="offset points", va="center", fontsize=10, color=INK2)
     ax.set_xlim(pd.Timestamp("2010-04-01"), g.index[-1] + pd.Timedelta(days=500))
-axes[0].set_ylabel("cumulative long-short return", color=MUTED, fontsize=10)
+axes[0].set_ylabel("cumulative long-short return on GMV", color=MUTED, fontsize=10)
 h, l = axes[0].get_legend_handles_labels()
 fig.legend(h, l, loc="lower center", bbox_to_anchor=(0.5, -0.04), ncol=2, frameon=False, fontsize=10, handlelength=1.6)
 fig.subplots_adjust(wspace=0.12)
@@ -122,9 +132,38 @@ ax.grid(axis="x", visible=False)
 ax.bar(yr.index, yr.values, width=0.5, color=ACCENT, zorder=3)
 ax.axhline(0, color=RULE, lw=1, zorder=2)
 ax.yaxis.set_major_formatter(PercentFormatter(1.0, decimals=0))
-ax.set_title("range, decay 10: net return by calendar year, 2 bps per unit turnover", loc="left", fontsize=11, pad=10)
+ax.set_title("range, decay 10: net return on GMV by calendar year, 2 bps per unit turnover", loc="left", fontsize=11, pad=10)
 ax.set_xticks(list(yr.index)); ax.set_xticklabels([str(y)[2:] for y in yr.index]); ax.tick_params(labelsize=10)
 for y, v in yr.items():   # labels sit above the bar, or above the baseline for a negative year
     ax.annotate("0%" if abs(v) < 0.005 else f"{v:+.0%}", (y, max(v, 0)), xytext=(0, 4), textcoords="offset points", ha="center", fontsize=9, color=INK2)
 finish(fig, "range-by-year.svg")
-print("wrote gross-vs-net.svg and range-by-year.svg")
+
+q = (quint.mean_returns - quint.mean_returns.mean()) * 252   # relative to the equal-weight universe
+fig, ax = plt.subplots(figsize=(9, 3.6))
+ax.grid(axis="x", visible=False)
+ax.bar(q.index, q.values, width=0.5, color=ACCENT, zorder=3)
+ax.axhline(0, color=RULE, lw=1, zorder=2)
+ax.yaxis.set_major_formatter(PercentFormatter(1.0, decimals=0))
+ax.set_title("range, decay 10: annual return by quintile relative to the universe, gross", loc="left", fontsize=11, pad=10)
+ax.set_xticks(list(q.index)); ax.set_xticklabels([f"Q{i}" for i in q.index]); ax.tick_params(labelsize=10)
+ax.set_xlabel("quintile of the alpha, Q5 is the top", fontsize=10)
+for i, v in q.items():
+    ax.annotate(f"{v:+.1%}", (i, max(v, 0)), xytext=(0, 4), textcoords="offset points", ha="center", fontsize=9, color=INK2)
+finish(fig, "quintiles.svg")
+
+fig, ax = plt.subplots(figsize=(9, 3.8))
+ax.grid(axis="x", visible=False)
+for name, color in [("no smoothing", MUTED), ("decay 10", ACCENT)]:
+    ax.plot(ic.index, ic[name], color=color, lw=2, marker="o", ms=4, label=name)
+ax.annotate("no smoothing", (8, ic["no smoothing"][8]), xytext=(0, 8), textcoords="offset points", ha="center", fontsize=10, color=INK2)
+ax.annotate("decay 10", (2, ic["decay 10"][2]), xytext=(10, -10), textcoords="offset points", ha="left", fontsize=10, color=INK2)
+ax.axhline(0, color=RULE, lw=1, zorder=0)
+ax.set_title("range: rank IC against the cumulative return over the next k days", loc="left", fontsize=11, pad=10)
+ax.set_xlabel("k, trading days ahead", fontsize=10)
+ax.set_ylabel("mean daily rank IC", fontsize=10)
+ax.set_xticks([1, 5, 10, 15, 20]); ax.set_xlim(0.5, 20.5); ax.set_ylim(0, 0.014)
+ax.tick_params(labelsize=10)
+h, l = ax.get_legend_handles_labels()
+fig.legend(h, l, loc="lower center", bbox_to_anchor=(0.5, -0.08), ncol=2, frameon=False, fontsize=10, handlelength=1.6)
+finish(fig, "ic-by-horizon.svg")
+print("wrote gross-vs-net.svg, range-by-year.svg, quintiles.svg, ic-by-horizon.svg")

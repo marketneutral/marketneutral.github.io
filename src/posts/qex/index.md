@@ -7,11 +7,10 @@ description: A domain-specific language for quant alphas. Write the idea in one 
 
 I have been building a small language for expressing quant alphas, the
 cross-sectional forecasts a systematic investor turns into a portfolio.
-It is called qex, and it lives at
-[github.com/marketneutral/alpha-parser](https://github.com/marketneutral/alpha-parser),
-with docs at
-[marketneutral.github.io/alpha-parser](https://marketneutral.github.io/alpha-parser/).
-The whole pitch fits in one line:
+It is called qex, and the
+[source](https://github.com/marketneutral/alpha-parser) and
+[documentation](https://marketneutral.github.io/alpha-parser/) are
+public. The whole pitch fits in one line:
 
 ```python
 signal = qex("rank(-returns(20) / volatility(60))")
@@ -192,10 +191,9 @@ Let's work some real data and an alpha idea motivated by what
 practitioners do and the literature. The universe is every current S&P
 500 member with a full price history back to mid-2009, 414 names, with
 adjusted daily bars from Yahoo Finance. Using current membership makes
-the basket survivorship-biased, and that is as much of a problem for a
-long-short book as for a long-only one, since the names that fell out of
-the index on the way down are exactly the ones a reversal alpha would
-have been buying.
+the basket survivorship-biased, of course. At worst, the names that fell
+out of the index on the way down are exactly the ones a reversal alpha
+would have been buying.
 
 The alpha is short-term reversal, which is the family that shows up in
 price-only data at a horizon of days to weeks, and the economic story
@@ -234,24 +232,34 @@ of the weight, yesterday 16%, and the tenth day back under 2%, so the
 signal is smoothed without being lagged the way an equal-weight ten-day
 mean would lag it.
 
+The first check, before any backtest, is whether the alpha sorts returns
+at all. `QuantileAnalysis` cuts the universe into quintiles of the alpha
+each day and holds each quintile as an equal-weight portfolio for a day.
+The chart shows each quintile's return relative to the equal-weight
+universe. The quintiles are monotonic, and the top-minus-bottom spread
+is 8.3% a year at a Sharpe of 0.84 before costs, which is about 4% on
+GMV and in line with the backtest below.
+
+![Bar chart of annual return by quintile of the ten-day decay alpha relative to the equal-weight universe, gross of costs. The bars rise monotonically from minus 3.9 percent for the bottom quintile through minus 1.7, minus 0.6, and plus 1.8 to plus 4.4 percent for the top.](quintiles.svg)
+
 The book is rebalanced every day to the alpha's weights, and turnover is
 quoted per day. The run is July 2010 to December 2025. Costs are charged
 per unit of turnover at 2 basis points, which is a reasonable level for
-an institution. All returns are on the gross book, unlevered, meaning a
-dollar long against a dollar short with no financing and no leverage.
-The table shows the same alpha unsmoothed and with a five-day and a
-ten-day decay.
+an institution. All returns are on gross market value, GMV, unlevered,
+meaning a dollar long against a dollar short with no financing and no
+leverage.
+The table shows the same alpha unsmoothed and with a ten-day decay.
 
-| Range, daily | Turnover / day | Gross annual | Gross Sharpe | Net at 2 bps | Net Sharpe | Max drawdown |
+| Range, daily | Turnover / day | Gross on GMV | Gross Sharpe | Net on GMV at 2 bps | Net Sharpe | Max drawdown |
 |---|---:|---:|---:|---:|---:|---:|
 | no smoothing | 84% | +3.8% | 0.98 | -0.5% | -0.13 | -21% |
-| decay 5 | 44% | +3.9% | 0.95 | +1.6% | 0.40 | -16% |
-| **decay 10** | **32%** | **+3.8%** | **0.90** | **+2.3%** | **0.53** | **-15%** |
+| **decay 10** | **32%** | **+3.8%** | **0.90** | **+2.2%** | **0.52** | **-15%** |
 
-Max drawdown is on the book net of 2 basis points.
+Returns are annual and on GMV. Max drawdown is on the book net of 2 basis
+points.
 
 <figure class="wide" id="gross-vs-net">
-  <img src="gross-vs-net.svg" alt="Three panels of cumulative long-short return for the range alpha from 2010 to the end of 2025: unsmoothed, five-day decay, and ten-day decay. Gross ends near plus 78 percent in all three. Net of 2 basis points ends at minus 8 percent unsmoothed, plus 27 percent with the five-day decay, and plus 40 percent with the ten-day decay.">
+  <img src="gross-vs-net.svg" alt="Two panels of cumulative long-short return for the range alpha from 2010 to the end of 2025: unsmoothed and ten-day decay. Gross ends near plus 78 percent in both. Net of 2 basis points ends at minus 8 percent unsmoothed and plus 39 percent with the ten-day decay.">
 </figure>
 
 The alpha looks decent. Gross Sharpe is 0.90 to 0.98 over the run, and
@@ -260,21 +268,46 @@ along the way. Just under four percent a year on the gross book is good
 for a single price-based alpha, since a real quant book runs at four to
 six times leverage, where it is mid-teens to twenty percent before
 financing, and no quant book trades a single alpha anyway; this one
-would be one input among many. Cost is most of the story. Unsmoothed,
-the book turns over 84% a day and loses money net of 2 basis points
-despite having the best gross Sharpe of the three. That pre-cost signal
-is still worth something to a market maker, who is paid the spread
-rather than charged it, and the move of high-frequency firms into stat
-arb that the press has covered, such as Bloomberg's December 2025 [story
-on Hudson River
-Trading](https://news.bloomberglaw.com/securities-law/more-risk-less-speed-hudson-river-mints-billions-slowing-down)
-holding positions for days and weeks, is this picture seen from the
-other side. Smoothing helps, as expected: the ten-day decay cuts
-turnover to 32% with no loss of gross return and takes the net Sharpe at
-2 basis points from negative to about 0.5, and turnover around thirty
-percent a day is the classic mid-frequency statistical arbitrage space.
-Ten days is a common default for this kind of smoothing, and in the
-language the whole change is one `decay_linear` around the expression.
+would be one input among many.
+
+Smoothing is close to a free lunch here. The ten-day decay cuts turnover
+from 84% to 32%, cuts the drawdown from 21% to 15%, takes the net Sharpe
+at 2 basis points from negative to about 0.5, and gives up nothing in
+gross return. The only cost is a tenth of a point of gross Sharpe.
+Diversification is supposed to be the only free lunch in finance, and
+smoothing a fast alpha is a close second. The reason it is nearly free
+is the horizon of the alpha. The chart shows the rank IC of each
+signal against the cumulative return over the next k days. Against the
+next day's return the unsmoothed signal's IC is about 0.010 and the
+smoothed signal's is half that, but by a week out the two curves have
+met, and against the next ten days they are the same, 0.011 and 0.010.
+
+![Line chart of mean daily rank IC against the cumulative return over the next k trading days, k from 1 to 20, for the unsmoothed and ten-day decay signals. The unsmoothed line starts near 0.010 and peaks near 0.012 at seven days. The decay 10 line starts at 0.005, climbs steeply, and joins the unsmoothed line by about six days; the two are indistinguishable from there to 20 days.](ic-by-horizon.svg)
+
+The signal predicts a move that plays out over about two weeks, so
+averaging the last ten days of ranks keeps the forecast and discards the
+daily noise that was driving the turnover; the smoothed ranks have a
+day-to-day autocorrelation of 0.95 against 0.57 unsmoothed. The lunch
+stops being free when the alpha's horizon is shorter than the smoothing
+window, which is the thing to check before turning the decay up. In the
+language, the check is one `decay_linear` around the expression and a
+rerun. Turnover around thirty percent a day
+is the classic mid-frequency statistical arbitrage space, ten days is a
+common default for this kind of smoothing.
+
+The gross column is not wasted on whoever does not pay the cost. A
+high-frequency firm is paid the spread rather than charged it, and to a
+market maker a signal with a gross Sharpe near one and 84% daily
+turnover is a reason to lean its quotes, not a book it cannot afford to
+trade. The move of high-frequency firms into statistical arbitrage,
+such as Hudson River Trading holding positions for days and weeks in
+Bloomberg's December 2025 [story on the
+firm](https://news.bloomberglaw.com/securities-law/more-risk-less-speed-hudson-river-mints-billions-slowing-down),
+is this picture from the other side: the signal is the same and the
+cost is the only difference. The same holds for a sell-side desk that
+can cross client flow internally, or a large buy-side manager that can
+cross its own, since either one trades at close to zero cost and gets
+the gross line.
 
 ![Bar chart of the ten-day decay book's net annual return by calendar year at 2 basis points, 2010 through 2025. Twelve of sixteen years are positive, with 2020 the standout at plus 16 percent and 2025 the worst at minus 3.](range-by-year.svg)
 
@@ -284,7 +317,11 @@ normally makes in five, which is Nagel's point exactly: dislocation is
 when liquidity providers get paid. The last few years are thinner, and
 the plain reading is that an alpha this simple decays as more capital
 trades it. This post is not meant to hand you a new alpha source; if it
-were still a secret I would not be writing it up.
+were still a secret I would not be writing it up. A fun thought
+experiment, though, is that the approach was just as well known before
+2020, and it still made five years of return in one when liquidity
+disappeared. Being crowded did not stop it from paying when the
+paying mattered.
 
 ## Limitations
 
@@ -293,8 +330,8 @@ If a company reports a dollar of earnings in January and restates it to
 three dollars in March, qex only knows one of those numbers, and the run
 above uses today's adjusted prices and today's index membership, which
 is why it is survivorship-biased. Bi-temporal data, where every value
-carries both the date it describes and the date it became known, should
-come in a future release. qex is meant in its current form as an
+carries both the date it describes and the date it became known,
+could come in a future release. qex is meant in its current form as an
 exploration tool, not production ready for an institution.
 
 ## Future directions

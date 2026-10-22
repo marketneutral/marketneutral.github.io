@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="559.760938pt" height="282.080562pt" viewBox="0 0 559.760938 282.080562" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-10-22T13:12:04.196208</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.11.2, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 282.080562 
+L 559.760938 282.080562 
+L 559.760938 0 
+L 0 0 
+L 0 282.080562 
+z
+" style="fill: none"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 39.560938 236.526656 
+L 541.760938 236.526656 
+L 541.760938 36.942656 
+L 39.560938 36.942656 
+L 39.560938 236.526656 
+z
+" style="fill: none"/>
+   </g>
+   <g id="matplotlib.axis_1">
+    <g id="xtick_1">
+     <g id="line2d_1"/>
+     <g id="text_1">
+      <text style="font-size: 10px; font-family: 'IBM Plex Mono, DejaVu Sans Mono, monospace', monospace; text-anchor: middle; fill: #6b7280" x="87.751847" y="247.624312" transform="rotate(-0 87.751847 247.624312)">Q1</text>
+     </g>
+    </g>
+    <g id="xtick_2">
+     <g id="line2d_2"/>
+     <g id="text_2">
+      <text style="font-size: 10px; font-family: 'IBM Plex Mono, DejaVu Sans Mono, monospace', monospace; text-anchor: middle; fill: #6b7280" x="189.206392" y="247.624312" transform="rotate(-0 189.206392 247.624312)">Q2</text>
+     </g>
+    </g>
+    <g id="xtick_3">
+     <g id="line2d_3"/>
+     <g id="text_3">
+      <text style="font-size: 10px; font-family: 'IBM Plex Mono, DejaVu Sans Mono, monospace', monospace; text-anchor: middle; fill: #6b7280" x="290.660938" y="247.624312" transform="rotate(-0 290.660938 247.624312)">Q3</text>
+     </g>
+    </g>
+    <g id="xtick_4">
+     <g id="line2d_4"/>
+     <g id="text_4">
+      <text style="font-size: 10px; font-family: 'IBM Plex Mono, DejaVu Sans Mono, monospace', monospace; text-anchor: middle; fill: #6b7280" x="392.115483" y="247.624312" transform="rotate(-0 392.115483 247.624312)">Q4</text>
+     </g>
+    </g>
+    <g id="xtick_5">
+     <g id="line2d_5"/>
+     <g id="text_5">
+      <text style="font-size: 10px; font-family: 'IBM Plex Mono, DejaVu Sans Mono, monospace', monospace; text-anchor: middle; fill: #6b7280" x="493.570028" y="247.624312" transform="rotate(-0 493.570028 247.624312)">Q5</text>
+     </g>
+    </g>
+    <g id="text_6">
+     <text style="font-size: 10px; font-family: 'IBM Plex Mono, DejaVu Sans Mono, monospace', monospace; text-anchor: middle; fill: #6b7280" x="290.660938" y="261.678219" transform="rotate(-0 290.660938 261.678219)">quintile of the alpha, Q5 is the top</text>
+    </g>
+   </g>
+   <g id="matplotlib.axis_2">
+    <g id="ytick_1">
+     <g id="line2d_6">
+      <path d="M 39.560938 230.17091 
+L 541.760938 230.17091 
+" clip-path="url(#pc3784d6ced)" style="fill: none; stroke: #2a3344; stroke-linecap: square"/>
+     </g>
+     <g id="line2d_7"/>
+     <g id="text_7">
+      <text style="font-size: 10px; font-family: 'IBM Plex Mono, DejaVu Sans Mono, monospace', monospace; text-anchor: end; fill: #6b7280" x="36.060938" y="233.969738" transform="rotate(-0 36.060938 233.969738)">−4%</text>
+     </g>
+    </g>
+    <g id="ytick_2">
+     <g id="line2d_8">
+      <path d="M 39.560938 186.499143 
+L 541.760938 186.499143 
+" clip-path="url(#pc3784d6ced)" style="fill: none; stroke: #2a3344; stroke-linecap: square"/>
+     </g>
+     <g id="line2d_9"/>
+     <g id="text_8">
+      <text style="font-size: 10px; font-family: 'IBM Plex Mono, DejaVu Sans Mono, monospace', monospace; text-anchor: end; fill: #6b7280" x="36.060938" y="190.297971" transform="rotate(-0 36.060938 190.297971)">−2%</text>
+     </g>
+    </g>
+    <g id="ytick_3">
+     <g id="line2d_10">
+      <path d="M 39.560938 142.827377 
+L 541.760938 142.827377 
+" clip-path="url(#pc3784d6ced)" style="fill: none; stroke: #2a3344; stroke-linecap: square"/>
+     </g>
+     <g id="line2d_11"/>
+     <g id="text_9">
+      <text style="font-size: 10px; font-family: 'IBM Plex Mono, DejaVu Sans Mono, monospace', monospace; text-anchor: end; fill: #6b7280" x="36.060938" y="146.626205" transform="rotate(-0 36.060938 146.626205)">0%</text>
+     </g>
+    </g>
+    <g id="ytick_4">
+     <g id="line2d_12">
+      <path d="M 39.560938 99.155611 
+L 541.760938 99.155611 
+" clip-path="url(#pc3784d6ced)" style="fill: none; stroke: #2a3344; stroke-linecap: square"/>
+     </g>
+     <g id="line2d_13"/>
+     <g id="text_10">
+      <text style="font-size: 10px; font-family: 'IBM Plex Mono, DejaVu Sans Mono, monospace', monospace; text-anchor: end; fill: #6b7280" x="36.060938" y="102.954439" transform="rotate(-0 36.060938 102.954439)">2%</text>
+     </g>
+    </g>
+    <g id="ytick_5">
+     <g id="line2d_14">
+      <path d="M 39.560938 55.483845 
+L 541.760938 55.483845 
+" clip-path="url(#pc3784d6ced)" style="fill: none; stroke: #2a3344; stroke-linecap: square"/>
+     </g>
+     <g id="line2d_15"/>
+     <g id="text_11">
+      <text style="font-size: 10px; font-family: 'IBM Plex Mono, DejaVu Sans Mono, monospace', monospace; text-anchor: end; fill: #6b7280" x="36.060938" y="59.282673" transform="rotate(-0 36.060938 59.282673)">4%</text>
+     </g>
+    </g>
+   </g>
+   <g id="line2d_16">
+    <path d="M 39.560938 142.827377 
+L 541.760938 142.827377 
+" clip-path="url(#pc3784d6ced)" style="fill: none; stroke: #2a3344; stroke-linecap: square"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 39.560938 236.526656 
+L 541.760938 236.526656 
+" style="fill: none; stroke: #2a3344; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 62.38821 142.827377 
+L 113.115483 142.827377 
+L 113.115483 227.454656 
+L 62.38821 227.454656 
+z
+" clip-path="url(#pc3784d6ced)" style="fill: #3ee87a"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 163.842756 142.827377 
+L 214.570028 142.827377 
+L 214.570028 180.823442 
+L 163.842756 180.823442 
+z
+" clip-path="url(#pc3784d6ced)" style="fill: #3ee87a"/>
+   </g>
+   <g id="patch_6">
+    <path d="M 265.297301 142.827377 
+L 316.024574 142.827377 
+L 316.024574 156.770287 
+L 265.297301 156.770287 
+z
+" clip-path="url(#pc3784d6ced)" style="fill: #3ee87a"/>
+   </g>
+   <g id="patch_7">
+    <path d="M 366.751847 142.827377 
+L 417.479119 142.827377 
+L 417.479119 103.073844 
+L 366.751847 103.073844 
+z
+" clip-path="url(#pc3784d6ced)" style="fill: #3ee87a"/>
+   </g>
+   <g id="patch_8">
+    <path d="M 468.206392 142.827377 
+L 518.933665 142.827377 
+L 518.933665 46.014656 
+L 468.206392 46.014656 
+z
+" clip-path="url(#pc3784d6ced)" style="fill: #3ee87a"/>
+   </g>
+   <g id="text_12">
+    <text style="font-size: 9px; font-family: 'IBM Plex Mono, DejaVu Sans Mono, monospace', monospace; text-anchor: middle; fill: #c0c4cf" x="87.751847" y="138.827377" transform="rotate(-0 87.751847 138.827377)">-3.9%</text>
+   </g>
+   <g id="text_13">
+    <text style="font-size: 9px; font-family: 'IBM Plex Mono, DejaVu Sans Mono, monospace', monospace; text-anchor: middle; fill: #c0c4cf" x="189.206392" y="138.827377" transform="rotate(-0 189.206392 138.827377)">-1.7%</text>
+   </g>
+   <g id="text_14">
+    <text style="font-size: 9px; font-family: 'IBM Plex Mono, DejaVu Sans Mono, monospace', monospace; text-anchor: middle; fill: #c0c4cf" x="290.660938" y="138.827377" transform="rotate(-0 290.660938 138.827377)">-0.6%</text>
+   </g>
+   <g id="text_15">
+    <text style="font-size: 9px; font-family: 'IBM Plex Mono, DejaVu Sans Mono, monospace', monospace; text-anchor: middle; fill: #c0c4cf" x="392.115483" y="99.073844" transform="rotate(-0 392.115483 99.073844)">+1.8%</text>
+   </g>
+   <g id="text_16">
+    <text style="font-size: 9px; font-family: 'IBM Plex Mono, DejaVu Sans Mono, monospace', monospace; text-anchor: middle; fill: #c0c4cf" x="493.570028" y="42.014656" transform="rotate(-0 493.570028 42.014656)">+4.4%</text>
+   </g>
+   <g id="text_17">
+    <text style="font-weight: 700; font-size: 11px; font-family: 'IBM Plex Mono, DejaVu Sans Mono, monospace', monospace; text-anchor: start; fill: #e8eaf0" x="39.560938" y="26.942656" transform="rotate(-0 39.560938 26.942656)">range, decay 10: annual return by quintile relative to the universe, gross</text>
+   </g>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="pc3784d6ced">
+   <rect x="39.560938" y="36.942656" width="502.2" height="199.584"/>
+  </clipPath>
+ </defs>
+</svg>
