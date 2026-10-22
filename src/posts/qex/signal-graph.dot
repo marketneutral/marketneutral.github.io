@@ -1,0 +1,37 @@
+// Source for signal-graph.svg: the SignalGraph qex builds for three signals,
+// with returns(60) shared. Re-render with:
+//   dot -Tsvg signal-graph.dot -o signal-graph.svg
+digraph signals {
+  rankdir=BT;
+  bgcolor="transparent";
+  pad=0.3;
+  nodesep=0.4;
+  ranksep=0.6;
+  node [shape=box, style="rounded,filled", fillcolor="#131927", color="#2a3344",
+        fontcolor="#e8eaf0", fontname="IBM Plex Mono, DejaVu Sans Mono, monospace",
+        fontsize=15, margin="0.22,0.12", penwidth=1.2];
+  edge [color="#6b7280", arrowsize=0.7, penwidth=1.1];
+
+  // leaves: data access
+  r60 [label="returns(60)", shape=ellipse, color="#3ee87a", penwidth=1.6];
+  v60 [label="volatility(60)", shape=ellipse];
+  r5  [label="returns(5)", shape=ellipse];
+
+  // intermediates
+  div [label="returns(60) / volatility(60)"];
+  neg [label="-returns(5)"];
+
+  // outputs
+  mom [label="momentum\nrank(returns(60))", fontcolor="#3ee87a", color="#3ee87a"];
+  shp [label="sharpe\nrank(returns(60) / volatility(60))", fontcolor="#3ee87a", color="#3ee87a"];
+  rev [label="reversal\nrank(-returns(5))", fontcolor="#3ee87a", color="#3ee87a"];
+
+  r60 -> mom;
+  r60 -> div;
+  v60 -> div;
+  div -> shp;
+  r5  -> neg;
+  neg -> rev;
+
+  { rank=same; mom; shp; rev; }
+}
