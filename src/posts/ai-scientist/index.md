@@ -275,62 +275,60 @@ Quant research is not backtest-and-keep. The backtest is the last step, not the
 search. The work is in the step before it: an economic reason the effect should
 exist, who is on the other side of the trade, why it should persist, and a
 prediction specific enough to be wrong. The field built that discipline because
-unguided search on historical returns reliably finds noise. A Sharpe ratio
-estimated from ten years of data has a standard error of about 0.3, so among a
-thousand strategies with no edge at all, the best shows a Sharpe near 1.0 by
-luck alone. Harvey, Liu and Zhu's factor zoo, and the work of Bailey and López
-de Prado on backtest overfitting, are the long version of that sentence.
+unguided search on historical returns reliably finds noise. Quantopian measured
+it. In *All that Glitters Is Not Gold*, backtest Sharpe ratios for 888 trading
+algorithms explained almost none of the variation in their out-of-sample Sharpe
+ratios (R² below 0.025), and the more backtests an author had run, the wider the
+gap. I was there.
 
-The loop makes this worse in a specific way. The hold-out backtest is the
-validation set, and every keep-or-discard decision reads it. Hill-climbing on a
-hold-out leaks the hold-out into the strategy one bit at a time, and after a
-thousand decisions the out-of-sample period is in-sample in everything but name.
-That is what the red dot in Karpathy's run means: a new random seed is not a
-better model, it is a luckier draw of the training noise as judged by the
-validation set, and the loop kept it. Markets add a problem a language model's
-validation set does not have. A hold-out period is one draw of history, and a
-change that wins on it may be nothing more than a bet on that period's regime.
+The loop makes this worse. The hold-out backtest is the validation set, and every
+keep-or-discard decision reads it. Hill-climbing on a hold-out leaks the hold-out
+into the strategy one decision at a time, until the out-of-sample period is
+in-sample in everything but name. That is the red dot in Karpathy's run: a new
+random seed is not a better model, and the loop kept it. Markets add a problem a
+language model's validation set does not have. A hold-out period is one draw of
+history, and a change that wins on it may only be a bet on that period's regime.
 
-So the question that matters is this: can an adjusted autoresearch find alpha
-that persists out of sample? I think it can, because the step a language model
-is good at, reading, reasoning and proposing a mechanism, is the step quant
-research is built around. The adjustments are about making that step
-impossible to skip and making the evaluation impossible to climb.
+So can an adjusted autoresearch find alpha that persists out of sample? I think
+it will. The bitter lesson is on our side: general methods that scale with
+compute keep beating clever hand-built ones, and the models keep getting better.
+I also believe models can be creative, that they can propose ideas that are not
+in their training data. What has to change is the loop around them.
 
 - **Require the claim before the test.** Every change comes with a mechanism,
   a counterparty, a reason the effect should persist, and a prediction of where
-  it should help and where it should not. The claim is logged with the attempt,
-  and the prediction is what gets tested, not just the aggregate score. A
-  change that raises the Sharpe for no stated reason is discarded. This is the
-  prediction step of the scientific method, which autoresearch skips and
-  finance cannot.
+  it should help and where it should not. The prediction is tested, not just the
+  aggregate score, and a change that raises the Sharpe for no stated reason is
+  discarded. This puts back the prediction step of the scientific method, which
+  autoresearch skips and finance cannot.
 - **Make the evaluator move.** Replace the fixed hold-out with purged
-  cross-validation on randomized partitions of history, removing overlapping
-  observations from training and embargoing the period after each test block.
-  A fresh partition for every attempt means there is no single hold-out to
-  climb. Keep a change only if it improves the median fold and does not hurt
-  the worst, so that it has to work across regimes, not in one.
-- **Charge for complexity.** Every parameter and every special case is a
-  degree of freedom spent fitting the past. Karpathy's simplicity rule, equal
-  score with less code wins, matters far more here than in a training script.
+  cross-validation on randomized partitions of history, with overlapping
+  observations removed from training and an embargo after each test block. A
+  fresh partition for every attempt leaves no single hold-out to climb. Keep a
+  change only if it improves the median fold and does not hurt the worst.
+- **Charge for complexity.** Every parameter is a degree of freedom spent fitting
+  the past. Karpathy's simplicity rule matters far more here than in a training
+  script.
 - **Count the trials.** The log knows how many things were tried. Deflate the
-  winner's Sharpe by that count before believing it.
-- **Keep one period the loop never touches.** Use it once, at the end, then
-  trade it on paper. Persistence out of sample is the claim, and live markets
-  are the only test of it that cannot leak.
+  winner's Sharpe by that count.
+- **Seed the search.** Every fund's agent has read the same papers, so left alone
+  its priors are the crowd's. The problem definition is where the firm's own view
+  goes: the quant's hypotheses, the questions that matter to the book, the data
+  nobody else has. Sample most proposals conservatively and let a few run on wild
+  tangents.
+- **Keep one period the loop never touches.** Use it once, at the end.
 
-Whether that is enough is the open question, and an honest one. Requiring a
-causal claim may narrow the search to ideas that sound right, which is not the
-same as ideas that are right. A moving evaluator protects against one regime
-but not against the next one. And the agent has read the same papers as every
-other quant, so its priors are the crowd's priors.
+None of these is a silver bullet. They all matter, and so do a million small
+details, the same ones that separate a real research process from a well-mined
+backtest. And the final test is the one there has always been: true out of
+sample, live.
 
-The loop will find whatever the evaluation rewards. Everywhere else in this
-post that was a reason to get the evaluation right. In finance it is the whole
-game. Reward backtests and it will hand you a thousand of them, each a little
-too good. Reward reasons, and keep the test honest, and you have a researcher
-who reads everything, argues every change, and does not mind being wrong a
-hundred times a night.
+Autoresearch is not an AI quant. It is sparks of one, green shoots, early and
+rough. But it is inevitable.
+
+And we have only talked about quant. Fundamental investing is a process. An
+analyst reads the filings, builds the model, forms a thesis, sizes the position,
+and finds out a year later whether they were right. That is a loop too.
 
 ---
 
@@ -340,9 +338,9 @@ hundred times a night.
 - Shopify/liquid [#2056](https://github.com/Shopify/liquid/pull/2056), the Liquid result, with the benchmark table and methodology.
 - Cobelli and Sanvito, [Agentic Design of Compositional Descriptors via Autoresearch for Materials Science Applications](https://arxiv.org/abs/2605.14671), *Digital Discovery*, 2026.
 - Anthropic, [`skill-creator`](https://github.com/anthropics/skills/blob/main/skills/skill-creator/SKILL.md), including `scripts/run_loop`.
-- Harvey, Liu, and Zhu, […and the Cross-Section of Expected Returns](https://academic.oup.com/rfs/article/29/1/5/1843824), *Review of Financial Studies*, 2016.
+- Wiecki, Campbell, Lent, and Stauth, [All that Glitters Is Not Gold: Comparing Backtest and Out-of-Sample Performance on a Large Cohort of Trading Algorithms](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2745220), SSRN, 2016.
+- Sutton, [The Bitter Lesson](http://www.incompleteideas.net/IncIdeas/BitterLesson.html), 2019.
 - Bailey and López de Prado, [The Deflated Sharpe Ratio](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2460551), *Journal of Portfolio Management*, 2014.
-- Bailey, Borwein, López de Prado, and Zhu, [The Probability of Backtest Overfitting](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2326253), *Journal of Computational Finance*, 2017.
 - López de Prado, [*Advances in Financial Machine Learning*](https://www.wiley.com/en-us/Advances+in+Financial+Machine+Learning-p-9781119482086), Wiley, 2018, on purged cross-validation and embargo.
 - Romera-Paredes et al., [Mathematical discoveries from program search with large language models](https://www.nature.com/articles/s41586-023-06924-6), *Nature*, 2024.
 - [AlphaEvolve](https://deepmind.google/discover/blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/), DeepMind, 2025.
