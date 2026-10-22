@@ -390,6 +390,14 @@ footer a:hover { color: var(--accent); }
   color: var(--accent);
   font-weight: 400;
 }
+.post-article .byline {
+  margin-top: 18px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.post-article .byline .author { color: var(--ink); font-weight: 600; }
 .post-body {
   font-size: 16px;
   line-height: 1.72;
