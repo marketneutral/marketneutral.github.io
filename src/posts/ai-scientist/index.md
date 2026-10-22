@@ -33,8 +33,7 @@ you go around again.
 Of these steps, the proposal has always been the slow one. Running an experiment
 can be automated, but deciding which experiment is worth running has needed a
 person who knows the field. Because experiments were expensive, scientists spent
-most of their effort choosing carefully and ran relatively few. A whole career
-might involve hundreds of experiments.
+most of their effort choosing carefully and ran relatively few.
 
 ## When there is a slope
 
@@ -63,9 +62,11 @@ Nobody has to think about where to go next.
 Most of science does not look like that. A hypothesis is usually a protocol, a
 piece of analysis code, a set of features, a molecule. You cannot nudge a
 protocol a little bit in some direction, so there is no slope to follow. Even
-Karpathy's training script is like this. The agent changes the depth of the
-network, swaps the optimizer, rewrites blocks of code. Those are edits to a
-program, and a program has no gradient.
+Karpathy's training script is like this. Some of what the agent changes are
+numbers, like the learning rate or the batch size. Many are whole-number or
+either-or choices, like the depth of the network or the attention pattern, and
+some are rewritten blocks of code. And every score comes from a complete
+training run, so there is no slope to compute even for the numbers.
 
 Without a slope, the options used to be poor. You could try things at random,
 try a grid of settings, or mutate candidates and keep the best. These methods
@@ -101,24 +102,22 @@ Three files matter.
 
 - `train.py` is the only file the agent may edit. It holds the model, the
   optimizer and the training loop.
-- `prepare.py` holds the test. After training, it runs the model on a fixed
-  slice of text that the model never trains on and measures how well it
-  predicts that text. This is just the model's loss on held-out data, reported
-  per byte of text so that it stays comparable even if the agent changes the
-  vocabulary. It is called `val_bpb`, for validation bits per byte, and lower
-  is better. The agent is not allowed to touch this file.
+- `prepare.py` holds the data and the test. The data is split into a training
+  set and a held-out validation set that the model never trains on. After
+  training, the test measures the model's loss on the validation set, in bits
+  per byte. That number is `val_bpb`, and lower is better. The agent is not
+  allowed to touch this file.
 - `program.md` holds the instructions, written by a person, that tell the agent
   how to run the loop.
 
 The agent reads the code, decides on a change, edits `train.py` and commits. It
-trains the model for exactly five minutes, then scores it on the held-out text.
-If the score beats the best so far, the commit stays. If not, git resets to the
-previous best. Either way
-the agent adds a line to a log describing what it tried and what happened, and
-then it starts again.
+trains the model for exactly five minutes, then scores it on the validation
+set. If the score beats the best so far, the commit stays. If not, git resets to
+the previous best. Either way the agent adds a line to a log describing what it
+tried and what happened, and then it starts again.
 
 <figure class="diagram" id="loop">
-  <img src="autoresearch-loop.svg" alt="Two lanes. The human writes program.md and later reads results.tsv. The agent reads the files, proposes a change, edits train.py, commits, runs a fixed five-minute training job, reads val_bpb, and either advances the branch or resets it, then logs the result and repeats.">
+  <img src="autoresearch-loop.svg" alt="The loop laid out like the scientific method: program.md, look at the current code, propose a change (the model), edit train.py and commit, train for five minutes, score on the held-out validation set, then a decision: if better than the best so far keep it and go to the next idea, otherwise undo it and propose again.">
   <figcaption>The autoresearch loop. Same shape as the scientific method, with the hypothesis step handed to a model. Every attempt is also written to a log, <code>results.tsv</code>, which you read in the morning.</figcaption>
 </figure>
 
@@ -136,7 +135,8 @@ far safe, so a bad idea costs one reset.
 Here is one overnight run, from the repository itself. Each grey dot is an
 experiment the agent threw away. Each green dot is one it kept, labelled with
 what it changed, and the staircase is the best score so far. Over 83 experiments
-it kept 15 changes and took `val_bpb` from about 0.998 to 0.977. The first big
+it kept 14 changes on top of the starting point and took `val_bpb` from about
+0.998 to 0.977. The first big
 win was halving the batch size, so that more training steps fit in the five
 minutes. The rest is the patient tuning a researcher does on a good day: a
 longer warmup, a different attention window, a larger RoPE base frequency. None
@@ -160,14 +160,14 @@ short enough to run many times. Here is what that looks like in other places.
 Some of these have already been done. Tobi Lütke ran the loop on
 [Liquid](https://github.com/Shopify/liquid/pull/2056), the template language he
 wrote for Shopify twenty years ago. About 120 experiments produced 93 kept
-commits, which together cut parse and render time by 53% and memory allocations
-by 61%, with all 974 tests still passing. Cobelli and Sanvito used it in
+commits, which together cut parse and render time by 53% and object
+allocations by 61%, with all 974 tests still passing. Cobelli and Sanvito used it in
 materials science, letting an agent design the input features for models that
 predict band gaps and Curie temperatures. The agent's features beat the standard
 hand-built ones, and chemists could read and make sense of them. Anthropic's
 `skill-creator` runs the same loop on plain text: it rewrites a skill's
-description, measures how reliably the skill triggers on held-out test queries,
-and keeps the best version.
+description based on the queries it gets wrong, and picks the version that does
+best on queries it held back.
 
 The common thread is that the agent does not need to understand the domain
 deeply. It needs to make reasonable guesses, and the test does the rest.
@@ -180,10 +180,12 @@ whether one attempt is better than another. Then:
 1. **Choose what the agent may edit.** Ideally a single file. The data, the test
    and everything else stay outside it. Keep it small enough that you can read
    every change the agent makes.
-2. **Write the test first.** It takes the edited file and returns one number.
-   Run it several times on the same file and see how much the number moves on its
-   own. That spread is your noise, and an improvement smaller than it doesn't
-   count.
+2. **Write the test first.** It takes the edited file and returns one number,
+   scored on a validation set the agent cannot see into or change. Run it
+   several times on the same file and see how much the number moves on its own.
+   That spread is your noise, and an improvement smaller than it doesn't count.
+   Also set aside a separate test set that the loop never touches. You will use
+   it once, at the end.
 3. **Give every trial the same budget.** A fixed time limit, enforced by the
    script that runs the trial rather than by the agent, keeps comparisons fair.
    Keep it short. Two to five minutes gets you a hundred trials a night.
@@ -198,6 +200,7 @@ The instructions can be this short:
 ```markdown
 Artifact: pipeline.py — the only file you may edit
 Frozen:   eval.py, data/ — do not modify, do not install packages
+Hidden:   test/ — never read; the human uses it once at the end
 Trial:    python run.py, hard cap 120 s
 Metric:   prints "score: <float>", lower is better
 Loop:     edit, commit, run, read the score, keep if better else reset
@@ -275,30 +278,30 @@ edit it.
 multiple comparisons problem, and finance has learned it the hard way. Try
 enough strategies with no real edge and the best of them will look good by luck
 alone. A Sharpe ratio estimated from ten years of data has a standard error of
-about 0.3. Among 100 strategies with no edge at all, the best will typically
-show a Sharpe around 0.8; among 1,000, around 1.0. That is why Harvey, Liu and
+about 0.3. Among 100 independent strategies with no edge at all, the best will
+typically show a Sharpe around 0.8; among 1,000, around 1.0. That is why Harvey, Liu and
 Zhu argued that a new factor should clear a t-statistic of 3 rather than 2, and
 why Bailey and López de Prado's deflated Sharpe ratio adjusts for the number of
 trials. The loop at least does the counting for you, since every trial is a line
 in the log. Use that count when you judge the winner.
 
-**The loop can overfit the evaluation even though it never trains on it.** It
-is tempting to think a held-out period is safe because no model is fit to it.
-But every keep-or-reset decision looks at that score, and a thousand decisions
-leak a lot of information. After enough rounds the held-out period has
-effectively become training data. Autoresearch has exactly this structure: the
-same slice of held-out text scores every attempt, all night. Karpathy's own run
-shows the result in miniature:
-the last change it kept was a new random seed, 42 to 137. That does nothing for
-the model. It won a draw of the noise on the evaluation set. Markets have far
-more noise and far less data than a language model's validation set, so the same
-thing happens at a much larger scale. The fix is a second holdout the loop never
-sees, used once at the end, followed by paper trading before any capital goes
-in.
+**The loop can overfit the validation set even though it never trains on it.**
+It is tempting to think a held-out period is safe because no model is fit to
+it. But every keep-or-reset decision looks at that score, and a thousand
+decisions leak a lot of information. After enough rounds the validation set has
+effectively become training data. Autoresearch has exactly this structure: one
+validation set scores every attempt, all night, any improvement however small is
+kept, and there is no separate test set. Karpathy's own run shows the result in
+miniature. The last change it kept was a new random seed, 42 to 137. A different
+seed is not a better model. It is a luckier draw of the training noise, as
+judged by the validation set. Markets have far more noise and far less data than
+a language model's validation set, so the same thing happens at a much larger
+scale. The fix is a test period the loop never sees, used once at the end,
+followed by paper trading before any capital goes in.
 
 None of this is a reason to stay away. It is a reason to put the human effort in
 the right place: a backtest that cannot be fooled, an honest count of how many
-things were tried, and a final test the loop has never touched. Get those right
+things were tried, and a test set the loop has never touched. Get those right
 and an agent can explore more ideas in a week than a team does in a year. Get
 them wrong and it will find a thousand ways to fool you, faster than you ever
 could on your own.

@@ -19,8 +19,8 @@
 <g id="node2" class="node">
 <title>READ</title>
 <path fill="#131927" stroke="#2a3344" stroke-width="1.2" d="M347,-180C347,-180 213,-180 213,-180 207,-180 201,-174 201,-168 201,-168 201,-138 201,-138 201,-132 207,-126 213,-126 213,-126 347,-126 347,-126 353,-126 359,-132 359,-138 359,-138 359,-168 359,-168 359,-174 353,-180 347,-180"/>
-<text text-anchor="middle" x="280" y="-158" font-family="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace" font-size="15.00" fill="#e8eaf0">read the code</text>
-<text text-anchor="middle" x="280" y="-141" font-family="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace" font-size="15.00" fill="#e8eaf0">and the log</text>
+<text text-anchor="middle" x="280" y="-158" font-family="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace" font-size="15.00" fill="#e8eaf0">look at the</text>
+<text text-anchor="middle" x="280" y="-141" font-family="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace" font-size="15.00" fill="#e8eaf0">current code</text>
 </g>
 <!-- PM&#45;&gt;READ -->
 <g id="edge1" class="edge">
@@ -105,8 +105,8 @@
 <g id="node7" class="node">
 <title>R</title>
 <path fill="#131927" stroke="#2a3344" stroke-width="1.2" d="M706,-63C706,-63 572,-63 572,-63 566,-63 560,-57 560,-51 560,-51 560,-21 560,-21 560,-15 566,-9 572,-9 572,-9 706,-9 706,-9 712,-9 718,-15 718,-21 718,-21 718,-51 718,-51 718,-57 712,-63 706,-63"/>
-<text text-anchor="middle" x="639" y="-41" font-family="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace" font-size="15.00" fill="#e8eaf0">score it on</text>
-<text text-anchor="middle" x="639" y="-24" font-family="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace" font-size="15.00" fill="#e8eaf0">held&#45;out text</text>
+<text text-anchor="middle" x="639" y="-41" font-family="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace" font-size="15.00" fill="#e8eaf0">score on the</text>
+<text text-anchor="middle" x="639" y="-24" font-family="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace" font-size="15.00" fill="#e8eaf0">validation set</text>
 </g>
 <!-- R&#45;&gt;D -->
 <g id="edge6" class="edge">
