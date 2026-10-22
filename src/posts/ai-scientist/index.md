@@ -1,6 +1,6 @@
 ---
 title: "autoresearch: sparks of an AI scientist"
-date: 2026-10-22
+date: 2026-06-01
 tag: ESSAY
 description: Karpathy's autoresearch hands the "what should I try next" step of science to a language model. It works on any problem with a score, and it is the start of a new way to do research. Finance should be excited, and careful.
 ---
@@ -351,7 +351,7 @@ open questions. But it is the same loop. Ad astra.
 
 - [karpathy/autoresearch](https://github.com/karpathy/autoresearch), including `program.md`.
 - Shopify/liquid [#2056](https://github.com/Shopify/liquid/pull/2056), the Liquid result, with the benchmark table and methodology.
-- Cobelli and Sanvito, [Agentic Design of Compositional Descriptors via Autoresearch for Materials Science Applications](https://arxiv.org/abs/2605.14671), *Digital Discovery*, 2026.
+- Cobelli and Sanvito, [Agentic Design of Compositional Descriptors via Autoresearch for Materials Science Applications](https://arxiv.org/abs/2605.14671), arXiv preprint 2605.14671, May 2026.
 - Anthropic, [`skill-creator`](https://github.com/anthropics/skills/blob/main/skills/skill-creator/SKILL.md), including `scripts/run_loop`.
 - McLean and Pontiff, [Does Academic Research Destroy Stock Return Predictability?](https://onlinelibrary.wiley.com/doi/10.1111/jofi.12365), *Journal of Finance*, 2016.
 - Wiecki, Campbell, Lent, and Stauth, [All that Glitters Is Not Gold: Comparing Backtest and Out-of-Sample Performance on a Large Cohort of Trading Algorithms](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2745220), SSRN, 2016.
