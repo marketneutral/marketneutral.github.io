@@ -291,6 +291,23 @@ minutes becomes two. Suppose instead it is a backtest: the artifact is the signa
 the evaluator is out-of-sample Sharpe net of costs on a frozen panel, and the
 trial is one backtest. The loop does not know the difference.
 
+The most direct case is instructions. Anthropic's `skill-creator` ships an
+optimizer that treats a skill's description — the text that decides whether the
+skill fires at all — as the artifact. It generates twenty trigger queries,
+splits them 60/40 into train and held-out, runs each query three times to get a
+stable trigger rate, asks the model to rewrite the description from the
+failures, and repeats for up to five iterations. The winner is chosen on the
+held-out score, not the training score. That is the pattern in miniature: three
+runs per query for noise, a holdout against overfitting, and a model proposing
+the edit. The thing being improved is the instruction that tells the model when
+to use the skill in the first place.
+
+The same skill runs a slower loop over the instructions themselves, comparing
+runs with and without the skill and putting the human in the accept/reject
+slot. That is an eval loop, not this loop, and the difference is worth knowing:
+once the decision returns to a person, the score stops being the thing that
+decides.
+
 It fails in three places, and they are worth checking before you start. There is
 no scalar, because "better" needs a committee. The trials are too expensive, so
 you get ten a night instead of a hundred. The artifact is too large to review,
@@ -322,6 +339,7 @@ science from ten, and the loss function decides which one you are doing.
 
 - [karpathy/autoresearch](https://github.com/karpathy/autoresearch), including `program.md`.
 - Shopify/liquid [#2056](https://github.com/Shopify/liquid/pull/2056), the Liquid result, with the benchmark table and methodology.
+- Anthropic, [`skill-creator`](https://github.com/anthropics/skills/blob/main/skills/skill-creator/SKILL.md), including `scripts/run_loop`.
 - Cobelli and Sanvito, [Agentic Design of Compositional Descriptors via Autoresearch for Materials Science Applications](https://arxiv.org/abs/2605.14671), *Digital Discovery*, 2026.
 - Romera-Paredes et al., [Mathematical discoveries from program search with large language models](https://www.nature.com/articles/s41586-023-06924-6), *Nature*, 2024.
 - [AlphaEvolve](https://deepmind.google/discover/blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/), DeepMind, 2025.
