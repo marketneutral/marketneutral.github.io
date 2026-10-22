@@ -294,7 +294,13 @@ So can an adjusted autoresearch find alpha that persists out of sample? I think
 it will. The bitter lesson is on our side: general methods that scale with
 compute keep beating clever hand-built ones, and the models keep getting better.
 I also believe models can be creative, that they can propose ideas that are not
-in their training data. What has to change is the loop around them.
+in their training data. Geoffrey Hinton has argued this for years: a network
+can be more right than the data it learned from. Train one on handwritten
+digits where a hundred random labels swamp each correct one, and it still reads
+more than 90% of new digits correctly. And AlphaEvolve found a way to multiply
+4×4 complex matrices with 48 multiplications, beating the best known method,
+Strassen's from 1969. That answer was in no training set. What has to change is
+the loop around them.
 
 - **Require the claim before the test.** Every change comes with a mechanism,
   a counterparty, a reason the effect should persist, and a prediction of where
@@ -358,5 +364,6 @@ open questions. But it is the same loop. Ad astra.
 - Sutton, [The Bitter Lesson](http://www.incompleteideas.net/IncIdeas/BitterLesson.html), 2019.
 - Bailey and López de Prado, [The Deflated Sharpe Ratio](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2460551), *Journal of Portfolio Management*, 2014.
 - López de Prado, [*Advances in Financial Machine Learning*](https://www.wiley.com/en-us/Advances+in+Financial+Machine+Learning-p-9781119482086), Wiley, 2018, on purged cross-validation and embargo.
+- Rolnick, Veit, Belongie, and Shavit, [Deep Learning is Robust to Massive Label Noise](https://arxiv.org/abs/1705.10694), 2017.
 - Romera-Paredes et al., [Mathematical discoveries from program search with large language models](https://www.nature.com/articles/s41586-023-06924-6), *Nature*, 2024.
 - [AlphaEvolve](https://deepmind.google/discover/blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/), DeepMind, 2025.
