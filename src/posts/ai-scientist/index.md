@@ -107,8 +107,8 @@ Three files matter.
   training, the test measures the model's loss on the validation set, in bits
   per byte. That number is `val_bpb`, and lower is better. The agent is not
   allowed to touch this file.
-- `program.md` holds the instructions, written by a person, that tell the agent
-  how to run the loop.
+- `program.md` holds the problem definition, written by a person: the goal,
+  what the agent may and may not change, and how to run the loop.
 
 The agent reads the code, decides on a change, edits `train.py` and commits. It
 trains the model for exactly five minutes, then scores it on the validation
@@ -117,7 +117,7 @@ the previous best. Either way the agent adds a line to a log describing what it
 tried and what happened, and then it starts again.
 
 <figure class="diagram" id="loop">
-  <img src="autoresearch-loop.svg" alt="The loop laid out like the scientific method. Top row: you write program.md, look at the current code, propose a change, edit train.py and commit. Bottom row: train the model for five minutes, score on the validation set, then a decision: if better than the best so far keep it and go to the next idea, otherwise undo it and propose again. Third row: every attempt is logged to results.tsv, which you read in the morning.">
+  <img src="autoresearch-loop.svg" alt="The loop laid out like the scientific method. Top row: you write the problem definition (program.md), look at the current code, propose a change, edit train.py and commit. Bottom row: train the model for five minutes, score on the validation set, then a decision: if better than the best so far keep it and go to the next idea, otherwise undo it and propose again. Third row: every attempt is logged to results.tsv, which you read in the morning.">
   <figcaption>The autoresearch loop, in the same shape as the scientific method. Every step is the agent's except the two marked "you". The highlighted step is the one a person used to do.</figcaption>
 </figure>
 
@@ -192,10 +192,11 @@ whether one attempt is better than another. Then:
 4. **Let git hold the search.** One commit per attempt. Keep it if the score
    beats the current best by more than the noise, and reset it otherwise. The
    branch is always the best version so far.
-5. **Write the instructions.** Put the rules in a short file, start a coding
-   agent in that directory, and tell it to read the file and begin.
+5. **Write the problem definition.** Put the goal and the rules in a short
+   file, start a coding agent in that directory, and tell it to read the file
+   and begin.
 
-The instructions can be this short:
+The problem definition can be this short:
 
 ```markdown
 Artifact: pipeline.py — the only file you may edit
@@ -240,9 +241,10 @@ each trial takes days.
 
 The loop does the searching. It does not decide what is worth searching for. A
 person still chooses the question, writes the test, and decides what the agent
-may touch and how much noise to tolerate. In autoresearch all of that lives in
-`program.md`. The person no longer edits the training script; they edit the
-instructions for the agent that does.
+may touch and how much noise to tolerate. In autoresearch the test lives in
+`prepare.py` and the rest in the problem definition, `program.md`. The person no
+longer edits the training script; they edit the problem definition for the agent
+that does.
 
 This is close to how a research lab already works. The principal investigator
 picks the problem, sets the standard of evidence, and reads the lab notebook.

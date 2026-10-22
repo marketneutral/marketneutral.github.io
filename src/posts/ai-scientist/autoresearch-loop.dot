@@ -17,7 +17,7 @@ digraph autoresearch {
         fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
         fontsize=13, fontcolor="#9aa1ad"];
 
-  PM   [label="you write\nprogram.md", style="rounded,dashed", color="#9aa1ad"];
+  PM   [label="you write the\nproblem definition\n(program.md)", style="rounded,dashed", color="#9aa1ad", width=2.4, height=0.95, fontsize=14];
   READ [label="look at the\ncurrent code"];
   H    [label="propose\na change", color="#3ee87a", fontcolor="#3ee87a", penwidth=1.8];
   P    [label="edit train.py\nand commit"];
@@ -28,7 +28,7 @@ digraph autoresearch {
   R    [label="score on the\nvalidation set"];
   X    [label="train the model\nfor 5 minutes"];
   YOU  [label="you read it\nin the morning", style="rounded,dashed", color="#9aa1ad"];
-  LOG  [label="log the attempt\nresults.tsv"];
+  LOG  [label="log the attempt\n(results.tsv)"];
 
   { rank=same; PM; READ; H; P; }
   { rank=same; T; D; R; X; }
