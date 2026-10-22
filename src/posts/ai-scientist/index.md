@@ -101,20 +101,25 @@ Three files matter.
 
 - `train.py` is the only file the agent may edit. It holds the model, the
   optimizer and the training loop.
-- `prepare.py` holds the test, which reports `val_bpb`, a validation loss where
-  lower is better. The agent is not allowed to touch it.
+- `prepare.py` holds the test. After training, it runs the model on a fixed
+  slice of text that the model never trains on and measures how well it
+  predicts that text. This is just the model's loss on held-out data, reported
+  per byte of text so that it stays comparable even if the agent changes the
+  vocabulary. It is called `val_bpb`, for validation bits per byte, and lower
+  is better. The agent is not allowed to touch this file.
 - `program.md` holds the instructions, written by a person, that tell the agent
   how to run the loop.
 
 The agent reads the code, decides on a change, edits `train.py` and commits. It
-runs training for exactly five minutes and reads off the score. If the score
-improved, the commit stays. If not, git resets to the previous best. Either way
+trains the model for exactly five minutes, then scores it on the held-out text.
+If the score beats the best so far, the commit stays. If not, git resets to the
+previous best. Either way
 the agent adds a line to a log describing what it tried and what happened, and
 then it starts again.
 
 <figure class="diagram" id="loop">
   <img src="autoresearch-loop.svg" alt="Two lanes. The human writes program.md and later reads results.tsv. The agent reads the files, proposes a change, edits train.py, commits, runs a fixed five-minute training job, reads val_bpb, and either advances the branch or resets it, then logs the result and repeats.">
-  <figcaption>The autoresearch loop. Same shape as the scientific method, with the hypothesis step handed to a model.</figcaption>
+  <figcaption>The autoresearch loop. Same shape as the scientific method, with the hypothesis step handed to a model. Every attempt is also written to a log, <code>results.tsv</code>, which you read in the morning.</figcaption>
 </figure>
 
 Three design choices make it work. Every run gets the same five minutes, so a
@@ -281,7 +286,9 @@ in the log. Use that count when you judge the winner.
 is tempting to think a held-out period is safe because no model is fit to it.
 But every keep-or-reset decision looks at that score, and a thousand decisions
 leak a lot of information. After enough rounds the held-out period has
-effectively become training data. Karpathy's own run shows this in miniature:
+effectively become training data. Autoresearch has exactly this structure: the
+same slice of held-out text scores every attempt, all night. Karpathy's own run
+shows the result in miniature:
 the last change it kept was a new random seed, 42 to 137. That does nothing for
 the model. It won a draw of the noise on the evaluation set. Markets have far
 more noise and far less data than a language model's validation set, so the same
