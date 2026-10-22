@@ -88,18 +88,6 @@ papers are worth trying. It has a sense of what a sensible next experiment looks
 like even in fields it has only read about. And it can make a new guess every few
 minutes, all night.
 
-<figure class="wide" id="race">
-  <img src="informed-vs-random.svg" alt="Best score so far against the number of experiments, for random guesses and informed guesses. The informed search starts lower than the random search reaches after sixty experiments, and keeps improving.">
-  <figcaption>A toy simulation: the best score found so far, median over many searches, with the middle half shaded.</figcaption>
-</figure>
-
-The figure is a toy simulation of that difference. Two searches look for the
-best combination of six settings. One guesses at random. The other guesses
-around a starting point that is close to right but not exact, the way a language
-model that has read about similar problems would. The informed search starts out
-better than the random one ends up after sixty tries. When each try costs five
-minutes, or five hours, that gap decides whether a search is practical.
-
 DeepMind's FunSearch and AlphaEvolve had already shown that a language model
 proposing programs against an automatic test can find new results, including
 new mathematics, but those systems ran on large internal infrastructure.
@@ -140,20 +128,19 @@ score by changing how the score is computed. And git keeps the best version so
 far safe, so a bad idea costs one reset.
 
 <figure class="wide" id="progress">
-  <img src="autoresearch-progress.png" alt="Validation bits per byte over 83 runs. Grey dots are discarded experiments, green dots are the kept ones, each labelled with the change, and a green staircase shows the best score so far falling from about 0.998 to about 0.977.">
-  <figcaption>One overnight run. Chart: Andrej Karpathy, <a href="https://github.com/karpathy/autoresearch">karpathy/autoresearch</a> (MIT).</figcaption>
+  <img src="autoresearch-progress.svg" alt="val_bpb over 83 experiments. Grey dots are discarded experiments. Green dots are kept changes, labelled: halve batch size, longer warmdown, add warmup, depth 9, x0_lambda init, unembedding LR doubled, more sliding window, shorter windows twice, embedding LR, RoPE base raised three times. A green staircase shows the best score so far falling from about 0.998 to about 0.977. The last kept change, a new random seed, is in red.">
+  <figcaption>One overnight run. Redrawn from Andrej Karpathy's chart in <a href="https://github.com/karpathy/autoresearch">karpathy/autoresearch</a> (MIT), with values read off the original image and labels shortened.</figcaption>
 </figure>
 
 Here is one overnight run, from the repository itself. Each grey dot is an
 experiment the agent threw away. Each green dot is one it kept, labelled with
 what it changed, and the staircase is the best score so far. The agent kept 14
-of its 82 changes (the chart's count includes the starting point) and took
-`val_bpb` from about 0.998 to 0.977. The first big win was halving the batch
+of its 82 changes and took `val_bpb` from about 0.998 to 0.977. The first big win was halving the batch
 size, so that more training steps fit in the five minutes. The rest is the
 patient tuning a researcher does on a good day: a warmup, a different attention
 window, a larger RoPE base frequency. None of it needed a person in the room.
-Look at the last kept change, though, a new random seed. We will come back to
-it.
+Look at the last kept change, though, in red: a new random seed. We will come
+back to it.
 
 ## It works on anything with a score
 

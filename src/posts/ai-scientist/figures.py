@@ -113,49 +113,80 @@ def fig_gradient_descent():
     save(fig, "gradient-descent")
 
 
-# ── figure 2: informed guesses against random ones ──────────────────────
-def fig_race():
-    """Best score so far, informed proposals vs uniform random ones.
+# ── figure 3: Karpathy's overnight run, redrawn ─────────────────────────
+# Values read off the chart in github.com/karpathy/autoresearch (progress.png,
+# MIT): axes calibrated from its gridlines, marker centres located in the
+# image, experiment numbers snapped to integers. Points the original does not
+# show (crashes, runs worse than the baseline, markers hidden under others)
+# are absent here too.
+KEPT = [  # (experiment, val_bpb, label)
+    (0, 0.99789, "baseline"),
+    (2, 0.99072, "halve batch size"),
+    (6, 0.98965, "longer warmdown"),
+    (8, 0.98740, "add warmup"),
+    (14, 0.98449, "depth 9"),
+    (23, 0.98392, "x0_lambda init"),
+    (28, 0.98334, "unembedding LR ×2"),
+    (32, 0.98211, "more sliding window"),
+    (38, 0.97986, "shorter windows (×2)"),
+    (39, 0.97958, None),
+    (43, 0.97892, "embedding LR"),
+    (64, 0.97828, "RoPE base 10k→200k (×3)"),
+    (65, 0.97803, None),
+    (67, 0.97772, None),
+    (74, 0.97729, "random seed 42→137"),
+]
+DISCARDED = [
+    (3, 0.99355), (4, 0.99386), (5, 0.99345), (7, 0.98994), (9, 0.98835),
+    (10, 0.99110), (11, 0.99028), (12, 0.99335), (13, 0.99056), (16, 0.99507),
+    (17, 0.98551), (18, 0.99302), (19, 0.98786), (21, 0.98509), (22, 0.99802),
+    (24, 0.98467), (25, 0.98581), (26, 0.98413), (27, 0.98569), (29, 0.98456),
+    (30, 0.98417), (31, 0.98758), (33, 0.98318), (34, 0.98340), (35, 0.98603),
+    (36, 0.98365), (37, 0.98326), (42, 0.98283), (44, 0.97998), (45, 0.97941),
+    (46, 0.98084), (47, 0.98011), (48, 0.98257), (49, 0.98303), (50, 0.98073),
+    (51, 0.98551), (52, 0.98620), (53, 0.97923), (54, 0.97912), (55, 0.98068),
+    (56, 0.97951), (57, 0.97948), (58, 0.98191), (59, 0.98400), (60, 0.97976),
+    (61, 0.97935), (63, 0.98030), (66, 0.97886), (68, 0.97805), (69, 0.97892),
+    (71, 0.97795), (72, 0.97879), (73, 0.97882), (75, 0.97902), (76, 0.98193),
+    (77, 0.97769), (78, 0.97746), (79, 0.97872), (80, 0.97941), (81, 0.97775),
+    (82, 0.97879),
+]
 
-    A toy: a smooth bowl in six settings on [0, 1]. Random search draws each
-    setting uniformly. "Informed" draws around a starting guess that is close
-    to the optimum but not on it, the way a model that has read about similar
-    problems would. Lines are medians over many simulated searches.
-    """
-    rng = np.random.default_rng(7)
-    dim, n_exp, n_rep = 6, 60, 2000
-    opt = rng.uniform(0.2, 0.8, dim)
-    guess = np.clip(opt + rng.normal(0, 0.08, dim), 0, 1)
 
-    def score(x):
-        return np.sum(((x - opt) / 0.25) ** 2, axis=-1)
+def fig_progress():
+    kx = np.array([k[0] for k in KEPT]); ky = np.array([k[1] for k in KEPT])
+    dx = np.array([d[0] for d in DISCARDED]); dy = np.array([d[1] for d in DISCARDED])
 
-    rand = score(rng.uniform(0, 1, (n_rep, n_exp, dim)))
-    inf = score(np.clip(guess + rng.normal(0, 0.12, (n_rep, n_exp, dim)), 0, 1))
-    k = np.arange(1, n_exp + 1)
-
-    fig, ax = plt.subplots(figsize=(9.0, 4.4))
-    fig.subplots_adjust(left=0.09, right=0.80, top=0.95, bottom=0.14)
-    for runs, color, ls, label in [(rand, MUTED, "--", "random guesses"),
-                                   (inf, ACC, "-", "informed guesses")]:
-        best = np.minimum.accumulate(runs, axis=1)
-        lo, mid, hi = np.percentile(best, [25, 50, 75], axis=0)
-        ax.fill_between(k, lo, hi, color=color, alpha=0.15, lw=0)
-        ax.plot(k, mid, color=color, lw=2.0, ls=ls)
-        ax.annotate(label, (k[-1], mid[-1]), textcoords="offset points",
-                    xytext=(8, 0), va="center", color=color, fontsize=11,
+    fig, ax = plt.subplots(figsize=(12.2, 5.6))
+    fig.subplots_adjust(left=0.08, right=0.93, top=0.97, bottom=0.11)
+    ax.scatter(dx, dy, s=16, color=MUTED, alpha=0.55, lw=0, zorder=2,
+               label="discarded")
+    # running best: a staircase through the kept points, out to the last run
+    sx = np.append(kx, 82); sy = np.append(ky, ky[-1])
+    ax.step(sx, sy, where="post", color=ACC, lw=1.8, zorder=3,
+            label="best so far")
+    ax.scatter(kx[:-1], ky[:-1], s=46, color=ACC, edgecolor=BG, lw=1.2,
+               zorder=4, label="kept")
+    ax.scatter(kx[-1:], ky[-1:], s=60, color=RED, edgecolor=BG, lw=1.2, zorder=5)
+    for x, y, label in KEPT:
+        if label is None:
+            continue
+        color = RED if label.startswith("random seed") else ACC
+        ax.annotate(label, (x, y), textcoords="offset points", xytext=(6, 7),
+                    rotation=28, rotation_mode="anchor", color=color, fontsize=10,
                     annotation_clip=False)
-    ax.set_yscale("log")
-    ax.set_xlabel("experiments run")
-    ax.set_ylabel("best score so far (lower is better)")
-    ax.set_xlim(1, n_exp)
+    ax.set_xlim(-2, 85)
+    ax.set_ylim(0.9755, 1.0)
+    ax.set_xlabel("experiment")
+    ax.set_ylabel("val_bpb (lower is better)")
     ax.grid(True, color=RULE, alpha=0.4, lw=0.6)
     ax.tick_params(length=0)
     for s in ("top", "right"):
         ax.spines[s].set_visible(False)
-    save(fig, "informed-vs-random")
+    leg = ax.legend(frameon=False, fontsize=10, labelcolor=INK2, loc="upper right")
+    save(fig, "autoresearch-progress")
 
 
 if __name__ == "__main__":
     fig_gradient_descent()
-    fig_race()
+    fig_progress()
