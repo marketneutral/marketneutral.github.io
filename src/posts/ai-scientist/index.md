@@ -265,72 +265,81 @@ each trial takes days.
 
 ## What this means for finance
 
-I have ended on finance because it is my field, and because it may be the most
-natural home this loop has. Quant research already is the loop, run by hand:
-think of a signal, code it, backtest it, keep it or drop it, repeat. The artifact
-is code. The trial may fit a few parameters on an in-sample window, or there may
-be nothing to fit. The evaluation is a backtest on a hold-out period, and it
-takes seconds. An agent could run thousands of these a night and write down what
-it tried. That is aspirational and exciting, and I mean both words.
+I have ended on finance because it is my field. The table above gives the
+obvious mapping: the artifact is signal code, the evaluation is a backtest on a
+hold-out period, a trial takes seconds, keep the change if the Sharpe goes up.
+Run that overnight and you will have a thousand backtests by morning. You will
+also have done the one thing quantitative finance has spent decades learning
+not to do.
 
-It is also where the loop is most dangerous, and the danger is specific. The
-hold-out backtest is the validation set, and every keep-or-discard decision reads
-it. Hill-climbing on a hold-out leaks the hold-out into the strategy one bit at a
-time, and after a thousand decisions the out-of-sample period is in-sample in
-everything but name. That is what the red dot in Karpathy's run means. A new
-random seed is not a better model; it is a luckier draw of the training noise,
-as judged by the validation set, and the loop kept it. Finance has a literature
-on exactly this: Bailey, Borwein, López de Prado and Zhu on the probability of
-backtest overfitting, Harvey, Liu and Zhu's argument that a new factor should
-clear a t-statistic of 3 rather than 2, the deflated Sharpe ratio that haircuts
-the best of many trials. The arithmetic is unforgiving. A Sharpe ratio estimated
-from ten years of data has a standard error of about 0.3, so among 1,000
-strategies with no edge at all, the best will show a Sharpe near 1.0 by luck
-alone. And markets add a twist that a language model's validation set does not
-have: regimes. A hold-out period is one draw of history, and a change that wins
-on it may be nothing more than a bet on that period.
+Quant research is not backtest-and-keep. The backtest is the last step, not the
+search. The work is in the step before it: an economic reason the effect should
+exist, who is on the other side of the trade, why it should persist, and a
+prediction specific enough to be wrong. The backtest then checks the prediction.
+The field built that discipline because unguided search on historical returns
+reliably finds noise, and it has the literature to prove it: the factor zoo that
+Harvey, Liu and Zhu catalogued, and their argument that a new factor should
+clear a t-statistic of 3 rather than 2; Bailey, Borwein, López de Prado and Zhu
+on the probability of backtest overfitting; the deflated Sharpe ratio that
+haircuts the best of many trials. The arithmetic is simple. A Sharpe ratio
+estimated from ten years of data has a standard error of about 0.3, so among a
+thousand strategies with no edge at all, the best shows a Sharpe near 1.0 by
+luck alone.
 
-So, like everything in finance, this has to respect the domain before it can be
-trusted, and that is where the open problems are. Here is what I would try
-first.
+The loop makes this worse in a specific way. The hold-out backtest is the
+validation set, and every keep-or-discard decision reads it. Hill-climbing on a
+hold-out leaks the hold-out into the strategy one bit at a time, and after a
+thousand decisions the out-of-sample period is in-sample in everything but name.
+That is what the red dot in Karpathy's run means: a new random seed is not a
+better model, it is a luckier draw of the training noise as judged by the
+validation set, and the loop kept it. Markets add a twist that a language
+model's validation set does not have. A hold-out period is one draw of history,
+and a change that wins on it may be a bet on that period's regime.
 
-- **Make the evaluator move.** Replace the single hold-out with randomized,
-  purged cross-validation: many train-and-test partitions of history, with
-  observations that overlap the test block removed from training and an embargo
-  after it, so nothing leaks through autocorrelation. Draw a fresh partition for
-  every attempt, so there is no fixed hold-out to climb. Keep a change only if it
-  improves the median fold and does not hurt the worst. The noise goes up, so
-  the acceptance threshold goes up with it.
-- **Put the prediction back.** The scientific method has a step that
-  autoresearch skips: the prediction. In the problem definition, require a
-  causal claim before every backtest. What is the mechanism, who is on the other
-  side of the trade, why should it persist, and where should the change help and
-  where should it not? Log the claim with the attempt and test it, not just the
-  aggregate score. A change that improves the Sharpe for no stated reason is
-  discarded. The log then reads like a research notebook with reasons in it,
-  which is what you want to argue with in the morning.
+So the obvious mapping is the trap, and the interesting question is what the
+right mapping is. I think there is one, and that it is worth a great deal,
+because the step a language model is good at is the step quant research is
+built around: reading, reasoning, and proposing a mechanism. The agent should
+do the part of the job that happens before the backtest, many times a night,
+and the problem definition should make that part impossible to skip. Some
+ideas.
+
+- **Require the claim before the test.** Every change must come with a
+  mechanism, a counterparty, a reason for persistence, and a prediction of
+  where it should help and where it should not. The claim is logged with the
+  attempt, and the prediction is what gets tested, not the aggregate score. A
+  change that raises the Sharpe for no stated reason is discarded. This is the
+  prediction step of the scientific method, which autoresearch skips and
+  finance cannot.
+- **Make the evaluator move.** Replace the fixed hold-out with purged
+  cross-validation on randomized partitions of history, with overlapping
+  observations removed from training and an embargo after each test block. A
+  fresh partition for every attempt means there is no single hold-out to climb.
+  Keep a change only if it improves the median fold and does not hurt the
+  worst. The noise goes up, so the acceptance threshold goes up with it.
 - **Count the trials.** The log knows how many things were tried. Deflate the
-  winner's Sharpe by that count before anyone gets excited.
+  winner by that count.
 - **Keep one period the loop never touches.** Use it once, at the end. Then
   paper-trade. Live markets are the only test that cannot leak.
-- **Start with the plumbing.** The first place to run this inside a fund may
-  not be alpha at all. Execution algorithms, transaction-cost models, risk
-  models, data pipelines: the scores there are close to the truth and hard to
-  game, and the loop can run free.
+- **Start with the plumbing.** Execution algorithms, transaction-cost models,
+  risk models, data pipelines: the scores there are close to the truth and hard
+  to game. Let the loop run free where it is safe before it goes anywhere near
+  alpha.
 
-And then the questions I cannot answer yet. Does demanding a causal claim narrow
-the search too far, or is that exactly the point? What does a regime-aware
-acceptance rule look like? Can an agent be asked to propose fewer,
+And the questions I do not know the answer to. Does requiring a causal claim
+narrow the search too far, or is that exactly the point? What does a
+regime-aware acceptance rule look like? Can an agent be made to propose fewer,
 better-reasoned changes rather than more? Could a second agent red-team the
 backtest for lookahead while the first one searches? What is the right
 evaluation for a strategy that trades a few times a year? None of this has been
-worked out, and all of it looks tractable.
+worked out.
 
-The promise is a research process that runs a thousand reasoned experiments a
-night and writes down why each was tried. The danger is a machine that finds a
-thousand ways to fool you by morning. Which one you get is decided entirely by
-the evaluation and the rules, and that is where the human effort now belongs.
-That is the experiment I want to run next.
+The loop will find whatever the evaluation rewards. Everywhere else in this
+post that was a reason to get the evaluation right. In finance it is the whole
+game. Reward backtests and it will hand you a thousand of them, each a little
+too good. Reward reasons, and keep the test honest, and you have a researcher
+who reads everything, argues every change, and does not mind being wrong a
+hundred times a night.
 
 ---
 
