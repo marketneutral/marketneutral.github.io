@@ -317,6 +317,12 @@ in their training data. What has to change is the loop around them.
   goes: the quant's hypotheses, the questions that matter to the book, the data
   nobody else has. Sample most proposals conservatively and let a few run on wild
   tangents.
+- **Measure the consensus.** Before an idea is tested, ask how known it already
+  is. Is it published, when, and in how many papers? McLean and Pontiff found
+  that the returns to 97 published predictors were 26% lower out of sample and
+  58% lower after publication. An idea the whole field has read about is
+  probably already in the price, and the agent can check the literature faster
+  than anyone.
 - **Keep one period the loop never touches.** Use it once, at the end.
 
 None of these is a silver bullet. They all matter, and so do a million small
@@ -347,6 +353,7 @@ open questions. But it is the same loop. Ad astra.
 - Shopify/liquid [#2056](https://github.com/Shopify/liquid/pull/2056), the Liquid result, with the benchmark table and methodology.
 - Cobelli and Sanvito, [Agentic Design of Compositional Descriptors via Autoresearch for Materials Science Applications](https://arxiv.org/abs/2605.14671), *Digital Discovery*, 2026.
 - Anthropic, [`skill-creator`](https://github.com/anthropics/skills/blob/main/skills/skill-creator/SKILL.md), including `scripts/run_loop`.
+- McLean and Pontiff, [Does Academic Research Destroy Stock Return Predictability?](https://onlinelibrary.wiley.com/doi/10.1111/jofi.12365), *Journal of Finance*, 2016.
 - Wiecki, Campbell, Lent, and Stauth, [All that Glitters Is Not Gold: Comparing Backtest and Out-of-Sample Performance on a Large Cohort of Trading Algorithms](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2745220), SSRN, 2016.
 - Sutton, [The Bitter Lesson](http://www.incompleteideas.net/IncIdeas/BitterLesson.html), 2019.
 - Bailey and López de Prado, [The Deflated Sharpe Ratio](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2460551), *Journal of Portfolio Management*, 2014.
