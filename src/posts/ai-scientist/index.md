@@ -225,7 +225,7 @@ that does.
 This is close to how a research lab already works. The principal investigator
 picks the problem, sets the standard of evidence, and reads the lab notebook.
 Graduate students propose experiments, run them, and write down what happened. The agent
-is a student that never gets tired and has no favourite idea. Unlike a real
+is a student that never gets tired and has no favorite idea. Unlike a real
 student, it doesn't get wiser over the years or ask whether the problem is the
 right one. That part is still yours.
 
@@ -300,10 +300,10 @@ digits where a hundred random labels swamp each correct one, and it still reads
 more than 90% of new digits correctly. And AlphaEvolve, a language model proposing
 code changes against an automatic evaluator, found a way to multiply 4×4
 complex matrices with 48 multiplications, beating the best known method,
-Strassen's from 1969. That answer was in no training set. What has to change is
-the loop around them.
+Strassen's from 1969. That answer was in no training set. Perhaps what has to change
+is the loop around them.
 
-- **Require the claim before the test.** Every change comes with a mechanism,
+- **Require the (causal?) claim before the test.** Every change comes with a mechanism,
   a counterparty, a reason the effect should persist, and a prediction of where
   it should help and where it should not. The prediction is tested, not just the
   aggregate score, and a change that raises the Sharpe for no stated reason is
@@ -316,20 +316,33 @@ the loop around them.
   change only if it improves the median fold and does not hurt the worst.
 - **Charge for complexity.** Every parameter is a degree of freedom spent fitting
   the past. Karpathy's simplicity rule matters far more here than in a training
-  script.
+  script. This is the Akaike information criterion in spirit: a model's score
+  is its fit minus a charge per parameter, so an extra parameter has to earn
+  its keep.
 - **Count the trials.** The log knows how many things were tried. Deflate the
-  winner's Sharpe by that count.
+  winner's Sharpe by that count. This is multiple testing, and the
+  corrections are standard: Bonferroni if you want to control the chance of
+  even one false positive, a false discovery rate procedure like
+  Benjamini-Hochberg if you can live with a known fraction of false
+  discoveries, and Bailey and López de Prado's deflated Sharpe ratio for
+  this exact case.
 - **Seed the search.** Every fund's agent has read the same papers, so left alone
   its priors are the crowd's. The problem definition is where the firm's own view
-  goes: the quant's hypotheses, the questions that matter to the book, the data
-  nobody else has. Sample most proposals conservatively and let a few run on wild
-  tangents.
+  goes: the core of how the firm thinks about process, its style, whether
+  behavioral or technical, high turnover or low, and which segment of the
+  market it trades, the questions that matter to it, a steer away from the
+  alphas the firm already knows, and a nudge to try data the firm has that
+  may be rare. Perhaps also run
+  low-temperature samples from time to time, to see what the agent proposes
+  when it stays close to that view.
 - **Measure the consensus.** Before an idea is tested, ask how known it already
   is. Is it published, when, and in how many papers? McLean and Pontiff found
   that the returns to 97 published predictors were 26% lower out of sample and
   58% lower after publication. An idea the whole field has read about is
-  probably already in the price, and the agent can check the literature faster
-  than anyone.
+  probably already in the price, and the timing matters: something published
+  twenty years ago has had twenty years of capital chasing it, while something
+  published last year may not be played out yet. The agent can check the
+  literature, and date it, faster than anyone.
 - **Keep one period the loop never touches.** Use it once, at the end.
 
 None of these is a silver bullet. They all matter, and so do a million small
@@ -337,8 +350,10 @@ details, the same ones that separate a real research process from a well-mined
 backtest. And the final test is the one there has always been: true out of
 sample, live.
 
-Autoresearch is not an AI quant. It is sparks of one, green shoots, early and
-rough. But it is inevitable.
+<div class="callout">
+Autoresearch is not an AI quant. It is sparks of one, green shoots, early
+and rough. But it is inevitable.
+</div>
 
 And we have only talked about quant. Fundamental investing is a process too. An
 analyst builds a mosaic from dozens of disparate data points, from filings and
