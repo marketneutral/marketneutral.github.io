@@ -276,10 +276,11 @@ search. The work is in the step before it: an economic reason the effect should
 exist, who is on the other side of the trade, why it should persist, and a
 prediction specific enough to be wrong. The field built that discipline because
 unguided search on historical returns reliably finds noise. At Quantopian we
-measured it. In *All that Glitters Is Not Gold*, backtest Sharpe ratios for 888
-trading algorithms explained almost none of the variation in their out-of-sample
-Sharpe ratios (R² below 0.025), and the more backtests an author had run, the
-wider the gap.
+measured it. In *All that Glitters Is Not Gold*, we took 888 strategies built on
+the platform, each with at least six months of live, out-of-sample results. Their
+backtest Sharpe ratios explained almost none of their out-of-sample performance
+(R² below 0.025), and the more a strategy had been backtested, the wider the
+gap.
 
 The loop makes this worse. The hold-out backtest is the validation set, and every
 keep-or-discard decision reads it. Hill-climbing on a hold-out leaks the hold-out
