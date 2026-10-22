@@ -1,0 +1,50 @@
+// Source for autoresearch-loop.svg. Re-render with:
+//   dot -Tsvg autoresearch-loop.dot -o autoresearch-loop.svg
+digraph autoresearch {
+  rankdir=TB;
+  bgcolor="transparent";
+  pad=0.25;
+  nodesep=0.35;
+  ranksep=0.45;
+  newrank=true;
+  fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace";
+  node [shape=box, style="rounded,filled", fillcolor="#131927", color="#2a3344",
+        fontcolor="#e8eaf0", fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=14, margin="0.20,0.11", penwidth=1.2];
+  edge [color="#6b7280", arrowsize=0.7, penwidth=1.1,
+        fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=11, fontcolor="#6b7280"];
+
+  subgraph cluster_human {
+    label="HUMAN";
+    fontcolor="#6b7280"; fontsize=11; color="#2a3344"; style="rounded";
+    margin=14;
+    PM [label="program.md", color="#3ee87a", fontcolor="#3ee87a", style="rounded,filled"];
+    WAKE [label="wake up, read results.tsv"];
+  }
+
+  subgraph cluster_agent {
+    label="AGENT  (runs all night)";
+    fontcolor="#6b7280"; fontsize=11; color="#2a3344"; style="rounded";
+    margin=14;
+    READ [label="read program.md\n+ train.py"];
+    IDEA [label="propose a change"];
+    EDIT [label="edit train.py\n(one file)"];
+    COMMIT [label="git commit"];
+    RUN [label="run train.py\nfixed 5-minute budget"];
+    METRIC [label="read val_bpb"];
+    D [shape=diamond, style="filled", fillcolor="#0f1726", color="#3ee87a",
+       fontcolor="#3ee87a", label="lower?", margin="0.04,0.02", fontsize=12];
+    KEEP [label="keep: advance branch", color="#3ee87a", fontcolor="#3ee87a"];
+    RESET [label="discard: git reset", color="#ff6b4a", fontcolor="#ff6b4a"];
+    LOG [label="append results.tsv\n(untracked)"];
+  }
+
+  READ -> IDEA -> EDIT -> COMMIT -> RUN -> METRIC -> D;
+  D -> KEEP [label="yes", fontcolor="#3ee87a"];
+  D -> RESET [label="no", fontcolor="#ff6b4a", color="#ff6b4a"];
+  KEEP -> LOG; RESET -> LOG;
+  LOG -> IDEA [label="next experiment", constraint=false];
+  PM -> READ [style=dashed, label="instructions"];
+  WAKE -> PM [style=dashed, label="rewrite the loop"];
+}
