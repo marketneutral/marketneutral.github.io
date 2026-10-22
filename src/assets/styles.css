@@ -482,6 +482,13 @@ footer a:hover { color: var(--accent); }
   width: 100%;
   margin: 0;
 }
+.post-note.post-license {
+  margin-top: 12px;
+  padding-top: 0;
+  border-top: none;
+}
+.post-note a { color: var(--muted); border-bottom: 1px solid var(--rule); }
+.post-note a:hover { color: var(--accent); border-bottom-color: var(--accent); }
 .post-note {
   margin-top: 48px;
   padding-top: 20px;
