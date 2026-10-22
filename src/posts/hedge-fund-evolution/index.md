@@ -218,11 +218,3 @@ meaningful risk-adjusted return to nearly every fund in the sample.
 - Human plus machine beats either alone, in both the horizontal and the
   vertical configuration, and the evidence is from large samples.
 
----
-
-*This presentation and post are for informational purposes only and
-reflect my personal views and interests. They do not constitute investment
-advice and are not representative of any current or former employer. The
-information presented is based on publicly available sources. References
-to specific firms are for illustrative purposes only and do not imply
-endorsement.*

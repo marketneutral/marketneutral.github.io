@@ -20,5 +20,16 @@ layout: base.njk
     {{ content | safe }}
   </div>
 
+  <p class="post-note">
+    {% if tag == "TALK" %}This presentation and post are{% else %}This post is{% endif %}
+    for informational purposes only and
+    {% if tag == "TALK" %}reflect{% else %}reflects{% endif %} my personal views and interests.
+    {% if tag == "TALK" %}They do{% else %}It does{% endif %} not constitute investment advice and
+    {% if tag == "TALK" %}are{% else %}is{% endif %} not representative of any current or former employer.
+    The information presented is based on publicly available sources.
+    References to specific firms are for illustrative purposes only and do
+    not imply endorsement.
+  </p>
+
   <a href="/" class="back-link">▸ BACK TO INDEX</a>
 </article>
