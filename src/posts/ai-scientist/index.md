@@ -154,7 +154,6 @@ short enough to run many times. Here is what that looks like in other places.
 | a template engine | speed and memory, with all tests passing | the benchmark suite |
 | features for a materials model | prediction error on held-out compounds | one model fit |
 | a candidate drug molecule | a docking score | one calculation |
-| a trading signal | out-of-sample returns after costs | one backtest |
 | a prompt or a set of instructions | accuracy on held-out examples | a batch of model calls |
 
 Some of these have already been done. Tobi Lütke ran the loop on
@@ -244,8 +243,7 @@ that.
 
 Often the quick score stands in for something slower that you actually care
 about. A docking score is cheap, but what matters is whether the molecule binds
-in a real assay, which takes weeks. A backtest is cheap, but what matters is how
-the strategy does in the market. Run long enough, the loop will find candidates
+in a real assay, which takes weeks. Run long enough, the loop will find candidates
 that score well and fail in reality, because the gap between the two is the
 easiest place to find improvements. Treat what it finds as strong hypotheses to
 check in the lab or on unseen data.
@@ -265,8 +263,8 @@ each trial takes days.
 
 ## What this means for finance
 
-I have ended on finance because it is my field. The table above gives the
-obvious mapping: the artifact is signal code, the evaluation is a backtest on a
+I have ended on finance because it is my field. The obvious mapping writes
+itself: the artifact is signal code, the evaluation is a backtest on a
 hold-out period, a trial takes seconds, keep the change if the Sharpe goes up.
 Run that overnight and you will have a thousand backtests by morning. You will
 also have done the one thing quantitative finance has spent decades learning
