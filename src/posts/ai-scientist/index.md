@@ -2,70 +2,56 @@
 title: "autoresearch: There Is No Slope"
 date: 2026-10-22
 tag: ESSAY
-description: Karpathy's autoresearch is not really about training scripts. It is the scientific method with the proposal step handed to a model, and it works on any problem that has a loss function.
+description: Karpathy's autoresearch hands the "what should I try next" step of science to a language model. It works on any problem with a score, and it is the start of a new way to do research.
 ---
 
-The scientific method is a loop. You observe something, ask why, propose a
-mechanism, derive a prediction, test it, and keep or discard the mechanism. The
-names change from field to field; the structure does not.
+In March 2026 Andrej Karpathy released
+[`autoresearch`](https://github.com/karpathy/autoresearch), a small repository
+in which a language model tries to improve a training script on its own. It
+edits the code, runs a five-minute experiment, checks the score, keeps the change
+if the score improved, and starts again. Left alone overnight, it runs about a
+hundred experiments.
+
+The training script is incidental. What autoresearch shows is that one step of
+the scientific method, deciding what to try next, can now be handed to a model,
+and that this works on any problem where you can write down a number that means
+"better." I think this is the beginning of a new way to do research. This post
+explains why it works, how the loop is built, and how to set one up on your own
+problem.
+
+## Science is a loop
 
 <figure class="diagram" id="science">
   <img src="scientific-method.svg" alt="A loop: observation, question, hypothesis, prediction, experiment, result, and a decision on whether the result is consistent with the prediction; yes leads to theory and back to hypothesis, no sends you back to revise it.">
   <figcaption>The scientific method.</figcaption>
 </figure>
 
-Two steps carry the weight: the hypothesis and the experiment. A hypothesis
-with free parameters is a point in a space, and its prediction is what that
-point implies about a measurement you have not yet made. The experiment returns
-the measurement, usually with error, and the decision at the bottom updates what
-you are willing to believe.
+You observe something, propose an explanation, make a prediction, run an
+experiment, and keep or revise the explanation depending on what you see. Then
+you go around again.
 
-Put as optimization, we choose $\theta$ from a space $\Theta$ to minimize an
-objective $J(\theta)$, where $J$ is whatever the experiment reports. Two
-properties decide which algorithms are available: what an experiment costs, and
-whether $J$ has a derivative.
+Of these steps, the proposal has always been the slow one. Running an experiment
+can be automated, but deciding which experiment is worth running has needed a
+person who knows the field. Because experiments were expensive, scientists spent
+most of their effort choosing carefully and ran relatively few. A whole career
+might involve hundreds of experiments.
 
-For most of the history of science the bottleneck was the proposal. Experiments
-were expensive, so choosing the right one mattered more than running many, and
-the choosing was done by someone who had read the field. In March 2026 Andrej
-Karpathy released [`autoresearch`](https://github.com/karpathy/autoresearch),
-which hands the proposal to a language model and runs the experiments
-overnight. The repository trains small GPT models, but the training is
-incidental. What it demonstrates is a way of working: any problem where you can
-write down a number that means "better" can be run as a loop, with a model
-proposing each next attempt.
+## When there is a slope
 
-## A function with a slope
-
-Start with the case everyone learns first: two parameters in, one number out.
-
-$$
-J(\theta_1,\theta_2) = \tfrac12(\theta_1 - 0.6)^2 + 4(\theta_2 + 0.4)^2
-+ 0.35\sin(3\theta_1)\sin(3\theta_2)
-$$
-
-The first two terms make an elongated bowl. The sine term adds ripples, so the
-surface looks like a real loss.
+There is one kind of problem where computers have long done the proposing
+themselves. If the thing you are adjusting is a list of numbers, and the score
+changes smoothly as you adjust them, then the score has a slope, and the slope
+tells you which way to go. That is gradient descent. It is the reason machine
+learning works at all: a model with billions of parameters gets trained by
+taking small steps downhill, over and over.
 
 <figure class="wide" id="descent">
   <img src="gradient-descent.svg" alt="Left: filled contours of a cost surface with a gradient-descent path from a start point into the minimum. Right: cost falling on a log scale over 45 iterations.">
 </figure>
 
-Gradient descent is a single update rule:
-
-$$
-\theta_{k+1} = \theta_k - \eta \nabla J(\theta_k).
-$$
-
-The left panel is the surface seen from above. The right panel is all the method
-ever sees: one number per step, and a slope. It works because of local
-linearity. Close enough to a differentiable surface, downhill is the negative
-gradient. On a convex surface that comes with a convergence guarantee; this one
-has ripples, but 45 steps with $\eta = 0.09$ still find the bottom.
-
-The assumptions are worth stating, because most of science breaks them: a vector
-space, so that a step means something; a derivative; cheap evaluations; and a
-function that holds still while you optimize it.
+The left panel is a score surface seen from above, with the path gradient
+descent takes to the bottom. The right panel is the score falling at each step.
+Nobody has to think about where to go next.
 
 ## "There is no slope."
 
@@ -74,268 +60,188 @@ function that holds still while you optimize it.
   <figcaption>Neo (Keanu Reeves) in <em>The Matrix</em> (1999). Still: Warner Bros., via Looper.</figcaption>
 </figure>
 
-A real hypothesis is rarely two numbers. It is a protocol, a piece of analysis
-code, a simulation, a set of instrument settings. None of these lives in a
-vector space, so there is no gradient: the distance between two protocols is not
-something you can differentiate. And the objective is whatever the experiment
-measures, which is usually noisy and expensive.
+Most of science does not look like that. A hypothesis is usually a protocol, a
+piece of analysis code, a set of features, a molecule. You cannot nudge a
+protocol a little bit in some direction, so there is no slope to follow. Even
+Karpathy's training script is like this. The agent changes the depth of the
+network, swaps the optimizer, rewrites blocks of code. Those are edits to a
+program, and a program has no gradient.
 
-Karpathy's instance is a training script. `train.py` holds an integer depth, a
-choice of optimizer, a window pattern, a batch size that must stay a power of
-two, and blocks of plain Python. The metric is `val_bpb` from a five-minute run,
-and it wanders by a couple of thousandths between identical runs:
+Without a slope, the options used to be poor. You could try things at random,
+try a grid of settings, or mutate candidates and keep the best. These methods
+know nothing about the problem, so they need an enormous number of tries. Or a
+person could propose the next attempt, which is informed but slow.
 
-$$
-\min_{\theta \in \Theta} J(\theta), \qquad
-\Theta = \{\text{programs that run and finish in five minutes}\}.
-$$
-
-No metric on $\Theta$ makes a small edit mean a small change in behaviour, and
-nothing in it has a derivative. $J$ is a subprocess on a GPU that returns a
-number or, on a bad day, a stack trace.
-
-Without a gradient, what remains is sampling. Grid search needs few dimensions.
-Random search needs volume and assumes nothing else. Evolution strategies need a
-parameterization to perturb. Bayesian optimization fits a surrogate and lets an
-acquisition function pick the next point, which gets hard when the candidates
-are programs rather than vectors. In every case the proposal is mechanical, and
-that is the part a language model changes. FunSearch and AlphaEvolve showed it
-at laboratory scale, with a model proposing programs against an automatic
-evaluator. Autoresearch shows that it fits on one GPU, in a handful of files,
-under git.
-
-### A Bayesian reading
-
-Bayes gives the rule for updating belief after data:
-
-$$
-p(\theta \mid \mathcal{D}) \propto p(\mathcal{D} \mid \theta) \, p(\theta).
-$$
-
-The prior is what the searcher believes before running anything, the likelihood
-is how well a hypothesis explains the measurement, and the posterior is what
-survives. The familiar algorithms are special cases. Gradient descent takes its
-proposal from the gradient and brings almost no prior; random search has a flat
-prior and lets the likelihood do the work; Bayesian optimization makes both
-explicit.
-
-Autoresearch keeps the frame and replaces the proposal. The next artifact is
-drawn from a model trained on a large share of the world's code, papers and bug
-reports. That is a concentrated prior, not over two parameters but over the
-kinds of things that can be edited and measured. It has seen enough training
-scripts to expect a learning rate of $0.1$ to blow up, and enough protocols and
-analysis code to hold a view on what a sensible next experiment looks like in
-fields it has only read about.
+A language model is a third option. It has read a large share of the world's
+code, papers and lab notes, so its guesses are informed. It knows that a learning
+rate of 0.1 will probably blow up a training run. It has a sense of what a
+sensible next experiment looks like even in fields it has only read about. And it
+can make a new guess every few minutes, all night.
 
 <figure class="wide" id="bayes">
   <img src="bayes-prior.svg" alt="Left: a true objective curve with a narrow informed prior and a flat uninformed one. Right: posteriors after one, four and ten experiments with the informed prior, against ten experiments under a flat prior.">
 </figure>
 
-The figure is a toy: one parameter, ten draws, Gaussian noise, a prior chosen by
-hand. Read it as a mechanism, not a measurement. With a concentrated prior, four
-experiments land closer to the truth than ten under a flat one, because the
-proposals start in the right neighbourhood. At five minutes an evaluation, that
-difference is what makes the loop worth running.
+The figure is a toy version of that difference. On the left is the true score
+for a single setting, and two starting beliefs about where the best value is: a
+flat one that knows nothing, and a narrow one centred near the right answer. On
+the right is how belief sharpens as experiments come in. Starting from the
+informed guess, four experiments get closer to the truth than ten starting from
+nothing. When each experiment costs five minutes, or five hours, that difference
+decides whether a search is practical.
 
-The same structure explains how it fails.
+DeepMind's FunSearch and AlphaEvolve had already shown that a model proposing
+programs against an automatic test can find new results, but those systems ran
+on large internal infrastructure. Autoresearch is a few files, one GPU and git,
+which puts the same idea within reach of anyone who has a problem and a score.
 
-The prior narrows exploration. A model that believes normalisation is necessary
-will rarely propose deleting it, and the experiments it does run will confirm the
-belief, because beliefs choose experiments. Call it confirmation bias or a
-narrow proposal distribution; the effect on the search is the same. Temperature
-and multiple agents are the levers.
+## How autoresearch works
 
-Noise biases acceptance. When the likelihood is as wide as the effect you are
-chasing, "keep if lower" selects for luck, and the accepted set improves on
-paper without improving in fact.
+Three files matter.
 
-The target moves. Each accepted commit changes the baseline, so a change that
-helped at one point can hurt at the next. The object is a sequential posterior,
-not a fixed distribution sampled once.
+- `train.py` is the only file the agent may edit. It holds the model, the
+  optimizer and the training loop.
+- `prepare.py` holds the test, which reports `val_bpb`, a validation loss where
+  lower is better. The agent is not allowed to touch it.
+- `program.md` holds the instructions, written by a person, that tell the agent
+  how to run the loop.
 
-And the metric is a proxy. A number from a five-minute run is not a better
-model, and a sharp posterior around a proxy is only as good as the proxy. That
-is why the evaluator has to be frozen and kept out of the searcher's reach.
-
-## The loop
-
-Strip the repository down and the loop needs four things: an editable artifact,
-a frozen evaluator, a cheap repeatable trial, and a version-control boundary.
-
-In Karpathy's repository the artifact is `train.py`, kept to a single file so the
-diffs stay small. The evaluator is `evaluate_bpb` in `prepare.py`, which the
-agent may neither modify nor route around with a new package. The trial is a
-fixed five-minute run, which makes an architecture change comparable with a
-learning-rate tweak and sets the pace at about twelve experiments an hour. The
-boundary is git: acceptance is a commit, rejection is a reset, and the best code
-and the best score are the same object.
-
-The loop itself is short. Read the branch and the in-scope files. Edit
-`train.py`. Commit. Run `uv run train.py` and grep out `val_bpb`. Append a row to
-`results.tsv`: commit, metric, peak memory, a one-line description. If the metric
-improved, keep the commit; otherwise reset. Training output goes to `run.log`
-rather than into the agent's context, and the agent reads its last fifty lines
-only when a run crashes.
+The agent reads the code, decides on a change, edits `train.py` and commits. It
+runs training for exactly five minutes and reads off the score. If the score
+improved, the commit stays. If not, git resets to the previous best. Either way
+the agent adds a line to a log describing what it tried and what happened, and
+then it starts again.
 
 <figure class="diagram" id="loop">
   <img src="autoresearch-loop.svg" alt="Two lanes. The human writes program.md and later reads results.tsv. The agent reads the files, proposes a change, edits train.py, commits, runs a fixed five-minute training job, reads val_bpb, and either advances the branch or resets it, then logs the result and repeats.">
   <figcaption>The autoresearch loop.</figcaption>
 </figure>
 
-Memory lives in three places. The first is the conversation itself. The agent
-runs as one long session, so every edit, commit, grep line and stack trace
-passes through its context, and it knows what failed without looking anything
-up. That memory is finite: a ten-hour run compacts its context several times,
-and what survives is the shape of a failure rather than its detail. The other
-two are durable. The branch holds what worked. The log holds everything,
-including what was thrown away. It is left untracked, and `program.md` asks the
-agent to write it, not to read it back. It exists to put a night of experiments
-in front of a person.
+Three design choices make it work. Every run gets the same five minutes, so a
+big architectural change and a small change to a constant are judged on equal
+terms. The test is fixed and out of the agent's reach, so it cannot raise its
+score by changing how the score is computed. And git keeps the best version so
+far safe, so a bad idea costs one reset.
 
-The first reported session took `val_bpb` from 0.9979 to 0.9697 over 125
-experiments and about ten and a half hours. The largest single win was halving
-the batch size, so that more steps fit in five minutes.
+In the first reported overnight session, the agent ran 125 experiments over
+about ten and a half hours and brought `val_bpb` from 0.9979 down to 0.9697. Its
+biggest single win was halving the batch size so that more training steps fit
+in the five minutes. It is the kind of change a good researcher might try. Here
+it turned up as one of 125 attempts while nobody was watching.
 
-## Beyond the training script
+## It works on anything with a score
 
-`train.py` is the exhibit, not the subject. The loop needs an editable artifact,
-an evaluator and a cheap trial, and none of the three has to be code.
+Nothing in the loop is specific to neural networks. It needs three things:
+something the agent can edit, a test that turns it into a number, and a trial
+short enough to run many times. Here is what that looks like in other places.
 
-| artifact edited | evaluator | trial |
+| what the agent edits | how it is scored | one trial |
 |---|---|---|
-| a training script | validation bits per byte | five minutes on one GPU |
-| a template engine | render time and allocations | the engine's test suite |
-| a set of materials descriptors | prediction error on held-out compounds | one random-forest fit |
-| a molecule or a synthesis route | docking score, then an assay | hours in silico, weeks in the lab |
-| a trading signal | out-of-sample performance on a frozen panel | one backtest |
-| a skill description | held-out trigger rate | twenty queries, three runs each |
+| a training script | validation loss | five minutes on a GPU |
+| a template engine | speed and memory, with all tests passing | the benchmark suite |
+| features for a materials model | prediction error on held-out compounds | one model fit |
+| a candidate drug molecule | a docking score | one calculation |
+| a trading signal | out-of-sample returns after costs | one backtest |
+| a prompt or a set of instructions | accuracy on held-out examples | a batch of model calls |
 
-The template engine is the cleanest case. Tobi Lütke ran a variant of the loop
-on [Liquid](https://github.com/Shopify/liquid/pull/2056), the template language
-he wrote for Shopify twenty years ago. About 120 experiments produced 93
-commits: combined parse and render time down 53%, object allocations down 61%,
-and all 974 unit tests still passing.
+Some of these have already been done. Tobi Lütke ran the loop on
+[Liquid](https://github.com/Shopify/liquid/pull/2056), the template language he
+wrote for Shopify twenty years ago. About 120 experiments produced 93 kept
+commits, which together cut parse and render time by 53% and memory allocations
+by 61%, with all 974 tests still passing. Cobelli and Sanvito used it in
+materials science, letting an agent design the input features for models that
+predict band gaps and Curie temperatures. The agent's features beat the standard
+hand-built ones, and chemists could read and make sense of them. Anthropic's
+`skill-creator` runs the same loop on plain text: it rewrites a skill's
+description, measures how reliably the skill triggers on held-out test queries,
+and keeps the best version.
 
-Materials science has a published version that moves one step upstream of
-hyperparameters. Cobelli and Sanvito pointed a coding agent at the *input
-features* of a property-prediction model. The artifact is a set of compositional
-descriptors, restricted to what can be derived from a chemical formula; the
-evaluator is prediction error on held-out compounds; the trial is one
-random-forest fit. On band gaps in inorganic materials and Curie temperatures in
-ferromagnets, the agent's descriptors beat the fractional-composition and Magpie
-baselines, and they were chemically interpretable rather than opaque. The loop
-was not tuning a model. It was deciding what the model gets to see.
+The common thread is that the agent does not need to understand the domain
+deeply. It needs to make reasonable guesses, and the test does the rest.
 
-Drug design has the same shape and a sharper problem. The artifact is a molecule
-or a synthesis route, the evaluator is a docking score or a predicted binding
-affinity, and the trial is cheap because it is a calculation. But a docking score
-is not a drug. The measurement that matters is an assay, which costs weeks and
-money and cannot run a hundred times overnight. So the loop runs on a surrogate,
-and the surrogate is where it breaks: it will find molecules that score well and
-do not bind. Used well, the cheap evaluator is for triage, and every promising
-candidate is a hypothesis for the lab, not a result.
+## How to try it on your own problem
 
-Trading sets the same trap in a different currency. The trial is a backtest,
-cheap enough to run by the thousand, and left alone the loop will find the
-backtest, not the market. One public write-up ran forty-five experiments against
-a ten-year equity backtest scored on a blend of return, Sharpe, drawdown, profit
-factor and alpha. It is a reasonable first attempt and a warning: a weighted sum
-of five metrics is itself a loss function, and the search will exploit whichever
-weights it can reach. The defences are the ones the metric cannot fake. Freeze
-the panel before you start. Hold out a period the agent never sees. Charge for
-turnover and borrow. Then replicate the winner on data it was never allowed to
-touch.
+Start with a problem you already care about, where a number can tell you
+whether one attempt is better than another. Then:
 
-The most self-referential case is instructions. Anthropic's `skill-creator`
-ships an optimizer whose artifact is a skill's description, the text that decides
-whether the skill fires at all. It generates twenty trigger queries, splits them
-60/40 into train and held-out, runs each query three times for a stable trigger
-rate, has the model rewrite the description from the failures, and repeats for
-up to five rounds, choosing the winner on the held-out score. That is the pattern
-in miniature: repeated runs for noise, a holdout against overfitting, a model
-proposing the edit. The same skill runs a slower loop over the skill's body,
-comparing runs with and without it, but there a person sits in the accept/reject
-slot. That makes it an eval loop rather than this one, and the difference
-matters: once the decision goes back to a person, the score is no longer what
-decides.
+1. **Choose what the agent may edit.** Ideally a single file. The data, the test
+   and everything else stay outside it. Keep it small enough that you can read
+   every change the agent makes.
+2. **Write the test first.** It takes the edited file and returns one number.
+   Run it several times on the same file and see how much the number moves on its
+   own. That spread is your noise, and an improvement smaller than it doesn't
+   count.
+3. **Give every trial the same budget.** A fixed time limit, enforced by the
+   script that runs the trial rather than by the agent, keeps comparisons fair.
+   Keep it short. Two to five minutes gets you a hundred trials a night.
+4. **Let git hold the search.** One commit per attempt. Keep it if the score
+   beats the current best by more than the noise, and reset it otherwise. The
+   branch is always the best version so far.
+5. **Write the instructions.** Put the rules in a short file, start a coding
+   agent in that directory, and tell it to read the file and begin.
 
-Across all of these the lesson has nothing to do with the domain. Where a cheap
-evaluator stands in for an expensive one, the gap between them is where the
-search goes, and the loop is only as good as the honesty of that gap.
-
-## Setting one up
-
-If you have a problem with a measurable outcome, the setup comes down to five
-decisions, and none of them is about language models.
-
-1. **Draw the artifact boundary.** One file, or one small directory, that the
-   agent may edit. Everything that defines success lives outside it: data,
-   evaluator, harness. If the diff cannot be read in five minutes, the boundary
-   is too wide.
-2. **Write the evaluator first.** A function from artifact to a single number,
-   deterministic given a seed, fast enough to run a hundred times in a night.
-   Then measure its noise: run the same artifact five times and record the
-   spread. That spread sets the threshold for keeping a change.
-3. **Fix the trial.** The same wall-clock cap for every run, enforced by the
-   runner rather than the agent. That is what makes a structural change
-   comparable with a change to a constant.
-4. **Choose the acceptance rule.** Keep the commit if the score improves by more
-   than the noise; otherwise reset. One commit per attempt, so the branch is the
-   state of the search.
-5. **Write the instructions.** Scope, metric, forbidden edits, log format, what
-   counts as a crash, and the simplicity rule: equal score with less code is a
-   win.
-
-The instruction file is the whole interface, and it can be short:
+The instructions can be this short:
 
 ```markdown
 Artifact: pipeline.py — the only file you may edit
 Frozen:   eval.py, data/ — do not modify, do not install packages
 Trial:    python run.py, hard cap 120 s
 Metric:   prints "score: <float>", lower is better
-Loop:     edit, commit, run, grep the score, keep if lower else reset
+Loop:     edit, commit, run, read the score, keep if better else reset
 Log:      append commit, score, status, description to results.tsv
 Rules:    never stop, never ask, simplest change that improves wins
 ```
 
-Three things break it, and they are worth checking before you start: there is no
-scalar, because "better" needs a committee; the trials are too expensive, so you
-get ten a night instead of a hundred; or the artifact is too large to review, so
-you cannot trust the branch.
+Then go to bed, and read the log in the morning.
 
-## What the human is still for
+## What can go wrong
 
-The loop automates search. It does not choose what to search over.
+The loop optimizes exactly the number you give it, and most problems come from
+that.
 
-Someone decides which number means better, what counts as a fair trial, how
-small the editable artifact must be, and that the evaluator is off limits. Those
-are judgments, and in Karpathy's setup they live in `program.md`, where a person
-can argue with them. The human does not tune the artifact. The human tunes the
-instructions that define the loop, which Karpathy describes as a super
-lightweight skill.
+Often the quick score stands in for something slower that you actually care
+about. A docking score is cheap, but what matters is whether the molecule binds
+in a real assay, which takes weeks. A backtest is cheap, but what matters is how
+the strategy does in the market. Run long enough, the loop will find candidates
+that score well and fail in reality, because the gap between the two is the
+easiest place to find improvements. Treat what it finds as strong hypotheses to
+check in the lab or on unseen data. In trading that means freezing the data
+before you start, holding back a period the agent never sees, and charging for
+costs.
 
-His own practice is less hands-off than the framing suggests. Asked about making
-the loop fully autonomous, he said he still prefers interactive sessions:
-watching in `tmux`, babysitting, contributing ideas. The overnight run is one
-way to use it, not the only one.
+Noise is the second problem. If the score jumps around by as much as the
+improvement you are hoping for, "keep it if the score went down" will keep lucky
+runs. Measuring the noise first, and only keeping improvements bigger than it,
+is the fix.
 
-The division of labour is the one a lab already uses. The human is the principal
-investigator: chooses the question, sets the standard of evidence, decides what
-counts as a result, and reads the notebook in the morning. The agent is the
-student: reads the protocol, proposes the next experiment, runs it, writes it
-down, reports back.
+The model's knowledge also cuts both ways. Its guesses are sensible, which is
+why it beats random search, but it rarely tries anything strange. If it believes
+something is necessary it will seldom try removing it. Running several agents,
+or explicitly asking for bolder changes, helps.
 
-The analogy has limits. A student improves over years and eventually argues
-about the question. This one does not improve between runs, cannot reframe the
-problem, and forgets whatever was not written down. What it has instead is
-throughput without ego: a hundred attempts a night, none of them tired, none of
-them attached to an idea.
+And it won't work at all if you can't reduce "better" to a single number, or if
+each trial takes days.
 
-So the principal investigator's job barely changes: decide what is worth
-measuring, keep the measurement honest, read the notebook. The method has not
-changed either. What changed is who proposes the next experiment, and how many
-you can afford. A thousand attempts is a different kind of science from ten, and
-the loss function decides which one you are doing.
+## What the scientist does now
+
+The loop does the searching. It does not decide what is worth searching for. A
+person still chooses the question, writes the test, and decides what the agent
+may touch and how much noise to tolerate. In autoresearch all of that lives in
+`program.md`. The person no longer edits the training script; they edit the
+instructions for the agent that does.
+
+This is close to how a research lab already works. The principal investigator
+picks the problem, sets the standard of evidence, and reads the lab notebook.
+Students propose experiments, run them, and write down what happened. The agent
+is a student that never gets tired and has no favourite idea. Unlike a real
+student, it doesn't get wiser over the years or ask whether the problem is the
+right one. That part is still yours.
+
+What changes is the number of experiments. Someone who used to run ten careful
+experiments on an idea can now run a thousand overnight, and spend their own
+time on picking the question and building a test that measures it honestly.
+Any field with a number that means "better" can be searched this way, and most
+of them haven't started.
 
 ---
 
@@ -343,8 +249,7 @@ the loss function decides which one you are doing.
 
 - [karpathy/autoresearch](https://github.com/karpathy/autoresearch), including `program.md`.
 - Shopify/liquid [#2056](https://github.com/Shopify/liquid/pull/2056), the Liquid result, with the benchmark table and methodology.
-- Anthropic, [`skill-creator`](https://github.com/anthropics/skills/blob/main/skills/skill-creator/SKILL.md), including `scripts/run_loop`.
 - Cobelli and Sanvito, [Agentic Design of Compositional Descriptors via Autoresearch for Materials Science Applications](https://arxiv.org/abs/2605.14671), *Digital Discovery*, 2026.
+- Anthropic, [`skill-creator`](https://github.com/anthropics/skills/blob/main/skills/skill-creator/SKILL.md), including `scripts/run_loop`.
 - Romera-Paredes et al., [Mathematical discoveries from program search with large language models](https://www.nature.com/articles/s41586-023-06924-6), *Nature*, 2024.
 - [AlphaEvolve](https://deepmind.google/discover/blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/), DeepMind, 2025.
-- Snoek, Larochelle, and Adams, [Practical Bayesian Optimization of Machine Learning Algorithms](https://arxiv.org/abs/1206.2944), 2012.
