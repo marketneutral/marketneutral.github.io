@@ -1,50 +1,49 @@
 // Source for autoresearch-loop.svg. Re-render with:
 //   dot -Tsvg autoresearch-loop.dot -o autoresearch-loop.svg
+// Deliberately mirrors scientific-method.dot: the same two-row layout, with
+// each step relabelled as the step autoresearch runs in its place.
 digraph autoresearch {
   rankdir=TB;
   bgcolor="transparent";
   pad=0.25;
-  nodesep=0.35;
-  ranksep=0.45;
-  newrank=true;
+  nodesep=0.30;
+  ranksep=0.55;
   fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace";
   node [shape=box, style="rounded,filled", fillcolor="#131927", color="#2a3344",
         fontcolor="#e8eaf0", fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
-        fontsize=14, margin="0.20,0.11", penwidth=1.2];
+        fontsize=15, margin="0.10,0.14", penwidth=1.2, width=2.2, height=0.75, fixedsize=true];
   edge [color="#6b7280", arrowsize=0.7, penwidth=1.1,
         fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
-        fontsize=11, fontcolor="#6b7280"];
+        fontsize=13, fontcolor="#9aa1ad"];
 
-  subgraph cluster_human {
-    label="HUMAN";
-    fontcolor="#6b7280"; fontsize=11; color="#2a3344"; style="rounded";
-    margin=14;
-    PM [label="program.md", color="#3ee87a", fontcolor="#3ee87a", style="rounded,filled"];
-    WAKE [label="wake up, read results.tsv"];
-  }
+  { rank=same; PM; READ; H; P; }
+  { rank=same; T; D; R; X; }
 
-  subgraph cluster_agent {
-    label="AGENT  (runs all night)";
-    fontcolor="#6b7280"; fontsize=11; color="#2a3344"; style="rounded";
-    margin=14;
-    READ [label="read program.md\n+ train.py"];
-    IDEA [label="propose a change"];
-    EDIT [label="edit train.py\n(one file)"];
-    COMMIT [label="git commit"];
-    RUN [label="run train.py\nfixed 5-minute budget"];
-    METRIC [label="read val_bpb"];
-    D [shape=diamond, style="filled", fillcolor="#0f1726", color="#3ee87a",
-       fontcolor="#3ee87a", label="lower?", margin="0.04,0.02", fontsize=12];
-    KEEP [label="keep: advance branch", color="#3ee87a", fontcolor="#3ee87a"];
-    RESET [label="discard: git reset", color="#ff6b4a", fontcolor="#ff6b4a"];
-    LOG [label="append results.tsv\n(untracked)"];
-  }
+  // top row, left to right
+  PM -> READ [constraint=false];
+  READ -> H [constraint=false];
+  H -> P [constraint=false];
 
-  READ -> IDEA -> EDIT -> COMMIT -> RUN -> METRIC -> D;
-  D -> KEEP [label="yes", fontcolor="#3ee87a"];
-  D -> RESET [label="no", fontcolor="#ff6b4a", color="#ff6b4a"];
-  KEEP -> LOG; RESET -> LOG;
-  LOG -> IDEA [label="next experiment", constraint=false];
-  PM -> READ [style=dashed, label="instructions"];
-  WAKE -> PM [style=dashed, label="rewrite the loop"];
+  // carriage return
+  P -> X;
+
+  // bottom row, right to left
+  X -> R [constraint=false];
+  R -> D [constraint=false];
+  D -> T [constraint=false, label="yes", fontcolor="#3ee87a"];
+
+  // feedback
+  T -> H [style=dashed, label="next idea", constraint=false, fontcolor="#9aa1ad"];
+  D -> H [label="no: git reset", constraint=false, color="#ff6b4a", fontcolor="#ff6b4a"];
+
+  PM   [label="program.md\n(written by you)", style="rounded,dashed", color="#9aa1ad"];
+  READ [label="read code\n+ results so far"];
+  H    [label="propose a change\n(the model)", color="#3ee87a", fontcolor="#3ee87a", penwidth=1.8];
+  P    [label="edit train.py\ngit commit"];
+  X    [label="train for\n5 minutes"];
+  R    [label="val_bpb"];
+  D    [shape=diamond, style="filled", fillcolor="#0f1726", color="#3ee87a",
+        fontcolor="#3ee87a", label="lower?", margin="0.04,0.02", fontsize=14, width=2.2, height=0.85, fixedsize=true];
+  T    [label="keep the commit", shape=hexagon, style="filled", fillcolor="#0a0e1a",
+        color="#3ee87a", fontcolor="#3ee87a", margin="0.04,0.02", width=2.2, height=0.85, fixedsize=true];
 }

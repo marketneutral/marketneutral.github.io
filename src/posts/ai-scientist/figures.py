@@ -1,4 +1,4 @@
-"""Figures for "The AI Scientist: Auto Research".
+"""Figures for "autoresearch: sparks of an AI scientist".
 
 Rendered with matplotlib; run from this directory:
 
@@ -41,7 +41,7 @@ plt.rcParams.update({
 
 
 def save(fig, name):
-    fig.savefig(f"{name}.svg", bbox_inches="tight", pad_inches=0.25)
+    fig.savefig(f"{name}.svg", bbox_inches="tight", pad_inches=0.25, dpi=200)
     fig.savefig(f"/tmp/{name}.png", dpi=110, bbox_inches="tight", pad_inches=0.25)
     plt.close(fig)
     print("wrote", name + ".svg")
@@ -82,6 +82,7 @@ def fig_gradient_descent():
     ax2 = fig.add_subplot(gs[0, 1])
 
     cf = ax.contourf(X, Y, Z, levels=45, cmap=CMAP)
+    cf.set_rasterized(True)  # keeps the SVG small
     ax.contour(X, Y, Z, levels=12, colors=RULE, linewidths=0.6, alpha=0.55)
     ax.plot(path[:, 0], path[:, 1], color=RED, lw=1.6, zorder=5)
     ax.scatter(path[:, 0], path[:, 1], s=14, color=RED, zorder=6)
@@ -110,71 +111,52 @@ def fig_gradient_descent():
                  ha="right", color=MUTED, fontsize=10)
     for s in ("top", "right"):
         ax.spines[s].set_visible(False); ax2.spines[s].set_visible(False)
-    fig.text(0.06, 0.965, "Figure 2  ·  gradient descent on a two-parameter "
-             "cost surface", color=INK, fontsize=12.5)
     save(fig, "gradient-descent")
 
 
-# ── figure 3: prior, likelihood, posterior ───────────────────────────────
-def fig_bayes():
-    grid = np.linspace(-4.0, -0.6, 800)
-    # "truth": one real optimum in log10(learning rate) space
-    truth = 0.90 + 0.42 * ((grid + 2.35) / 0.75) ** 2 + 0.05 * np.sin(4 * grid)
-    sigma = 0.045
+# ── figure 2: informed guesses against random ones ──────────────────────
+def fig_race():
+    """Best score so far, informed proposals vs uniform random ones.
 
-    def gauss(mu, sd):
-        return np.exp(-0.5 * ((grid - mu) / sd) ** 2) / (sd * np.sqrt(2 * np.pi))
+    A toy: a smooth bowl in six settings on [0, 1]. Random search draws each
+    setting uniformly. "Informed" draws around a starting guess that is close
+    to the optimum but not on it, the way a model that has read about similar
+    problems would. Lines are medians over many simulated searches.
+    """
+    rng = np.random.default_rng(7)
+    dim, n_exp, n_rep = 6, 60, 2000
+    opt = rng.uniform(0.2, 0.8, dim)
+    guess = np.clip(opt + rng.normal(0, 0.08, dim), 0, 1)
 
-    prior_llm = gauss(-2.35, 0.55)          # what the model already believes
-    prior_flat = np.full_like(grid, 1 / (grid[-1] - grid[0]))
+    def score(x):
+        return np.sum(((x - opt) / 0.25) ** 2, axis=-1)
 
-    rng = np.random.default_rng(3)
-    draws = np.clip(rng.normal(-2.35, 0.55, 10), grid[0], grid[-1])
-    obs = np.interp(draws, grid, truth) + rng.normal(0, sigma, draws.size)
+    rand = score(rng.uniform(0, 1, (n_rep, n_exp, dim)))
+    inf = score(np.clip(guess + rng.normal(0, 0.12, (n_rep, n_exp, dim)), 0, 1))
+    k = np.arange(1, n_exp + 1)
 
-    def posterior(prior, samples):
-        logp = np.log(prior + 1e-300)
-        for xi, yi in zip(samples, obs[: len(samples)]):
-            logp = logp - 0.5 * ((truth - yi) / sigma) ** 2 * np.exp(
-                -0.5 * ((grid - xi) / 0.12) ** 2)
-        p = np.exp(logp - logp.max())
-        return p / np.trapezoid(p, grid)
-
-    fig, (axa, axb) = plt.subplots(1, 2, figsize=(12.2, 4.4),
-                                    gridspec_kw=dict(wspace=0.24, left=0.065,
-                                                     right=0.985, top=0.82, bottom=0.15))
-    # (a) the two priors
-    axa.plot(grid, truth, color=RULE, lw=2.0, label="true objective (unknown)")
-    axa.plot(grid, 0.90 + 3.0 * prior_llm / prior_llm.max() * 0.35,
-             color=ACC, lw=2.0, label="LLM prior")
-    axa.plot(grid, 0.90 + 3.0 * prior_flat / prior_flat.max() * 0.35,
-             color=MUTED, lw=1.6, ls=":", label="uninformed prior")
-    axa.set_xlabel("log₁₀ learning rate"); axa.set_ylabel("density (rescaled)")
-    axa.set_title("before any experiment")
-    axa.legend(frameon=False, fontsize=10, labelcolor=INK2, loc="upper center")
-    axa.grid(True, color=RULE, alpha=0.3, lw=0.6)
-    axa.tick_params(length=0)
-
-    # (b) posterior after n experiments
-    for n, alpha in [(1, 0.30), (4, 0.55), (10, 1.0)]:
-        p = posterior(prior_llm, draws[:n])
-        axb.fill_between(grid, 0, p, color=ACC, alpha=alpha * 0.5, lw=0)
-        axb.plot(grid, p, color=ACC, lw=1.6, alpha=alpha,
-                 label=f"LLM prior, {n} experiment{'s' if n > 1 else ''}")
-    pu = posterior(prior_flat, draws[:10])
-    axb.plot(grid, pu, color=MUTED, lw=1.6, ls="--", label="uninformed prior, 10 experiments")
-    axb.set_xlabel("log₁₀ learning rate"); axb.set_ylabel("posterior density")
-    axb.set_title("after experiments")
-    axb.legend(frameon=False, fontsize=10, labelcolor=INK2, loc="upper right")
-    axb.grid(True, color=RULE, alpha=0.3, lw=0.6)
-    axb.tick_params(length=0)
-    for ax in (axa, axb):
-        for s in ("top", "right"):
-            ax.spines[s].set_visible(False)
-    fig.text(0.065, 0.945, "Figure 5  ·  ten measurements under two priors", color=INK, fontsize=12.5)
-    save(fig, "bayes-prior")
+    fig, ax = plt.subplots(figsize=(9.0, 4.4))
+    fig.subplots_adjust(left=0.09, right=0.80, top=0.95, bottom=0.14)
+    for runs, color, ls, label in [(rand, MUTED, "--", "random guesses"),
+                                   (inf, ACC, "-", "informed guesses")]:
+        best = np.minimum.accumulate(runs, axis=1)
+        lo, mid, hi = np.percentile(best, [25, 50, 75], axis=0)
+        ax.fill_between(k, lo, hi, color=color, alpha=0.15, lw=0)
+        ax.plot(k, mid, color=color, lw=2.0, ls=ls)
+        ax.annotate(label, (k[-1], mid[-1]), textcoords="offset points",
+                    xytext=(8, 0), va="center", color=color, fontsize=11,
+                    annotation_clip=False)
+    ax.set_yscale("log")
+    ax.set_xlabel("experiments run")
+    ax.set_ylabel("best score so far (lower is better)")
+    ax.set_xlim(1, n_exp)
+    ax.grid(True, color=RULE, alpha=0.4, lw=0.6)
+    ax.tick_params(length=0)
+    for s in ("top", "right"):
+        ax.spines[s].set_visible(False)
+    save(fig, "informed-vs-random")
 
 
 if __name__ == "__main__":
     fig_gradient_descent()
-    fig_bayes()
+    fig_race()

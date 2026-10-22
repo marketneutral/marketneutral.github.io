@@ -1,8 +1,8 @@
 ---
-title: "autoresearch: There Is No Slope"
+title: "autoresearch: sparks of an AI scientist"
 date: 2026-10-22
 tag: ESSAY
-description: Karpathy's autoresearch hands the "what should I try next" step of science to a language model. It works on any problem with a score, and it is the start of a new way to do research.
+description: Karpathy's autoresearch hands the "what should I try next" step of science to a language model. It works on any problem with a score, and it is the start of a new way to do research. Finance should be excited, and careful.
 ---
 
 In March 2026 Andrej Karpathy released
@@ -78,17 +78,17 @@ rate of 0.1 will probably blow up a training run. It has a sense of what a
 sensible next experiment looks like even in fields it has only read about. And it
 can make a new guess every few minutes, all night.
 
-<figure class="wide" id="bayes">
-  <img src="bayes-prior.svg" alt="Left: a true objective curve with a narrow informed prior and a flat uninformed one. Right: posteriors after one, four and ten experiments with the informed prior, against ten experiments under a flat prior.">
+<figure class="wide" id="race">
+  <img src="informed-vs-random.svg" alt="Best score so far against the number of experiments, for random guesses and informed guesses. The informed search starts lower than the random search reaches after sixty experiments, and keeps improving.">
+  <figcaption>A toy simulation: the best score found so far, median over many searches, with the middle half shaded.</figcaption>
 </figure>
 
-The figure is a toy version of that difference. On the left is the true score
-for a single setting, and two starting beliefs about where the best value is: a
-flat one that knows nothing, and a narrow one centred near the right answer. On
-the right is how belief sharpens as experiments come in. Starting from the
-informed guess, four experiments get closer to the truth than ten starting from
-nothing. When each experiment costs five minutes, or five hours, that difference
-decides whether a search is practical.
+The figure is a toy simulation of that difference. Two searches look for the
+best combination of six settings. One guesses at random. The other guesses
+around a starting point that is close to right but not exact, the way a model
+that has read about similar problems would. The informed search starts out
+better than the random one ends up after sixty tries. When each try costs five
+minutes, or five hours, that gap decides whether a search is practical.
 
 DeepMind's FunSearch and AlphaEvolve had already shown that a model proposing
 programs against an automatic test can find new results, but those systems ran
@@ -114,7 +114,7 @@ then it starts again.
 
 <figure class="diagram" id="loop">
   <img src="autoresearch-loop.svg" alt="Two lanes. The human writes program.md and later reads results.tsv. The agent reads the files, proposes a change, edits train.py, commits, runs a fixed five-minute training job, reads val_bpb, and either advances the branch or resets it, then logs the result and repeats.">
-  <figcaption>The autoresearch loop.</figcaption>
+  <figcaption>The autoresearch loop. Same shape as the scientific method, with the hypothesis step handed to a model.</figcaption>
 </figure>
 
 Three design choices make it work. Every run gets the same five minutes, so a
@@ -123,11 +123,19 @@ terms. The test is fixed and out of the agent's reach, so it cannot raise its
 score by changing how the score is computed. And git keeps the best version so
 far safe, so a bad idea costs one reset.
 
-In the first reported overnight session, the agent ran 125 experiments over
-about ten and a half hours and brought `val_bpb` from 0.9979 down to 0.9697. Its
-biggest single win was halving the batch size so that more training steps fit
-in the five minutes. It is the kind of change a good researcher might try. Here
-it turned up as one of 125 attempts while nobody was watching.
+<figure class="wide" id="progress">
+  <img src="autoresearch-progress.png" alt="Validation bits per byte over 83 experiments. Grey dots are discarded experiments, green dots are the 15 kept ones, each labelled with the change, and a green staircase shows the best score so far falling from about 0.998 to about 0.977.">
+  <figcaption>One overnight run. Chart: Andrej Karpathy, <a href="https://github.com/karpathy/autoresearch">karpathy/autoresearch</a> (MIT).</figcaption>
+</figure>
+
+Here is one overnight run, from the repository itself. Each grey dot is an
+experiment the agent threw away. Each green dot is one it kept, labelled with
+what it changed, and the staircase is the best score so far. Over 83 experiments
+it kept 15 changes and took `val_bpb` from about 0.998 to 0.977. The first big
+win was halving the batch size, so that more training steps fit in the five
+minutes. The rest is the patient tuning a researcher does on a good day: a
+longer warmup, a different attention window, a larger RoPE base frequency. None
+of it needed a person in the room.
 
 ## It works on anything with a score
 
@@ -205,9 +213,7 @@ in a real assay, which takes weeks. A backtest is cheap, but what matters is how
 the strategy does in the market. Run long enough, the loop will find candidates
 that score well and fail in reality, because the gap between the two is the
 easiest place to find improvements. Treat what it finds as strong hypotheses to
-check in the lab or on unseen data. In trading that means freezing the data
-before you start, holding back a period the agent never sees, and charging for
-costs.
+check in the lab or on unseen data.
 
 Noise is the second problem. If the score jumps around by as much as the
 improvement you are hoping for, "keep it if the score went down" will keep lucky
@@ -243,6 +249,53 @@ time on picking the question and building a test that measures it honestly.
 Any field with a number that means "better" can be searched this way, and most
 of them haven't started.
 
+## What this means for finance
+
+Quantitative finance may be the most natural home for this loop. A lot of quant
+research already is the loop, run by hand: think of a signal, code it, backtest
+it, keep it or drop it, repeat. The artifact is code, the test is a backtest,
+and a trial takes seconds. An agent could run thousands of these a night. That
+promise is real. Finance is also where the loop is most dangerous, for three
+reasons.
+
+**The evaluation is everything.** The loop optimizes whatever the backtest
+rewards, including its mistakes. If the data has lookahead, survivorship bias,
+or costs that are too low, the agent will find the flaw, because exploiting a
+broken test is usually easier than finding real alpha. So the backtest has to
+come first and be built with care: point-in-time data, realistic trading costs
+and borrow, capacity limits. Then it gets frozen and kept where the agent cannot
+edit it.
+
+**Every experiment is a test, and you are running thousands.** This is the
+multiple comparisons problem, and finance has learned it the hard way. Try
+enough strategies with no real edge and the best of them will look good by luck
+alone. A Sharpe ratio estimated from ten years of data has a standard error of
+about 0.3. Among 100 strategies with no edge at all, the best will typically
+show a Sharpe around 0.8; among 1,000, around 1.0. That is why Harvey, Liu and
+Zhu argued that a new factor should clear a t-statistic of 3 rather than 2, and
+why Bailey and López de Prado's deflated Sharpe ratio adjusts for the number of
+trials. The loop at least does the counting for you, since every trial is a line
+in the log. Use that count when you judge the winner.
+
+**The loop can overfit the evaluation even though it never trains on it.** It
+is tempting to think a held-out period is safe because no model is fit to it.
+But every keep-or-reset decision looks at that score, and a thousand decisions
+leak a lot of information. After enough rounds the held-out period has
+effectively become training data. Karpathy's own run shows this in miniature:
+the last change it kept was a new random seed, 42 to 137. That does nothing for
+the model. It won a draw of the noise on the evaluation set. Markets have far
+more noise and far less data than a language model's validation set, so the same
+thing happens at a much larger scale. The fix is a second holdout the loop never
+sees, used once at the end, followed by paper trading before any capital goes
+in.
+
+None of this is a reason to stay away. It is a reason to put the human effort in
+the right place: a backtest that cannot be fooled, an honest count of how many
+things were tried, and a final test the loop has never touched. Get those right
+and an agent can explore more ideas in a week than a team does in a year. Get
+them wrong and it will find a thousand ways to fool you, faster than you ever
+could on your own.
+
 ---
 
 **References**
@@ -251,5 +304,7 @@ of them haven't started.
 - Shopify/liquid [#2056](https://github.com/Shopify/liquid/pull/2056), the Liquid result, with the benchmark table and methodology.
 - Cobelli and Sanvito, [Agentic Design of Compositional Descriptors via Autoresearch for Materials Science Applications](https://arxiv.org/abs/2605.14671), *Digital Discovery*, 2026.
 - Anthropic, [`skill-creator`](https://github.com/anthropics/skills/blob/main/skills/skill-creator/SKILL.md), including `scripts/run_loop`.
+- Harvey, Liu, and Zhu, […and the Cross-Section of Expected Returns](https://academic.oup.com/rfs/article/29/1/5/1843824), *Review of Financial Studies*, 2016.
+- Bailey and López de Prado, [The Deflated Sharpe Ratio](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2460551), *Journal of Portfolio Management*, 2014.
 - Romera-Paredes et al., [Mathematical discoveries from program search with large language models](https://www.nature.com/articles/s41586-023-06924-6), *Nature*, 2024.
 - [AlphaEvolve](https://deepmind.google/discover/blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/), DeepMind, 2025.
