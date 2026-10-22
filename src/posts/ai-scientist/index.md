@@ -294,7 +294,7 @@ So can an adjusted autoresearch find alpha that persists out of sample? I think
 it will. The bitter lesson is on our side: general methods that scale with
 compute keep beating clever hand-built ones, and the models keep getting better.
 I also believe models can be creative, that they can propose ideas that are not
-in their training data. Geoffrey Hinton has argued this for years: a network
+in their training data. This is an old argument in deep learning: a network
 can be more right than the data it learned from. Train one on handwritten
 digits where a hundred random labels swamp each correct one, and it still reads
 more than 90% of new digits correctly. And AlphaEvolve found a way to multiply
