@@ -4,7 +4,7 @@ A terminal-aesthetic blog. Built with [Eleventy](https://www.11ty.dev/). Deploys
 
 **RSS/Atom feed** is at `/feed.xml` once deployed — change the site URL in `src/_data/site.json` when you set up a custom domain.
 
-**License:** Apache 2.0 (see `LICENSE`).
+**License:** code is Apache 2.0 (see `LICENSE`); post text is [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/).
 
 ---
 
