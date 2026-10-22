@@ -297,8 +297,9 @@ I also believe models can be creative, that they can propose ideas that are not
 in their training data. This is an old argument in deep learning: a network
 can be more right than the data it learned from. Train one on handwritten
 digits where a hundred random labels swamp each correct one, and it still reads
-more than 90% of new digits correctly. And AlphaEvolve found a way to multiply
-4×4 complex matrices with 48 multiplications, beating the best known method,
+more than 90% of new digits correctly. And AlphaEvolve, a language model proposing
+code changes against an automatic evaluator, found a way to multiply 4×4
+complex matrices with 48 multiplications, beating the best known method,
 Strassen's from 1969. That answer was in no training set. What has to change is
 the loop around them.
 
