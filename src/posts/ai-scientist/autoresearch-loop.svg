@@ -74,12 +74,12 @@
 <polygon fill="#0a0e1a" stroke="#3ee87a" stroke-width="1.2" points="226.23,-158 186.73,-188.5 107.73,-188.5 68.23,-158 107.73,-127.5 186.73,-127.5 226.23,-158"/>
 <text text-anchor="middle" x="147.23" y="-154.5" font-family="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace" font-size="15.00" fill="#3ee87a">keep it</text>
 </g>
-<!-- T&#45;&gt;H -->
+<!-- T&#45;&gt;READ -->
 <g id="edge8" class="edge">
-<title>T&#45;&gt;H</title>
-<path fill="none" stroke="#6b7280" stroke-width="1.1" stroke-dasharray="5,2" d="M202.46,-176.36C220.54,-182.01 240.74,-188.3 259.23,-194 308.95,-209.31 321.39,-213.11 371.23,-228 401.42,-237.02 409.02,-239.07 439.23,-248 447.37,-250.41 455.84,-252.92 464.32,-255.43"/>
-<polygon fill="#6b7280" stroke="#6b7280" stroke-width="1.1" points="463.7,-257.8 471.11,-257.45 465.1,-253.11 463.7,-257.8"/>
-<text text-anchor="middle" x="405.23" y="-217.6" font-family="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace" font-size="13.00" fill="#9aa1ad">next idea</text>
+<title>T&#45;&gt;READ</title>
+<path fill="none" stroke="#6b7280" stroke-width="1.1" stroke-dasharray="5,2" d="M190.84,-185.34C222.89,-204.69 266.46,-231.01 299.8,-251.14"/>
+<polygon fill="#6b7280" stroke="#6b7280" stroke-width="1.1" points="298.64,-253.31 305.9,-254.83 301.17,-249.11 298.64,-253.31"/>
+<text text-anchor="middle" x="284.23" y="-217.6" font-family="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace" font-size="13.00" fill="#9aa1ad">next &#160;</text>
 </g>
 <!-- D -->
 <g id="node6" class="node">
@@ -95,12 +95,12 @@
 <polygon fill="#6b7280" stroke="#6b7280" stroke-width="1.1" points="233.49,-155.55 226.49,-158 233.49,-160.45 233.49,-155.55"/>
 <text text-anchor="middle" x="248.23" y="-164.6" font-family="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace" font-size="13.00" fill="#3ee87a">yes</text>
 </g>
-<!-- D&#45;&gt;H -->
+<!-- D&#45;&gt;READ -->
 <g id="edge9" class="edge">
-<title>D&#45;&gt;H</title>
-<path fill="none" stroke="#ff6b4a" stroke-width="1.1" d="M382.34,-179.1C414.58,-198.66 463.97,-228.64 500.84,-251.02"/>
-<polygon fill="#ff6b4a" stroke="#ff6b4a" stroke-width="1.1" points="499.86,-253.29 507.11,-254.83 502.4,-249.1 499.86,-253.29"/>
-<text text-anchor="middle" x="503.73" y="-217.6" font-family="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace" font-size="13.00" fill="#ff6b4a">no: undo it</text>
+<title>D&#45;&gt;READ</title>
+<path fill="none" stroke="#ff6b4a" stroke-width="1.1" d="M349.23,-194.39C349.23,-211.13 349.23,-231.02 349.23,-247.51"/>
+<polygon fill="#ff6b4a" stroke="#ff6b4a" stroke-width="1.1" points="346.78,-247.83 349.23,-254.83 351.68,-247.83 346.78,-247.83"/>
+<text text-anchor="middle" x="398.23" y="-217.6" font-family="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace" font-size="13.00" fill="#ff6b4a"> &#160;no: undo it</text>
 </g>
 <!-- R -->
 <g id="node7" class="node">

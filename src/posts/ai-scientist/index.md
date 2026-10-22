@@ -117,7 +117,7 @@ Either way it adds a line to a log saying what it tried and what happened, and
 then it starts again.
 
 <figure class="diagram" id="loop">
-  <img src="autoresearch-loop.svg" alt="The loop laid out like the scientific method. Top row: you write the problem definition (program.md), read the current code, propose a change (highlighted), edit train.py and commit. Bottom row: train the model for five minutes, score on the validation set, then a decision: if better than the best so far keep it and go to the next idea, otherwise undo it and propose again. Third row: every attempt, kept or not, is logged to results.tsv, which you read in the morning before revising the problem definition.">
+  <img src="autoresearch-loop.svg" alt="The loop laid out like the scientific method. Top row: you write the problem definition (program.md), read the current code, propose a change (highlighted), edit train.py and commit. Bottom row: train the model for five minutes, score on the validation set, then a decision: if better than the best so far keep it, otherwise undo it; either way the agent goes back to reading the current code for the next experiment. Third row: every attempt, kept or not, is logged to results.tsv, which you read in the morning before revising the problem definition.">
   <figcaption>The autoresearch loop, in the same shape as the scientific method. Every step is the agent's except the two marked "you".</figcaption>
 </figure>
 
