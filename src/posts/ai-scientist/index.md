@@ -182,11 +182,16 @@ context, and reads `tail -n 50 run.log` only when a run crashes.
   <figcaption>The autoresearch loop.</figcaption>
 </figure>
 
-The record has two halves. The branch is the agent's memory of what worked. The
-log holds everything, including what was thrown away, and it is untracked: the
-agent appends the rows, the human reads them in the morning. `program.md` asks
-for the write, not the read, which puts a night of experiments in front of a
-person.
+The record has three parts, and only two of them are durable. During a run the
+agent remembers its own attempts, because it is one long session: the edit, the
+commit, the grep line and the stack trace all pass through its context, so it
+knows what failed without consulting anything. That memory is finite. A ten-hour
+run compacts its context several times over, and what survives compaction is the
+shape of a failure rather than its detail. The branch then holds what worked,
+and the log holds everything, including what was thrown away. The log is
+untracked: the agent appends the rows, the human reads them in the morning.
+`program.md` asks for the write, not the read, which puts a night of experiments
+in front of a person.
 
 In the first reported session the numbers went from 0.9979 to 0.9697 in
 `val_bpb`, over 125 experiments and about ten and a half hours. The largest
