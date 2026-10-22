@@ -334,6 +334,21 @@ the loop fully autonomous, he said he still prefers interactive sessions:
 watching in `tmux`, babysitting, contributing ideas. The overnight run is one
 mode of use, not the only one.
 
+The division of labour is the one a lab already uses. The human is the principal
+investigator: chooses the question, sets the standard of evidence, decides what
+counts as a result, and reads the notebook in the morning. The agent is the
+student: reads the protocol, proposes the next experiment, runs it, writes it
+down, reports what happened.
+
+The analogy is close and it has limits. A student gets better over years, and
+eventually argues about the question. This one does not improve between runs,
+cannot reframe the problem, and forgets anything that was not written down. What
+it has instead is throughput and no ego: a hundred attempts a night, none of them
+tired, none of them attached to an idea.
+
+Which is why the PI's job barely changes. Decide what is worth measuring, keep
+the measurement honest, and read the notebook.
+
 The method has not changed. What changed is who proposes the next experiment,
 and how many of them you can afford. A thousand attempts is a different kind of
 science from ten, and the loss function decides which one you are doing.
