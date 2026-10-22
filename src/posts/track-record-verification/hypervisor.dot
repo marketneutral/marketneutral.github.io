@@ -1,0 +1,36 @@
+// Source for hypervisor.svg: where the isolation is enforced. Re-render with:
+//   dot -Tsvg hypervisor.dot -o hypervisor.svg
+digraph hv {
+  rankdir=BT; bgcolor="transparent"; pad=0.25; nodesep=0.35; ranksep=0.5;
+  fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace";
+  node [shape=box, style="rounded,filled", fillcolor="#131927", color="#2a3344",
+        fontcolor="#e8eaf0", fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=15, margin="0.12,0.12", penwidth=1.2, width=2.1, height=0.75, fixedsize=true];
+  edge [color="#6b7280", arrowsize=0.7, penwidth=1.1,
+        fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=13, fontcolor="#9aa1ad"];
+  node [width=1.9, height=0.65, fontsize=14];
+  subgraph cluster_hw {
+    label="physical hardware"; labeljust=l; fontcolor="#9aa1ad"; fontsize=13; color="#2a3344"; style="dashed"; margin=14;
+    CPU [label="CPU cores"]; RAM [label="RAM"]; NIC [label="network"];
+    { rank=same; CPU; RAM; NIC; }
+  }
+  subgraph cluster_hv {
+    label="Nitro hypervisor: the lowest layer of software"; labeljust=l; fontcolor="#e8c97a"; fontsize=13; color="#e8c97a"; style="solid"; margin=14;
+    AL [label="allocates cores\nand memory"]; IS [label="walls the enclave's\nmemory off", height=0.75]; AT [label="measures and\nsigns (attestation)", height=0.75];
+    { rank=same; AL; IS; AT; }
+  }
+  subgraph cluster_parent {
+    label="parent instance"; labeljust=l; fontcolor="#9aa1ad"; fontsize=13; color="#2a3344"; style="dashed"; margin=14;
+    OS [label="Linux"]; APP [label="platform code"]; SSHD [label="SSH daemon"];
+  }
+  subgraph cluster_encl {
+    label="Nitro Enclave"; labeljust=l; fontcolor="#3ee87a"; fontsize=13; color="#3ee87a"; style="solid"; margin=14;
+    EOS [label="minimal OS", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a"]; EC [label="evaluation code", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a"]; EK [label="private key", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a"];
+  }
+  RAM -> IS; CPU -> AL; NIC -> AL [style=invis];
+  IS -> OS [style=invis]; IS -> EK [style=invis];
+  AL -> SSHD; AT -> EOS;
+  OS -> APP -> SSHD [style=invis]; EOS -> EC -> EK [style=invis];
+  SSHD -> EOS [style=dashed, color="#ff6b4a", fontcolor="#ff6b4a", label="  no access path", arrowhead=tee, constraint=false];
+}

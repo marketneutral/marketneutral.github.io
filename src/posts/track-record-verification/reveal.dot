@@ -1,0 +1,16 @@
+// Source for reveal.svg: optional disclosure, checked against the commitment.
+// Re-render with:  dot -Tsvg reveal.dot -o reveal.svg
+digraph reveal {
+  rankdir=LR; bgcolor="transparent"; pad=0.25; nodesep=0.35; ranksep=0.5;
+  fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace";
+  node [shape=box, style="rounded,filled", fillcolor="#131927", color="#2a3344",
+        fontcolor="#e8eaf0", fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=15, margin="0.12,0.12", penwidth=1.2, width=2.1, height=0.75, fixedsize=true];
+  edge [color="#6b7280", arrowsize=0.7, penwidth=1.1,
+        fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=13, fontcolor="#9aa1ad"];
+  Q [label="the quant\nchooses to reveal"]; C [label="hash of the text ==\nthe committed hash?", shape=diamond, style="filled", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a", margin="0.04,0.02", width=2.4, height=1.1, fixedsize=true, fontsize=13, width=2.8];
+  P [label="published, with\nthe submission date", fillcolor="#3ee87a", color="#3ee87a", fontcolor="#0a0e1a", width=2.4]; X [label="rejected", fillcolor="#0a0e1a", color="#ff6b4a", fontcolor="#ff6b4a"];
+  { rank=same; P; X; }
+  Q -> C [label="the expression"]; C -> P [label="match", color="#3ee87a", fontcolor="#3ee87a"]; C -> X [label="mismatch", color="#ff6b4a", fontcolor="#ff6b4a"];
+}

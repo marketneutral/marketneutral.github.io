@@ -1,0 +1,23 @@
+// Source for tool-hash.svg (one of the four "tools" panels). Re-render with:
+//   dot -Tsvg tool-hash.dot -o tool-hash.svg
+// A hash is a fingerprint: one-way, and a one-character change produces a
+// completely different one.
+digraph hash {
+  rankdir=TB; bgcolor="transparent"; pad=0.2; nodesep=0.3; ranksep=0.45;
+  fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace";
+  node [shape=box, style="rounded,filled", fillcolor="#131927", color="#2a3344",
+        fontcolor="#e8eaf0", fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=15, margin="0.12,0.12", penwidth=1.2, width=1.9, height=0.7, fixedsize=true];
+  edge [color="#6b7280", arrowsize=0.7, penwidth=1.1,
+        fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=13, fontcolor="#9aa1ad"];
+  A [label="the contract", width=2.2];
+  B [label="the contract,\none word changed", width=2.2, color="#ff6b4a"];
+  HA [label="3f9a…c21e", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a"];
+  HB [label="b07d…4e88", fillcolor="#0f1726", color="#ff6b4a", fontcolor="#ff6b4a"];
+  { rank=same; A; B; }
+  { rank=same; HA; HB; }
+  A -> HA [label="hash"];
+  B -> HB [label="hash"];
+  A -> B [style=invis];
+}

@@ -1,0 +1,31 @@
+// Source for attestation-chain.svg: how the browser decides to trust the
+// enclave. Re-render with:  dot -Tsvg attestation-chain.dot -o attestation-chain.svg
+digraph chain {
+  rankdir=TB; bgcolor="transparent"; pad=0.25; nodesep=0.35; ranksep=0.5;
+  fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace";
+  node [shape=box, style="rounded,filled", fillcolor="#131927", color="#2a3344",
+        fontcolor="#e8eaf0", fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=15, margin="0.12,0.12", penwidth=1.2, width=2.1, height=0.75, fixedsize=true];
+  edge [color="#6b7280", arrowsize=0.7, penwidth=1.1,
+        fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=13, fontcolor="#9aa1ad"];
+  subgraph cluster_pub {
+    label="public record"; labeljust=l; fontcolor="#9aa1ad"; fontsize=13; color="#2a3344"; style="dashed"; margin=14;
+    SRC [label="enclave source\non GitHub"]; H [label="published\nhash h", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a"];
+    SRC -> H [label="anyone can\nbuild and hash"];
+  }
+  subgraph cluster_run {
+    label="at run time"; labeljust=l; fontcolor="#9aa1ad"; fontsize=13; color="#2a3344"; style="dashed"; margin=14;
+    ENC [label="running enclave"]; DOC [label="attestation document\nsigned by AWS", height=0.8]; PCR [label="pcr0: measured\nhash of the image", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a", height=0.8];
+    ENC -> DOC [label="fetch"]; DOC -> PCR;
+  }
+  SIG [label="AWS signature\nvalid?", shape=diamond, style="filled", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a", margin="0.04,0.02", width=2.4, height=1.1, fixedsize=true, fontsize=13];
+  EQ [label="pcr0 == h ?", shape=diamond, style="filled", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a", margin="0.04,0.02", width=2.4, height=1.1, fixedsize=true, fontsize=13];
+  OK [label="encrypt and submit", fillcolor="#3ee87a", color="#3ee87a", fontcolor="#0a0e1a", width=2.4];
+  BAD [label="refuse. the mismatch\nis public", fillcolor="#0a0e1a", color="#ff6b4a", fontcolor="#ff6b4a", width=2.6];
+  { rank=same; OK; BAD; }
+  DOC -> SIG; H -> EQ; SIG -> EQ [label="yes", color="#3ee87a", fontcolor="#3ee87a"]; PCR -> EQ;
+  SIG -> BAD [label="no", color="#ff6b4a", fontcolor="#ff6b4a"];
+  EQ -> OK [label="match", color="#3ee87a", fontcolor="#3ee87a"];
+  EQ -> BAD [label="mismatch", color="#ff6b4a", fontcolor="#ff6b4a"];
+}

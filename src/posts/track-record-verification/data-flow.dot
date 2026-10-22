@@ -1,0 +1,61 @@
+// Source for data-flow.svg. Re-render with:
+//   dot -Tsvg data-flow.dot -o data-flow.svg
+// A snake, three columns wide, so it fits the column at a readable size:
+// row 1 (left to right) is the quant's browser; row 2 (right to left) is the
+// operator's platform; row 3 (right to left) is the enclave inside it; the
+// leaderboard hangs off the end. Only ciphertext crosses into the platform;
+// only metrics come out of the enclave. The dashed red edge is the one thing
+// the operator cannot do.
+digraph dataflow {
+  rankdir=TB;
+  bgcolor="transparent";
+  pad=0.25;
+  nodesep=0.45;
+  ranksep=0.6;
+  fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace";
+  node [shape=box, style="rounded,filled", fillcolor="#131927", color="#2a3344",
+        fontcolor="#e8eaf0", fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=15, margin="0.10,0.12", penwidth=1.2, width=2.1, height=0.75, fixedsize=true];
+  edge [color="#6b7280", arrowsize=0.7, penwidth=1.1,
+        fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=13, fontcolor="#9aa1ad"];
+
+  subgraph cluster_browser {
+    label="quant's browser"; labeljust=l; fontcolor="#9aa1ad"; fontsize=13;
+    color="#2a3344"; style="dashed"; margin=16;
+    WRITE  [label="write the\nqex expression"];
+    VERIFY [label="check the\nattestation"];
+    ENC    [label="encrypt to the\nenclave's key", fillcolor="#3ee87a", color="#3ee87a", fontcolor="#0a0e1a"];
+    { rank=same; WRITE; VERIFY; ENC; }
+    WRITE -> VERIFY -> ENC;
+  }
+
+  subgraph cluster_platform {
+    label="the operator's AWS account"; labeljust=l; fontcolor="#9aa1ad"; fontsize=13;
+    color="#2a3344"; style="dashed"; margin=16;
+    OP  [label="operator", style="rounded,dashed", color="#9aa1ad"];
+    DB  [label="ciphertext\nstore", shape=cylinder, height=0.85];
+    API [label="API server"];
+    { rank=same; OP; DB; API; }
+    OP -> DB  [label="can read", style=dashed];
+    DB -> API [dir=back, label="store"];
+
+    subgraph cluster_enclave {
+      label="Nitro Enclave"; labeljust=l; fontcolor="#3ee87a"; fontsize=13;
+      color="#3ee87a"; style="solid"; margin=14;
+      MET [label="keep only\nthe metrics"];
+      RUN [label="run the\nbacktest"];
+      DEC [label="decrypt"];
+      { rank=same; MET; RUN; DEC; }
+      MET -> RUN [dir=back];
+      RUN -> DEC [dir=back];
+    }
+    API -> DEC [label="forward\nciphertext"];
+    OP -> DEC  [label="cannot read", style=dashed, color="#ff6b4a", fontcolor="#ff6b4a", constraint=false];
+  }
+
+  LB [label="public\nleaderboard", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a"];
+
+  ENC -> API [label="ciphertext"];
+  MET -> LB  [label="Sharpe, drawdown, return.\nnothing else"];
+}

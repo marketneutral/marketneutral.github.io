@@ -1,0 +1,64 @@
+// Source for signal-dag.svg: the SignalGraph qex builds for the alpha in
+// this post, written out by experiment.py. Re-render with:
+//   dot -Tsvg signal-dag.dot -o signal-dag.svg
+digraph alpha {
+  rankdir=BT; bgcolor="transparent"; pad=0.3; nodesep=0.3; ranksep=0.5;
+  node [shape=box, style="rounded,filled", fillcolor="#131927", color="#2a3344",
+        fontcolor="#e8eaf0", fontname="IBM Plex Mono, DejaVu Sans Mono, monospace",
+        fontsize=13, margin="0.16,0.10", penwidth=1.2];
+  edge [color="#6b7280", arrowsize=0.6, penwidth=1.0];
+  n0 [label="volatility(20)", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a"];
+  n1 [label="ewma(·, 60)"];
+  n2 [label=">"];
+  n3 [label="0.5", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a"];
+  n4 [label="returns(5)", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a"];
+  n5 [label="negate"];
+  n6 [label="/"];
+  n7 [label="group_demean(·, sector)"];
+  n8 [label="*"];
+  n9 [label="where(·, ·, ·)"];
+  n10 [label="1", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a"];
+  n11 [label="volume(5)", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a"];
+  n12 [label="volume(60)", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a"];
+  n13 [label="/"];
+  n14 [label="ts_rank(·, 120)"];
+  n15 [label="*"];
+  n16 [label="-"];
+  n17 [label="*"];
+  n18 [label="z_score(·)"];
+  n19 [label="3", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a"];
+  n20 [label="min(·, ·)"];
+  n21 [label="negate"];
+  n22 [label="max(·, ·)"];
+  n23 [label="demean(·)"];
+  n24 [label="decay_linear(·, 20)", fillcolor="#3ee87a", color="#3ee87a", fontcolor="#0a0e1a"];
+  n0 -> n1;
+  n0 -> n2;
+  n1 -> n2;
+  n4 -> n5;
+  n5 -> n6;
+  n0 -> n6;
+  n6 -> n7;
+  n3 -> n8;
+  n7 -> n8;
+  n2 -> n9;
+  n8 -> n9;
+  n7 -> n9;
+  n11 -> n13;
+  n12 -> n13;
+  n13 -> n14;
+  n3 -> n15;
+  n14 -> n15;
+  n10 -> n16;
+  n15 -> n16;
+  n9 -> n17;
+  n16 -> n17;
+  n17 -> n18;
+  n18 -> n20;
+  n19 -> n20;
+  n19 -> n21;
+  n20 -> n22;
+  n21 -> n22;
+  n22 -> n23;
+  n23 -> n24;
+}

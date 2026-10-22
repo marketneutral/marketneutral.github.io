@@ -516,6 +516,9 @@ footer a:hover { color: var(--accent); }
   margin: 0;
 }
 
+.post-body figure.diagram.narrow { max-width: 440px; }
+.post-body figure.diagram.tight { margin: 8px auto 28px; }
+
 .post-body figure figcaption {
   margin-top: 10px;
   color: var(--muted);

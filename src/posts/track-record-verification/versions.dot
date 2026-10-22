@@ -1,0 +1,22 @@
+// Source for versions.svg: each enclave version is frozen with its own key.
+// Re-render with:  dot -Tsvg versions.dot -o versions.svg
+digraph versions {
+  rankdir=TB; bgcolor="transparent"; pad=0.25; nodesep=0.35; ranksep=0.5;
+  fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace";
+  node [shape=box, style="rounded,filled", fillcolor="#131927", color="#2a3344",
+        fontcolor="#e8eaf0", fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=15, margin="0.12,0.12", penwidth=1.2, width=2.1, height=0.75, fixedsize=true];
+  edge [color="#6b7280", arrowsize=0.7, penwidth=1.1,
+        fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=13, fontcolor="#9aa1ad"];
+  subgraph cluster_v {
+    label="enclave versions, each frozen at deployment"; labeljust=l; fontcolor="#9aa1ad"; fontsize=13; color="#2a3344"; style="dashed"; margin=16;
+    V1 [label="v1\nhash h1, key K1", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a", height=0.8]; V2 [label="v2\nhash h2, key K2", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a", height=0.8]; V3 [label="v3\nhash h3, key K3", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a", height=0.8];
+    { rank=same; V1; V2; V3; }
+    V1 -> V2 [label="migrate, only with\nthe quant's signature", style=dashed, color="#3ee87a", fontcolor="#3ee87a"];
+    V2 -> V3 [style=invis];
+  }
+  S1 [label="submitted to v1\n(opened only by K1)"]; S2 [label="submitted to v2\n(opened only by K2)"];
+  S1 -> V1; S2 -> V2;
+  { rank=same; S1; S2; }
+}

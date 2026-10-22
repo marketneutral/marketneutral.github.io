@@ -1,0 +1,17 @@
+// Source for tool-sign.svg. A signature is the lock in reverse: the private
+// key signs, anyone with the public key verifies, nobody else can forge.
+digraph sign {
+  rankdir=LR; bgcolor="transparent"; pad=0.2; nodesep=0.3; ranksep=0.7;
+  fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace";
+  node [shape=box, style="rounded,filled", fillcolor="#131927", color="#2a3344",
+        fontcolor="#e8eaf0", fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=17, margin="0.14,0.14", penwidth=1.2, width=2.1, height=0.8, fixedsize=true];
+  edge [color="#6b7280", arrowsize=0.7, penwidth=1.1,
+        fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=15, fontcolor="#9aa1ad"];
+  M [label="a letter"];
+  S [label="message\n+ signature", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a"];
+  V [label="from the owner,\nunaltered", shape=hexagon, style=filled, fillcolor="#0a0e1a", color="#3ee87a", fontcolor="#3ee87a", margin="0.04,0.02", width=2.9, height=0.9];
+  M -> S [label="signed with the\nprivate key", color="#3ee87a", fontcolor="#3ee87a"];
+  S -> V [label="checked with the\npublic key"];
+}

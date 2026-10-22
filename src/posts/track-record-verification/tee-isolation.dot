@@ -1,0 +1,28 @@
+// Source for tee-isolation.svg: what root on the parent instance can and
+// cannot reach. Re-render with:  dot -Tsvg tee-isolation.dot -o tee-isolation.svg
+digraph tee {
+  rankdir=TB; bgcolor="transparent"; pad=0.25; nodesep=0.35; ranksep=0.5;
+  fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace";
+  node [shape=box, style="rounded,filled", fillcolor="#131927", color="#2a3344",
+        fontcolor="#e8eaf0", fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=15, margin="0.12,0.12", penwidth=1.2, width=2.1, height=0.75, fixedsize=true];
+  edge [color="#6b7280", arrowsize=0.7, penwidth=1.1,
+        fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=13, fontcolor="#9aa1ad"];
+  subgraph cluster_parent {
+    label="parent EC2 instance: the operator has root"; labeljust=l; fontcolor="#9aa1ad"; fontsize=13;
+    color="#2a3344"; style="dashed"; margin=18;
+    SSH [label="SSH in  ✓"]; LOG [label="read the logs  ✓"]; PS [label="list processes  ✓"];
+    { rank=same; SSH; LOG; PS; }
+    SSH -> LOG -> PS [style=invis];
+    NO [label="reach the enclave  ✗", fillcolor="#0a0e1a", color="#ff6b4a", fontcolor="#ff6b4a", width=2.6];
+    subgraph cluster_enclave {
+      label="Nitro Enclave"; labeljust=l; fontcolor="#3ee87a"; fontsize=13; color="#3ee87a"; style="solid"; margin=14;
+      K [label="private key", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a"]; C [label="evaluation code", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a"]; M [label="memory", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a"];
+      { rank=same; K; C; M; }
+      K -> C -> M [style=invis];
+    }
+    SSH -> NO [style=dashed, color="#ff6b4a"]; LOG -> NO [style=dashed, color="#ff6b4a"]; PS -> NO [style=dashed, color="#ff6b4a"];
+    NO -> C [style=dashed, color="#ff6b4a", arrowhead=tee, label="no path", fontcolor="#ff6b4a"];
+  }
+}

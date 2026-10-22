@@ -1,0 +1,47 @@
+// Source for key-binding.svg. Re-render with:
+//   dot -Tsvg key-binding.dot -o key-binding.svg
+// Why a modified enclave gets nothing: KMS releases the key only to an enclave
+// whose measured image hash matches the published one. Change a byte and the
+// hash changes, so KMS refuses, so the ciphertext stays ciphertext. Two
+// columns, the published build on the left and a tampered build on the right.
+digraph keybinding {
+  rankdir=TB;
+  bgcolor="transparent";
+  pad=0.25;
+  nodesep=0.6;
+  ranksep=0.5;
+  fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace";
+  node [shape=box, style="rounded,filled", fillcolor="#131927", color="#2a3344",
+        fontcolor="#e8eaf0", fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=15, margin="0.10,0.12", penwidth=1.2, width=2.4, height=0.8, fixedsize=true];
+  edge [color="#6b7280", arrowsize=0.7, penwidth=1.1,
+        fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=13, fontcolor="#9aa1ad"];
+
+  SRC [label="published\nenclave source"];
+  H1  [label="image hash h1", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a"];
+  E1  [label="enclave boots;\nAWS attests h1", color="#3ee87a"];
+  K   [label="key released.\nlives only in\nenclave memory", fillcolor="#3ee87a", color="#3ee87a", fontcolor="#0a0e1a", height=0.95];
+
+  MOD [label="modified source\n(exports weights)", color="#ff6b4a"];
+  H2  [label="image hash h2", fillcolor="#0f1726", color="#ff6b4a", fontcolor="#ff6b4a"];
+  E2  [label="enclave boots;\nAWS attests h2", color="#ff6b4a"];
+  NO  [label="no key.\nciphertext stays\nciphertext", shape=hexagon, style="filled", fillcolor="#0a0e1a", color="#ff6b4a", fontcolor="#ff6b4a", margin="0.04,0.02", width=2.6, height=1.0];
+
+  KMS [label="AWS KMS policy:\nrelease the key\nonly to hash h1", width=2.8, height=0.95];
+
+  { rank=same; SRC; MOD; }
+  { rank=same; H1; H2; }
+  { rank=same; E1; E2; }
+  { rank=same; K; NO; }
+
+  SRC -> H1 [label="build"];
+  H1 -> E1;
+  E1 -> KMS [label="asks for\nthe key"];
+  KMS -> K [label="h1 matches", color="#3ee87a", fontcolor="#3ee87a"];
+
+  MOD -> H2 [label="build"];
+  H2 -> E2;
+  E2 -> KMS [label="asks for\nthe key"];
+  KMS -> NO [label="h2 ≠ h1", color="#ff6b4a", fontcolor="#ff6b4a"];
+}

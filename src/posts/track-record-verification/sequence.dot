@@ -1,0 +1,45 @@
+// Source for sequence.svg: the submission, as a sequence diagram drawn with
+// graphviz. Three lifelines, one row per message. Re-render with:
+//   dot -Tsvg sequence.dot -o sequence.svg
+digraph sequence {
+  rankdir=TB; bgcolor="transparent"; pad=0.25; nodesep=0.35; ranksep=0.5;
+  fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace";
+  node [shape=box, style="rounded,filled", fillcolor="#131927", color="#2a3344",
+        fontcolor="#e8eaf0", fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=15, margin="0.12,0.12", penwidth=1.2, width=2.1, height=0.75, fixedsize=true];
+  edge [color="#6b7280", arrowsize=0.7, penwidth=1.1,
+        fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=13, fontcolor="#9aa1ad"];
+  nodesep=0.9; ranksep=0.35;
+  node [width=2.0, height=0.6, fontsize=13];
+  B0 [label="browser", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a", fontsize=15];
+  S0 [label="server", fontsize=15];
+  E0 [label="enclave", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a", fontsize=15];
+  { rank=same; B0; S0; E0; }
+
+  B1 [label="ask for the\nenclave's key"]; S1 [label="ask the enclave"]; E1 [label="attestation\n+ public key"];
+  { rank=same; B1; S1; E1; }
+  B2 [label="verify the\nattestation"]; S2 [label="pass it back"]; E2 [label="", shape=point, width=0.05, color="#2a3344"];
+  { rank=same; B2; S2; E2; }
+  B3 [label="encrypt the\nalpha locally", fillcolor="#3ee87a", color="#3ee87a", fontcolor="#0a0e1a"]; S3 [label="store the\nciphertext"]; E3 [label="decrypt,\nevaluate, erase", fillcolor="#3ee87a", color="#3ee87a", fontcolor="#0a0e1a"];
+  { rank=same; B3; S3; E3; }
+  B4 [label="see the result"]; S4 [label="record the\nmetrics"]; E4 [label="metrics only", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a"];
+  { rank=same; B4; S4; E4; }
+
+  // lifelines
+  edge [style=dotted, arrowhead=none, color="#2a3344"];
+  B0 -> B1 -> B2 -> B3 -> B4;
+  S0 -> S1 -> S2 -> S3 -> S4;
+  E0 -> E1 -> E2 -> E3 -> E4;
+
+  // messages
+  edge [style=solid, arrowhead=normal, color="#6b7280", constraint=false];
+  B1 -> S1 [label="1"];
+  S1 -> E1 [label="2"];
+  S2 -> E2 [label="3", dir=back];
+  B2 -> S2 [label="4: key, with proof", dir=back];
+  B3 -> S3 [label="5: ciphertext + hash"];
+  S3 -> E3 [label="6: forward"];
+  E4 -> S4 [label="7"];
+  S4 -> B4 [label="8"];
+}

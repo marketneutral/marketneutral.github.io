@@ -1,0 +1,22 @@
+// Source for idea.svg: the whole design in four boxes. Re-render with:
+//   dot -Tsvg idea.dot -o idea.svg
+digraph idea {
+  rankdir=LR; bgcolor="transparent"; pad=0.25; nodesep=0.35; ranksep=0.5;
+  fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace";
+  node [shape=box, style="rounded,filled", fillcolor="#131927", color="#2a3344",
+        fontcolor="#e8eaf0", fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=15, margin="0.12,0.12", penwidth=1.2, width=2.1, height=0.75, fixedsize=true];
+  edge [color="#6b7280", arrowsize=0.7, penwidth=1.1,
+        fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=13, fontcolor="#9aa1ad"];
+  Q [label="the quant"];
+  P [label="the platform"];
+  L [label="public\nleaderboard", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a"];
+  X [label="the alpha itself", fillcolor="#0a0e1a", color="#ff6b4a", fontcolor="#ff6b4a", style="rounded,dashed,filled"];
+  R [label="public disclosure,\nif the quant\nchooses", style="rounded,dashed", color="#9aa1ad", height=0.95];
+  { rank=same; L; X; }
+  Q -> P [label="encrypted alpha"];
+  P -> L [label="metrics only"];
+  P -> X [label="never sees", style=dashed, color="#ff6b4a", fontcolor="#ff6b4a"];
+  Q -> R [label="optional: reveal", style=dashed, constraint=false];
+}

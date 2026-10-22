@@ -1,0 +1,18 @@
+// Source for tool-attest.svg. Attestation: the hardware hashes the code it
+// loaded and signs the measurement, so you can encrypt to a program and know
+// which one.
+digraph attest {
+  rankdir=LR; bgcolor="transparent"; pad=0.2; nodesep=0.3; ranksep=0.7;
+  fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace";
+  node [shape=box, style="rounded,filled", fillcolor="#131927", color="#2a3344",
+        fontcolor="#e8eaf0", fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=17, margin="0.14,0.14", penwidth=1.2, width=2.1, height=0.8, fixedsize=true];
+  edge [color="#6b7280", arrowsize=0.7, penwidth=1.1,
+        fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=15, fontcolor="#9aa1ad"];
+  CODE [label="a program"];
+  H [label="hash h1", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a"];
+  DOC [label="\"program h1 is\nrunning here\"\nsigned by the chip", width=2.6, height=1.05];
+  CODE -> H [label="the chip\nhashes it"];
+  H -> DOC [label="the chip\nsigns"];
+}

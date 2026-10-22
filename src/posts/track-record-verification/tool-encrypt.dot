@@ -1,0 +1,17 @@
+// Source for tool-encrypt.svg. Public-key encryption: anyone can lock with the
+// public key; only the holder of the private key can open.
+digraph encrypt {
+  rankdir=LR; bgcolor="transparent"; pad=0.2; nodesep=0.3; ranksep=0.7;
+  fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace";
+  node [shape=box, style="rounded,filled", fillcolor="#131927", color="#2a3344",
+        fontcolor="#e8eaf0", fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=17, margin="0.14,0.14", penwidth=1.2, width=2.1, height=0.8, fixedsize=true];
+  edge [color="#6b7280", arrowsize=0.7, penwidth=1.1,
+        fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=15, fontcolor="#9aa1ad"];
+  P [label="a letter"];
+  C [label="ciphertext", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a"];
+  Q [label="the letter"];
+  P -> C [label="locked with the\npublic key, which\nanyone can have"];
+  C -> Q [label="opened with the\nprivate key, which\none person has", color="#3ee87a", fontcolor="#3ee87a"];
+}

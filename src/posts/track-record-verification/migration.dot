@@ -1,0 +1,36 @@
+// Source for migration.svg: moving an alpha to a new enclave version needs the
+// quant's signature, checked inside the old enclave. Re-render with:
+//   dot -Tsvg migration.dot -o migration.svg
+digraph migration {
+  rankdir=TB; bgcolor="transparent"; pad=0.25; nodesep=0.35; ranksep=0.5;
+  fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace";
+  node [shape=box, style="rounded,filled", fillcolor="#131927", color="#2a3344",
+        fontcolor="#e8eaf0", fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=15, margin="0.12,0.12", penwidth=1.2, width=2.1, height=0.75, fixedsize=true];
+  edge [color="#6b7280", arrowsize=0.7, penwidth=1.1,
+        fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=13, fontcolor="#9aa1ad"];
+  nodesep=0.9; ranksep=0.35;
+  node [width=2.2, height=0.65, fontsize=13];
+  Q0 [label="the quant", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a", fontsize=15]; P0 [label="the platform", fontsize=15]; V0 [label="enclave v1", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a", fontsize=15];
+  { rank=same; Q0; P0; V0; }
+  Q0 -> P0 -> V0 [style=invis];
+  Q1 [label="", shape=point, width=0.05, color="#2a3344"]; P1 [label="announce v2;\npublish its hash"]; V1 [label="", shape=point, width=0.05, color="#2a3344"];
+  { rank=same; Q1; P1; V1; }
+  Q2 [label="sign: \"move my alpha\nto hash h2\"", fillcolor="#3ee87a", color="#3ee87a", fontcolor="#0a0e1a"]; P2 [label="", shape=point, width=0.05, color="#2a3344"]; V2 [label="", shape=point, width=0.05, color="#2a3344"];
+  { rank=same; Q2; P2; V2; }
+  Q3 [label="", shape=point, width=0.05, color="#2a3344"]; P3 [label="send ciphertext\n+ authorization"]; V3 [label="check v2's attestation;\ncheck the signature", height=0.75];
+  { rank=same; Q3; P3; V3; }
+  Q4 [label="", shape=point, width=0.05, color="#2a3344"]; P4 [label="", shape=point, width=0.05, color="#2a3344"]; V4 [label="re-encrypt to K2,\ninside the enclave", fillcolor="#3ee87a", color="#3ee87a", fontcolor="#0a0e1a"];
+  { rank=same; Q4; P4; V4; }
+  Q5 [label="said nothing", style="rounded,dashed", color="#9aa1ad"]; P5 [label="", shape=point, width=0.05, color="#2a3344"]; V5 [label="refuse: the alpha\nstays on v1", fillcolor="#0a0e1a", color="#ff6b4a", fontcolor="#ff6b4a"];
+  { rank=same; Q5; P5; V5; }
+  edge [style=dotted, arrowhead=none, color="#2a3344"];
+  Q0 -> Q1 -> Q2 -> Q3 -> Q4 -> Q5; P0 -> P1 -> P2 -> P3 -> P4 -> P5; V0 -> V1 -> V2 -> V3 -> V4 -> V5;
+  edge [style=solid, arrowhead=normal, color="#6b7280", constraint=false];
+  P1 -> Q1 [label="1: notice"];
+  Q2 -> P2 [label="2: signed authorization"];
+  P3 -> V3 [label="3"];
+  V3 -> V4 [label="both pass", color="#3ee87a", fontcolor="#3ee87a", constraint=true, style=solid];
+  Q5 -> V5 [label="no signature, no move", color="#ff6b4a", fontcolor="#ff6b4a", style=dashed];
+}
