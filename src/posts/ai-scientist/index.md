@@ -263,8 +263,9 @@ each trial takes days.
 
 ## What this could mean for finance
 
-I have ended on finance because it is my field. The obvious mapping writes
-itself: the artifact is signal code, the evaluation is a backtest on a
+Having spent 30 years in financial markets on the sell side, the buy side, and
+as an allocator, I can't help but consider what autoresearch could mean for
+investing and alpha generation. The obvious mapping writes itself: the artifact is signal code, the evaluation is a backtest on a
 hold-out period, a trial takes seconds, keep the change if the Sharpe goes up.
 Run that overnight and you will have a thousand backtests by morning. You will
 also have done the one thing quantitative finance has spent decades learning
