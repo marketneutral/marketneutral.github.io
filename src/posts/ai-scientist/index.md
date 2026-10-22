@@ -261,7 +261,7 @@ or explicitly asking for bolder changes, helps.
 And it won't work at all if you can't reduce "better" to a single number, or if
 each trial takes days.
 
-## What this means for finance
+## What this could mean for finance
 
 I have ended on finance because it is my field. The obvious mapping writes
 itself: the artifact is signal code, the evaluation is a backtest on a
