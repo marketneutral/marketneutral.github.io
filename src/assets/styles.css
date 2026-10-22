@@ -111,6 +111,14 @@ html, body {
   line-height: 1.1;
   letter-spacing: -0.015em;
   color: var(--accent);
+  margin-bottom: 14px;
+}
+.hero-author {
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink);
+  font-weight: 600;
   margin-bottom: 36px;
 }
 
