@@ -224,7 +224,7 @@ that does.
 
 This is close to how a research lab already works. The principal investigator
 picks the problem, sets the standard of evidence, and reads the lab notebook.
-Students propose experiments, run them, and write down what happened. The agent
+Graduate students propose experiments, run them, and write down what happened. The agent
 is a student that never gets tired and has no favourite idea. Unlike a real
 student, it doesn't get wiser over the years or ask whether the problem is the
 right one. That part is still yours.
