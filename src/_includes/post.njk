@@ -5,7 +5,7 @@ layout: base.njk
 <article class="post-article">
   <div class="post-header">
     <div class="post-meta">
-      <span class="num">{{ "▸ " + (collections.posts | length | padNum) }}</span>
+      <span class="num">{{ "▸ " + (collections.posts | postNum(page.url) | padNum) }}</span>
       <span>{{ page.date | dateISO }}</span>
       <span>·</span>
       <span>{{ tag }}</span>

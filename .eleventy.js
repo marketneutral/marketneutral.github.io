@@ -37,6 +37,12 @@ module.exports = function (eleventyConfig) {
   // 047
   eleventyConfig.addFilter("padNum", (num) => String(num).padStart(3, "0"));
 
+  // a post's number in the archive: oldest = 1, newest = total
+  eleventyConfig.addFilter("postNum", (posts, url) => {
+    const i = posts.findIndex((p) => p.url === url);
+    return i < 0 ? posts.length : posts.length - i;
+  });
+
   // word count of rendered content, tags stripped
   const wordCount = (content) =>
     String(content).replace(/<[^>]*>/g, " ").split(/\s+/).filter(Boolean).length;

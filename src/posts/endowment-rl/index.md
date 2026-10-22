@@ -867,7 +867,7 @@ println("Trained $n_sims episodes in $(round(t_train; digits = 1)) s")
 println("Bankruptcies during training: $n_bankrupt")
 ```
 
-    Trained 1000 episodes in 60.8 s
+    Trained 1000 episodes in 61.5 s
     Bankruptcies during training: 0
 
 With the constraint in place the explorer never goes bankrupt, even with
@@ -1010,12 +1010,3 @@ follow-ups is long!
   Press.
 - Project source:
   [marketneutral/aa228-final-project](https://github.com/marketneutral/aa228-final-project)
-
-------------------------------------------------------------------------
-
-*This presentation and post are for informational purposes only and
-reflect my personal views and interests. They do not constitute
-investment advice and are not representative of any current or former
-employer. The information presented is based on publicly available
-sources. References to specific firms are for illustrative purposes only
-and do not imply endorsement.*
