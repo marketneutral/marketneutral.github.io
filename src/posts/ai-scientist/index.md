@@ -265,25 +265,21 @@ each trial takes days.
 
 Having spent 30 years in financial markets on the sell side, the buy side, and
 as an allocator, I can't help but consider what autoresearch could mean for
-investing and alpha generation. The obvious mapping writes itself: the artifact is signal code, the evaluation is a backtest on a
-hold-out period, a trial takes seconds, keep the change if the Sharpe goes up.
-Run that overnight and you will have a thousand backtests by morning. You will
-also have done the one thing quantitative finance has spent decades learning
-not to do.
+investing and alpha generation. The obvious mapping writes itself: the artifact
+is signal code, the evaluation is a backtest on a hold-out period, a trial takes
+seconds, keep the change if the Sharpe goes up. Run that overnight and you will
+have a thousand backtests by morning. You will also have done the one thing
+quantitative finance has spent decades learning not to do.
 
 Quant research is not backtest-and-keep. The backtest is the last step, not the
 search. The work is in the step before it: an economic reason the effect should
 exist, who is on the other side of the trade, why it should persist, and a
-prediction specific enough to be wrong. The backtest then checks the prediction.
-The field built that discipline because unguided search on historical returns
-reliably finds noise, and it has the literature to prove it: the factor zoo that
-Harvey, Liu and Zhu catalogued, and their argument that a new factor should
-clear a t-statistic of 3 rather than 2; Bailey, Borwein, López de Prado and Zhu
-on the probability of backtest overfitting; the deflated Sharpe ratio that
-haircuts the best of many trials. The arithmetic is simple. A Sharpe ratio
+prediction specific enough to be wrong. The field built that discipline because
+unguided search on historical returns reliably finds noise. A Sharpe ratio
 estimated from ten years of data has a standard error of about 0.3, so among a
 thousand strategies with no edge at all, the best shows a Sharpe near 1.0 by
-luck alone.
+luck alone. Harvey, Liu and Zhu's factor zoo, and the work of Bailey and López
+de Prado on backtest overfitting, are the long version of that sentence.
 
 The loop makes this worse in a specific way. The hold-out backtest is the
 validation set, and every keep-or-discard decision reads it. Hill-climbing on a
@@ -291,47 +287,43 @@ hold-out leaks the hold-out into the strategy one bit at a time, and after a
 thousand decisions the out-of-sample period is in-sample in everything but name.
 That is what the red dot in Karpathy's run means: a new random seed is not a
 better model, it is a luckier draw of the training noise as judged by the
-validation set, and the loop kept it. Markets add a twist that a language
-model's validation set does not have. A hold-out period is one draw of history,
-and a change that wins on it may be a bet on that period's regime.
+validation set, and the loop kept it. Markets add a problem a language model's
+validation set does not have. A hold-out period is one draw of history, and a
+change that wins on it may be nothing more than a bet on that period's regime.
 
-So the obvious mapping is the trap, and the interesting question is what the
-right mapping is. I think there is one, and that it is worth a great deal,
-because the step a language model is good at is the step quant research is
-built around: reading, reasoning, and proposing a mechanism. The agent should
-do the part of the job that happens before the backtest, many times a night,
-and the problem definition should make that part impossible to skip. Some
-ideas.
+So the question that matters is this: can an adjusted autoresearch find alpha
+that persists out of sample? I think it can, because the step a language model
+is good at, reading, reasoning and proposing a mechanism, is the step quant
+research is built around. The adjustments are about making that step
+impossible to skip and making the evaluation impossible to climb.
 
-- **Require the claim before the test.** Every change must come with a
-  mechanism, a counterparty, a reason for persistence, and a prediction of
-  where it should help and where it should not. The claim is logged with the
-  attempt, and the prediction is what gets tested, not the aggregate score. A
+- **Require the claim before the test.** Every change comes with a mechanism,
+  a counterparty, a reason the effect should persist, and a prediction of where
+  it should help and where it should not. The claim is logged with the attempt,
+  and the prediction is what gets tested, not just the aggregate score. A
   change that raises the Sharpe for no stated reason is discarded. This is the
   prediction step of the scientific method, which autoresearch skips and
   finance cannot.
 - **Make the evaluator move.** Replace the fixed hold-out with purged
-  cross-validation on randomized partitions of history, with overlapping
-  observations removed from training and an embargo after each test block. A
-  fresh partition for every attempt means there is no single hold-out to climb.
-  Keep a change only if it improves the median fold and does not hurt the
-  worst. The noise goes up, so the acceptance threshold goes up with it.
+  cross-validation on randomized partitions of history, removing overlapping
+  observations from training and embargoing the period after each test block.
+  A fresh partition for every attempt means there is no single hold-out to
+  climb. Keep a change only if it improves the median fold and does not hurt
+  the worst, so that it has to work across regimes, not in one.
+- **Charge for complexity.** Every parameter and every special case is a
+  degree of freedom spent fitting the past. Karpathy's simplicity rule, equal
+  score with less code wins, matters far more here than in a training script.
 - **Count the trials.** The log knows how many things were tried. Deflate the
-  winner by that count.
-- **Keep one period the loop never touches.** Use it once, at the end. Then
-  paper-trade. Live markets are the only test that cannot leak.
-- **Start with the plumbing.** Execution algorithms, transaction-cost models,
-  risk models, data pipelines: the scores there are close to the truth and hard
-  to game. Let the loop run free where it is safe before it goes anywhere near
-  alpha.
+  winner's Sharpe by that count before believing it.
+- **Keep one period the loop never touches.** Use it once, at the end, then
+  trade it on paper. Persistence out of sample is the claim, and live markets
+  are the only test of it that cannot leak.
 
-And the questions I do not know the answer to. Does requiring a causal claim
-narrow the search too far, or is that exactly the point? What does a
-regime-aware acceptance rule look like? Can an agent be made to propose fewer,
-better-reasoned changes rather than more? Could a second agent red-team the
-backtest for lookahead while the first one searches? What is the right
-evaluation for a strategy that trades a few times a year? None of this has been
-worked out.
+Whether that is enough is the open question, and an honest one. Requiring a
+causal claim may narrow the search to ideas that sound right, which is not the
+same as ideas that are right. A moving evaluator protects against one regime
+but not against the next one. And the agent has read the same papers as every
+other quant, so its priors are the crowd's priors.
 
 The loop will find whatever the evaluation rewards. Everywhere else in this
 post that was a reason to get the evaluation right. In finance it is the whole
