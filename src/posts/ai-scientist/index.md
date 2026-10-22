@@ -117,8 +117,8 @@ the previous best. Either way the agent adds a line to a log describing what it
 tried and what happened, and then it starts again.
 
 <figure class="diagram" id="loop">
-  <img src="autoresearch-loop.svg" alt="The loop laid out like the scientific method: program.md, look at the current code, propose a change (the model), edit train.py and commit, train for five minutes, score on the held-out validation set, then a decision: if better than the best so far keep it and go to the next idea, otherwise undo it and propose again.">
-  <figcaption>The autoresearch loop. Same shape as the scientific method, with the hypothesis step handed to a model. Every attempt is also written to a log, <code>results.tsv</code>, which you read in the morning.</figcaption>
+  <img src="autoresearch-loop.svg" alt="The loop laid out like the scientific method. Top row: you write program.md, look at the current code, propose a change, edit train.py and commit. Bottom row: train the model for five minutes, score on the validation set, then a decision: if better than the best so far keep it and go to the next idea, otherwise undo it and propose again. Third row: every attempt is logged to results.tsv, which you read in the morning.">
+  <figcaption>The autoresearch loop, in the same shape as the scientific method. Every step is the agent's except the two marked "you". The highlighted step is the one a person used to do.</figcaption>
 </figure>
 
 Three design choices make it work. Every run gets the same five minutes, so a

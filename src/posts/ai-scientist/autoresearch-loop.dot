@@ -1,7 +1,8 @@
 // Source for autoresearch-loop.svg. Re-render with:
 //   dot -Tsvg autoresearch-loop.dot -o autoresearch-loop.svg
 // Deliberately mirrors scientific-method.dot: the same two-row layout, with
-// each step relabelled as the step autoresearch runs in its place.
+// each step relabelled as the step autoresearch runs in its place. A third
+// row adds the log. Every step is the agent's unless it says "you".
 digraph autoresearch {
   rankdir=TB;
   bgcolor="transparent";
@@ -16,8 +17,22 @@ digraph autoresearch {
         fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
         fontsize=13, fontcolor="#9aa1ad"];
 
+  PM   [label="you write\nprogram.md", style="rounded,dashed", color="#9aa1ad"];
+  READ [label="look at the\ncurrent code"];
+  H    [label="propose\na change", color="#3ee87a", fontcolor="#3ee87a", penwidth=1.8];
+  P    [label="edit train.py\nand commit"];
+  T    [label="keep it", shape=hexagon, style="filled", fillcolor="#0a0e1a",
+        color="#3ee87a", fontcolor="#3ee87a", margin="0.04,0.02", width=2.2, height=0.85, fixedsize=true];
+  D    [shape=diamond, style="filled", fillcolor="#0f1726", color="#3ee87a",
+        fontcolor="#3ee87a", label="better than\nbest so far?", margin="0.04,0.02", fontsize=13, width=2.2, height=1.0, fixedsize=true];
+  R    [label="score on the\nvalidation set"];
+  X    [label="train the model\nfor 5 minutes"];
+  YOU  [label="you read it\nin the morning", style="rounded,dashed", color="#9aa1ad"];
+  LOG  [label="log the attempt\nresults.tsv"];
+
   { rank=same; PM; READ; H; P; }
   { rank=same; T; D; R; X; }
+  { rank=same; YOU; LOG; }
 
   // top row, left to right
   PM -> READ [constraint=false];
@@ -36,14 +51,10 @@ digraph autoresearch {
   T -> H [style=dashed, label="next idea", constraint=false, fontcolor="#9aa1ad"];
   D -> H [label="no: undo it", constraint=false, color="#ff6b4a", fontcolor="#ff6b4a"];
 
-  PM   [label="program.md\n(your rules)", style="rounded,dashed", color="#9aa1ad"];
-  READ [label="look at the\ncurrent code"];
-  H    [label="propose a change\n(the model)", color="#3ee87a", fontcolor="#3ee87a", penwidth=1.8];
-  P    [label="edit train.py\nand commit"];
-  X    [label="train the model\nfor 5 minutes"];
-  R    [label="score on the\nvalidation set"];
-  D    [shape=diamond, style="filled", fillcolor="#0f1726", color="#3ee87a",
-        fontcolor="#3ee87a", label="better than\nbest so far?", margin="0.04,0.02", fontsize=13, width=2.2, height=1.0, fixedsize=true];
-  T    [label="keep it", shape=hexagon, style="filled", fillcolor="#0a0e1a",
-        color="#3ee87a", fontcolor="#3ee87a", margin="0.04,0.02", width=2.2, height=0.85, fixedsize=true];
+  // third row: every attempt, kept or not, goes in the log
+  R -> LOG [label="every attempt"];
+  LOG -> YOU [constraint=false, style=dashed];
+
+  // keep the third row under the middle of the diagram
+  T -> YOU [style=invis];
 }
