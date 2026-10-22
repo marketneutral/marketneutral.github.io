@@ -187,6 +187,25 @@ git push
 
 GitHub Pages rebuilds automatically — no Quarto needed in CI.
 
+### Julia notebooks
+
+Notebooks can also be written in Julia. Set `engine: julia` in the front
+matter and use ```` ```{julia} ```` code cells; Quarto runs them through its
+native Julia engine (no Jupyter needed). Requirements:
+
+- **Julia 1.10** on your `PATH` (install with [juliaup](https://github.com/JuliaLang/juliaup):
+  `juliaup add 1.10 && juliaup default 1.10`). Quarto 1.6's bundled
+  `QuartoNotebookRunner` does not build on newer Julia releases.
+- The package environment in `notebooks/Project.toml` + `Manifest.toml`.
+  Quarto activates it automatically because it sits next to the `.qmd`.
+  First time: `julia --project=notebooks -e 'using Pkg; Pkg.instantiate()'`.
+- `include("_oos_style.jl")` after `using Plots` applies the site palette,
+  the Julia twin of `_oos_style.py`.
+
+Render exactly as for Python notebooks: `npm run render -- notebooks/<file>.qmd`.
+Results are frozen in `notebooks/_freeze/` (gitignored), so prose-only
+edits re-render without re-executing the code.
+
 ### What's set up for notebook posts
 
 - **KaTeX math rendering** — `$inline$` and `$$display$$` math render server-side at build
