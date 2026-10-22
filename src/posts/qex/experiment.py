@@ -5,7 +5,7 @@
 
 Universe: current S&P 500 members with a full price history back to mid-2009
 (survivorship-biased by construction). Adjusted daily OHLCV from Yahoo Finance,
-June 2009 through the post date, 2026-02-08.
+June 2009 through 2025-12-31.
 The alpha is ranked, sector-demeaned (so sector- and dollar-neutral), unit
 gross, rebalanced daily, and shown unsmoothed and with a 5- and 10-day linear
 decay. Returns are on the gross book, unlevered. Costs are charged per unit of
@@ -31,7 +31,7 @@ html = requests.get("https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
 members = pd.read_html(io.StringIO(html))[0]
 tickers = members["Symbol"].str.replace(".", "-", regex=False).tolist()
 sectors = pd.Series(members["GICS Sector"].values, index=tickers)
-END = "2026-02-08"   # the post date: no data after publication
+END = "2026-01-01"   # the run ends 2025-12-31 (yfinance end is exclusive)
 raw = yf.download(tickers, start="2009-06-01", end=END, auto_adjust=True, progress=False)
 ok = raw["Close"].columns[raw["Close"].notna().mean() > 0.98]
 data = {f.lower(): raw[f][ok] for f in ["Open", "High", "Low", "Close", "Volume"]}
@@ -116,7 +116,7 @@ fig.legend(h, l, loc="lower center", bbox_to_anchor=(0.5, -0.04), ncol=2, frameo
 fig.subplots_adjust(wspace=0.12)
 finish(fig, "gross-vs-net.svg")
 
-yr = series[("decay 10", 0.0002)].groupby(lambda d: d.year).sum().loc[:2025]   # full calendar years only
+yr = series[("decay 10", 0.0002)].groupby(lambda d: d.year).sum()
 fig, ax = plt.subplots(figsize=(9, 3.6))
 ax.grid(axis="x", visible=False)
 ax.bar(yr.index, yr.values, width=0.5, color=ACCENT, zorder=3)

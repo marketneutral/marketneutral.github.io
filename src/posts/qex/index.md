@@ -235,26 +235,26 @@ signal is smoothed without being lagged the way an equal-weight ten-day
 mean would lag it.
 
 The book is rebalanced every day to the alpha's weights, and turnover is
-quoted per day. The run is July 2010 to the date of this post in
-February 2026. Costs are charged per unit of turnover at 2 basis points,
-which is a reasonable level. All returns are on the gross book,
-unlevered, meaning a dollar long against a dollar short with no
-financing and no leverage. The table shows the same alpha unsmoothed and
-with a five-day and a ten-day decay.
+quoted per day. The run is July 2010 to December 2025. Costs are charged
+per unit of turnover at 2 basis points, which is a reasonable level for
+an institution. All returns are on the gross book, unlevered, meaning a
+dollar long against a dollar short with no financing and no leverage.
+The table shows the same alpha unsmoothed and with a five-day and a
+ten-day decay.
 
 | Range, daily | Turnover / day | Gross annual | Gross Sharpe | Net at 2 bps | Net Sharpe | Max drawdown |
 |---|---:|---:|---:|---:|---:|---:|
-| no smoothing | 84% | +3.7% | 0.96 | -0.6% | -0.14 | -21% |
-| decay 5 | 44% | +3.7% | 0.91 | +1.5% | 0.37 | -16% |
-| **decay 10** | **32%** | **+3.7%** | **0.86** | **+2.1%** | **0.49** | **-15%** |
+| no smoothing | 84% | +3.8% | 0.98 | -0.5% | -0.13 | -21% |
+| decay 5 | 44% | +3.9% | 0.95 | +1.6% | 0.40 | -16% |
+| **decay 10** | **32%** | **+3.8%** | **0.90** | **+2.3%** | **0.53** | **-15%** |
 
 Max drawdown is on the book net of 2 basis points.
 
 <figure class="wide" id="gross-vs-net">
-  <img src="gross-vs-net.svg" alt="Three panels of cumulative long-short return for the range alpha from 2010 to early 2026: unsmoothed, five-day decay, and ten-day decay. Gross ends near plus 75 percent in all three. Net of 2 basis points ends at minus 9 percent unsmoothed, plus 25 percent with the five-day decay, and plus 37 percent with the ten-day decay.">
+  <img src="gross-vs-net.svg" alt="Three panels of cumulative long-short return for the range alpha from 2010 to the end of 2025: unsmoothed, five-day decay, and ten-day decay. Gross ends near plus 78 percent in all three. Net of 2 basis points ends at minus 8 percent unsmoothed, plus 27 percent with the five-day decay, and plus 40 percent with the ten-day decay.">
 </figure>
 
-The alpha looks decent. Gross Sharpe is 0.86 to 0.96 over the run, and
+The alpha looks decent. Gross Sharpe is 0.90 to 0.98 over the run, and
 the same held on a mid-cap universe and in the sub-periods I checked
 along the way. Just under four percent a year on the gross book is good
 for a single price-based alpha, since a real quant book runs at four to
@@ -265,15 +265,16 @@ the book turns over 84% a day and loses money net of 2 basis points
 despite having the best gross Sharpe of the three. That pre-cost signal
 is still worth something to a market maker, who is paid the spread
 rather than charged it, and the move of high-frequency firms into stat
-arb that the press has covered, such as Bloomberg's December 2025 story
-on Hudson River Trading holding positions for days and weeks, is this
-picture seen from the other side. Smoothing helps, as expected: the
-ten-day decay cuts turnover to 32% with no loss of gross return and
-takes the net Sharpe at 2 basis points from negative to about 0.5, and
-turnover around thirty percent a day is the classic mid-frequency
-statistical arbitrage space. Ten days is a common default for this kind
-of smoothing, and in the language the whole change is one `decay_linear`
-around the expression.
+arb that the press has covered, such as Bloomberg's December 2025 [story
+on Hudson River
+Trading](https://news.bloomberglaw.com/securities-law/more-risk-less-speed-hudson-river-mints-billions-slowing-down)
+holding positions for days and weeks, is this picture seen from the
+other side. Smoothing helps, as expected: the ten-day decay cuts
+turnover to 32% with no loss of gross return and takes the net Sharpe at
+2 basis points from negative to about 0.5, and turnover around thirty
+percent a day is the classic mid-frequency statistical arbitrage space.
+Ten days is a common default for this kind of smoothing, and in the
+language the whole change is one `decay_linear` around the expression.
 
 ![Bar chart of the ten-day decay book's net annual return by calendar year at 2 basis points, 2010 through 2025. Twelve of sixteen years are positive, with 2020 the standout at plus 16 percent and 2025 the worst at minus 3.](range-by-year.svg)
 
@@ -311,3 +312,24 @@ human-plus-machine collaboration in the last post needs.
 
 qex is at version 0.3, Apache licensed, and installs from the repo.
 Issues and pull requests are welcome.
+
+## References
+
+- Doherty, K. "More Risk, Less Speed: Hudson River Mints Billions Slowing
+  Down." *Bloomberg*, December 2025.
+  [news.bloomberglaw.com](https://news.bloomberglaw.com/securities-law/more-risk-less-speed-hudson-river-mints-billions-slowing-down)
+- Jegadeesh, N. "Evidence of Predictable Behavior of Security Returns."
+  *Journal of Finance* 45(3), 1990.
+- Kakushadze, Z. "101 Formulaic Alphas." *Wilmott* 2016(84), 2016.
+  [arxiv.org/abs/1601.00991](https://arxiv.org/abs/1601.00991)
+- Khandani, A. E. and Lo, A. W. "What Happened to the Quants in August
+  2007?" *Journal of Investment Management* 5(4), 2007.
+  [web.mit.edu/~alo](https://web.mit.edu/~alo/www/Papers/august07.html)
+- Larkin, J. *qex: a domain-specific language for quant alphas.*
+  [github.com/marketneutral/alpha-parser](https://github.com/marketneutral/alpha-parser)
+- Lehmann, B. N. "Fads, Martingales, and Market Efficiency." *Quarterly
+  Journal of Economics* 105(1), 1990.
+- Nagel, S. "Evaporating Liquidity." *Review of Financial Studies* 25(7),
+  2012.
+- Tulchinsky, I. et al. *Finding Alphas: A Quantitative Approach to
+  Building Trading Strategies*, 2nd ed. Wiley, 2019.
