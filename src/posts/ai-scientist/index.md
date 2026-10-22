@@ -7,48 +7,52 @@ description: Karpathy's autoresearch hands the "what should I try next" step of 
 
 In March 2026 Andrej Karpathy released
 [`autoresearch`](https://github.com/karpathy/autoresearch), a small repository
-in which a language model tries to improve a training script on its own. It
-edits the code, runs a five-minute experiment, checks the score, keeps the change
-if the score improved, and starts again. Left alone overnight, it runs about a
-hundred experiments.
+in which a coding agent, a language model that can read files, edit them and run
+commands, tries to improve a training script on its own. It edits the code, runs
+a five-minute experiment, checks the score, keeps the change if the score
+improved, and starts again. Left alone overnight, it runs about a hundred
+experiments.
 
 The training script is incidental. What autoresearch shows is that one step of
-the scientific method, deciding what to try next, can now be handed to a model,
-and that this works on any problem where you can write down a number that means
-"better." I think this is the beginning of a new way to do research. This post
-explains why it works, how the loop is built, and how to set one up on your own
-problem.
+the scientific method, deciding what to try next, can now be handed to a language
+model, and that this works on any problem where you can write down a number that
+means "better." I think this is the beginning of a new way to do research. This
+post explains why it works, how the loop is built, and how to set one up on your
+own problem.
 
 ## Science is a loop
 
 <figure class="diagram" id="science">
-  <img src="scientific-method.svg" alt="A loop: observation, question, hypothesis, prediction, experiment, result, and a decision on whether the result is consistent with the prediction; yes leads to theory and back to hypothesis, no sends you back to revise it.">
-  <figcaption>The scientific method.</figcaption>
+  <img src="scientific-method.svg" alt="A loop: observation, question, hypothesis (highlighted), prediction, experiment, result, and a decision on whether the result is consistent with the prediction; yes leads to theory and back to hypothesis, no sends you back to revise it.">
+  <figcaption>The scientific method. The highlighted step is the one autoresearch hands to a language model.</figcaption>
 </figure>
 
 You observe something, propose an explanation, make a prediction, run an
 experiment, and keep or revise the explanation depending on what you see. Then
 you go around again.
 
-Of these steps, the proposal has always been the slow one. Running an experiment
-can be automated, but deciding which experiment is worth running has needed a
-person who knows the field. Because experiments were expensive, scientists spent
-most of their effort choosing carefully and ran relatively few.
+One of these steps has always needed a person who knows the field: proposing the
+hypothesis. Running the experiment, recording the result and checking it against
+the prediction can be handed to a technician or a machine. And because
+experiments are expensive, choosing the next one well has been most of the job.
+Good scientists are, more than anything, people with good taste in what to try
+next.
 
 ## When there is a slope
 
-There is one kind of problem where computers have long done the proposing
-themselves. If the thing you are adjusting is a list of numbers, and the score
-changes smoothly as you adjust them, then the score has a slope, and the slope
-tells you which way to go. That is gradient descent. It is the reason machine
-learning works at all: a model with billions of parameters gets trained by
-taking small steps downhill, over and over.
+There is one kind of problem where computers have long chosen the next thing to
+try themselves. If the thing you are adjusting is a list of numbers, and the
+score changes smoothly as you adjust them, then the score has a slope, and the
+slope tells you which way to go. That is gradient descent. It is how every large
+language model is trained: billions of parameters, nudged downhill, over and
+over.
 
 <figure class="wide" id="descent">
-  <img src="gradient-descent.svg" alt="Left: filled contours of a cost surface with a gradient-descent path from a start point into the minimum. Right: cost falling on a log scale over 45 iterations.">
+  <img src="gradient-descent.svg" alt="Left: filled contours of a score surface over two settings, with a gradient-descent path from a start point into the minimum. Right: the score falling, on a log scale, over 45 steps.">
+  <figcaption>Gradient descent on a score that depends on two settings.</figcaption>
 </figure>
 
-The left panel is a score surface seen from above, with the path gradient
+The left panel is the score surface seen from above, with the path gradient
 descent takes to the bottom. The right panel is the score falling at each step.
 Nobody has to think about where to go next.
 
@@ -65,19 +69,24 @@ protocol a little bit in some direction, so there is no slope to follow. Even
 Karpathy's training script is like this. Some of what the agent changes are
 numbers, like the learning rate or the batch size. Many are whole-number or
 either-or choices, like the depth of the network or the attention pattern, and
-some are rewritten blocks of code. And every score comes from a complete
-training run, so there is no slope to compute even for the numbers.
+some are rewritten blocks of code. And the only way to find out what any change
+does is to run the full five-minute experiment, so even for the numbers there is
+no cheap slope to follow.
 
 Without a slope, the options used to be poor. You could try things at random,
-try a grid of settings, or mutate candidates and keep the best. These methods
-know nothing about the problem, so they need an enormous number of tries. Or a
-person could propose the next attempt, which is informed but slow.
+try a grid of settings, or mutate candidates and keep the best. Smarter versions
+fit a statistical model to the tries so far and let it pick the next one. But all
+of these need the hypothesis to be a list of numbers in the first place, and none
+of them knows anything about the problem beyond the scores it has seen, so they
+need a great many tries. Or a person could propose the next attempt, which is
+informed but slow.
 
 A language model is a third option. It has read a large share of the world's
-code, papers and lab notes, so its guesses are informed. It knows that a learning
-rate of 0.1 will probably blow up a training run. It has a sense of what a
-sensible next experiment looks like even in fields it has only read about. And it
-can make a new guess every few minutes, all night.
+code, papers and lab notes, so its guesses are informed. It knows which learning
+rates tend to blow up a training run and which tricks from the last few years of
+papers are worth trying. It has a sense of what a sensible next experiment looks
+like even in fields it has only read about. And it can make a new guess every few
+minutes, all night.
 
 <figure class="wide" id="race">
   <img src="informed-vs-random.svg" alt="Best score so far against the number of experiments, for random guesses and informed guesses. The informed search starts lower than the random search reaches after sixty experiments, and keeps improving.">
@@ -86,39 +95,42 @@ can make a new guess every few minutes, all night.
 
 The figure is a toy simulation of that difference. Two searches look for the
 best combination of six settings. One guesses at random. The other guesses
-around a starting point that is close to right but not exact, the way a model
-that has read about similar problems would. The informed search starts out
+around a starting point that is close to right but not exact, the way a language
+model that has read about similar problems would. The informed search starts out
 better than the random one ends up after sixty tries. When each try costs five
 minutes, or five hours, that gap decides whether a search is practical.
 
-DeepMind's FunSearch and AlphaEvolve had already shown that a model proposing
-programs against an automatic test can find new results, but those systems ran
-on large internal infrastructure. Autoresearch is a few files, one GPU and git,
-which puts the same idea within reach of anyone who has a problem and a score.
+DeepMind's FunSearch and AlphaEvolve had already shown that a language model
+proposing programs against an automatic test can find new results, including
+new mathematics, but those systems ran on large internal infrastructure.
+Autoresearch is a few files, one GPU and git, which puts the same idea within
+reach of anyone who has a problem and a score.
 
 ## How autoresearch works
 
 Three files matter.
 
+- `program.md` is the problem definition, written by a person: the goal, what
+  the agent may and may not change, and how to run the loop.
 - `train.py` is the only file the agent may edit. It holds the model, the
   optimizer and the training loop.
 - `prepare.py` holds the data and the test. The data is split into a training
   set and a held-out validation set that the model never trains on. After
-  training, the test measures the model's loss on the validation set, in bits
-  per byte. That number is `val_bpb`, and lower is better. The agent is not
-  allowed to touch this file.
-- `program.md` holds the problem definition, written by a person: the goal,
-  what the agent may and may not change, and how to run the loop.
+  training, the test measures how well the model predicts the validation text.
+  The score is called `val_bpb`, for validation bits per byte; fewer bits means
+  better predictions, so lower is better. The agent is not allowed to touch this
+  file.
 
-The agent reads the code, decides on a change, edits `train.py` and commits. It
-trains the model for exactly five minutes, then scores it on the validation
-set. If the score beats the best so far, the commit stays. If not, git resets to
-the previous best. Either way the agent adds a line to a log describing what it
-tried and what happened, and then it starts again.
+The agent reads the problem definition and the code, decides on a change, edits
+`train.py` and saves the change as a git commit. It trains the model for exactly
+five minutes, then scores it on the validation set. If the score beats the best
+so far, the commit stays. If not, it resets `train.py` to the previous best.
+Either way it adds a line to a log saying what it tried and what happened, and
+then it starts again.
 
 <figure class="diagram" id="loop">
-  <img src="autoresearch-loop.svg" alt="The loop laid out like the scientific method. Top row: you write the problem definition (program.md), look at the current code, propose a change, edit train.py and commit. Bottom row: train the model for five minutes, score on the validation set, then a decision: if better than the best so far keep it and go to the next idea, otherwise undo it and propose again. Third row: every attempt is logged to results.tsv, which you read in the morning.">
-  <figcaption>The autoresearch loop, in the same shape as the scientific method. Every step is the agent's except the two marked "you". The highlighted step is the one a person used to do.</figcaption>
+  <img src="autoresearch-loop.svg" alt="The loop laid out like the scientific method. Top row: you write the problem definition (program.md), read the current code, propose a change (highlighted), edit train.py and commit. Bottom row: train the model for five minutes, score on the validation set, then a decision: if better than the best so far keep it and go to the next idea, otherwise undo it and propose again. Third row: every attempt, kept or not, is logged to results.tsv, which you read in the morning before revising the problem definition.">
+  <figcaption>The autoresearch loop, in the same shape as the scientific method. Every step is the agent's except the two marked "you".</figcaption>
 </figure>
 
 Three design choices make it work. Every run gets the same five minutes, so a
@@ -128,19 +140,20 @@ score by changing how the score is computed. And git keeps the best version so
 far safe, so a bad idea costs one reset.
 
 <figure class="wide" id="progress">
-  <img src="autoresearch-progress.png" alt="Validation bits per byte over 83 experiments. Grey dots are discarded experiments, green dots are the 15 kept ones, each labelled with the change, and a green staircase shows the best score so far falling from about 0.998 to about 0.977.">
+  <img src="autoresearch-progress.png" alt="Validation bits per byte over 83 runs. Grey dots are discarded experiments, green dots are the kept ones, each labelled with the change, and a green staircase shows the best score so far falling from about 0.998 to about 0.977.">
   <figcaption>One overnight run. Chart: Andrej Karpathy, <a href="https://github.com/karpathy/autoresearch">karpathy/autoresearch</a> (MIT).</figcaption>
 </figure>
 
 Here is one overnight run, from the repository itself. Each grey dot is an
 experiment the agent threw away. Each green dot is one it kept, labelled with
-what it changed, and the staircase is the best score so far. Over 83 experiments
-it kept 14 changes on top of the starting point and took `val_bpb` from about
-0.998 to 0.977. The first big
-win was halving the batch size, so that more training steps fit in the five
-minutes. The rest is the patient tuning a researcher does on a good day: a
-longer warmup, a different attention window, a larger RoPE base frequency. None
-of it needed a person in the room.
+what it changed, and the staircase is the best score so far. The agent kept 14
+of its 82 changes (the chart's count includes the starting point) and took
+`val_bpb` from about 0.998 to 0.977. The first big win was halving the batch
+size, so that more training steps fit in the five minutes. The rest is the
+patient tuning a researcher does on a good day: a warmup, a different attention
+window, a larger RoPE base frequency. None of it needed a person in the room.
+Look at the last kept change, though, a new random seed. We will come back to
+it.
 
 ## It works on anything with a score
 
@@ -169,8 +182,9 @@ hand-built ones, and chemists could read and make sense of them. Anthropic's
 description based on the queries it gets wrong, and picks the version that does
 best on queries it held back.
 
-The common thread is that the agent does not need to understand the domain
-deeply. It needs to make reasonable guesses, and the test does the rest.
+The common thread is that the agent's guesses only need to be reasonable, not
+right. The test does the rest. Any field with a number that means "better" can
+be searched this way, and most of them have not started.
 
 ## How to try it on your own problem
 
@@ -193,8 +207,8 @@ whether one attempt is better than another. Then:
    beats the current best by more than the noise, and reset it otherwise. The
    branch is always the best version so far.
 5. **Write the problem definition.** Put the goal and the rules in a short
-   file, start a coding agent in that directory, and tell it to read the file
-   and begin.
+   file, start a coding agent (Claude Code, Codex or similar) in that directory,
+   and tell it to read the file and begin.
 
 The problem definition can be this short:
 
@@ -204,38 +218,14 @@ Frozen:   eval.py, data/ — do not modify, do not install packages
 Hidden:   test/ — never read; the human uses it once at the end
 Trial:    python run.py, hard cap 120 s
 Metric:   prints "score: <float>", lower is better
-Loop:     edit, commit, run, read the score, keep if better else reset
+Noise:    identical runs differ by up to 0.02
+Loop:     edit, commit, run, read the score,
+          keep if better by more than the noise, else reset
 Log:      append commit, score, status, description to results.tsv
 Rules:    never stop, never ask, simplest change that improves wins
 ```
 
 Then go to bed, and read the log in the morning.
-
-## What can go wrong
-
-The loop optimizes exactly the number you give it, and most problems come from
-that.
-
-Often the quick score stands in for something slower that you actually care
-about. A docking score is cheap, but what matters is whether the molecule binds
-in a real assay, which takes weeks. A backtest is cheap, but what matters is how
-the strategy does in the market. Run long enough, the loop will find candidates
-that score well and fail in reality, because the gap between the two is the
-easiest place to find improvements. Treat what it finds as strong hypotheses to
-check in the lab or on unseen data.
-
-Noise is the second problem. If the score jumps around by as much as the
-improvement you are hoping for, "keep it if the score went down" will keep lucky
-runs. Measuring the noise first, and only keeping improvements bigger than it,
-is the fix.
-
-The model's knowledge also cuts both ways. Its guesses are sensible, which is
-why it beats random search, but it rarely tries anything strange. If it believes
-something is necessary it will seldom try removing it. Running several agents,
-or explicitly asking for bolder changes, helps.
-
-And it won't work at all if you can't reduce "better" to a single number, or if
-each trial takes days.
 
 ## What the scientist does now
 
@@ -256,8 +246,35 @@ right one. That part is still yours.
 What changes is the number of experiments. Someone who used to run ten careful
 experiments on an idea can now run a thousand overnight, and spend their own
 time on picking the question and building a test that measures it honestly.
-Any field with a number that means "better" can be searched this way, and most
-of them haven't started.
+That is what the title means by sparks. The agent has the part of science that
+proposes and tests. The part that decides what is worth asking is still a
+person.
+
+## What can go wrong
+
+The loop optimizes exactly the number you give it, and most problems come from
+that.
+
+Often the quick score stands in for something slower that you actually care
+about. A docking score is cheap, but what matters is whether the molecule binds
+in a real assay, which takes weeks. A backtest is cheap, but what matters is how
+the strategy does in the market. Run long enough, the loop will find candidates
+that score well and fail in reality, because the gap between the two is the
+easiest place to find improvements. Treat what it finds as strong hypotheses to
+check in the lab or on unseen data.
+
+Noise is the second problem. If the score jumps around by as much as the
+improvement you are hoping for, "keep it if the score went down" will keep lucky
+runs. Measuring the noise first, and only keeping improvements bigger than it,
+is the fix.
+
+The agent's knowledge also cuts both ways. Its guesses are sensible, which is
+why it beats random search, but it rarely tries anything strange. If it believes
+something is necessary it will seldom try removing it. Running several agents,
+or explicitly asking for bolder changes, helps.
+
+And it won't work at all if you can't reduce "better" to a single number, or if
+each trial takes days.
 
 ## What this means for finance
 
@@ -265,10 +282,10 @@ Quantitative finance may be the most natural home for this loop. A lot of quant
 research already is the loop, run by hand: think of a signal, code it, backtest
 it, keep it or drop it, repeat. The artifact is code, the test is a backtest,
 and a trial takes seconds. An agent could run thousands of these a night. That
-promise is real. Finance is also where the loop is most dangerous, for three
-reasons.
+promise is real. Finance is also where the loop is most dangerous, because each
+of the problems above is worse in markets.
 
-**The evaluation is everything.** The loop optimizes whatever the backtest
+**The backtest is everything.** The loop optimizes whatever the backtest
 rewards, including its mistakes. If the data has lookahead, survivorship bias,
 or costs that are too low, the agent will find the flaw, because exploiting a
 broken test is usually easier than finding real alpha. So the backtest has to
@@ -276,30 +293,33 @@ come first and be built with care: point-in-time data, realistic trading costs
 and borrow, capacity limits. Then it gets frozen and kept where the agent cannot
 edit it.
 
-**Every experiment is a test, and you are running thousands.** This is the
-multiple comparisons problem, and finance has learned it the hard way. Try
-enough strategies with no real edge and the best of them will look good by luck
-alone. A Sharpe ratio estimated from ten years of data has a standard error of
-about 0.3. Among 100 independent strategies with no edge at all, the best will
-typically show a Sharpe around 0.8; among 1,000, around 1.0. That is why Harvey, Liu and
-Zhu argued that a new factor should clear a t-statistic of 3 rather than 2, and
-why Bailey and López de Prado's deflated Sharpe ratio adjusts for the number of
-trials. The loop at least does the counting for you, since every trial is a line
-in the log. Use that count when you judge the winner.
+**Every experiment is a test, and you are running thousands.** The noise problem
+above has a name in statistics, multiple comparisons, and finance has learned
+it the hard way. Try enough strategies with no real edge and the best of them
+will look good by luck alone. A Sharpe ratio estimated from ten years of data
+has a standard error of about 0.3. Among 100 independent strategies with no edge
+at all, the best will typically show a Sharpe around 0.8; among 1,000, around
+1.0. That is why Harvey, Liu and Zhu argued that a new factor should clear a
+t-statistic of 3 rather than 2, and why Bailey and López de Prado's deflated
+Sharpe ratio adjusts for the number of trials. The loop at least does the
+counting for you, since every trial is a line in the log. Use that count when
+you judge the winner.
 
 **The loop can overfit the validation set even though it never trains on it.**
-It is tempting to think a held-out period is safe because no model is fit to
-it. But every keep-or-reset decision looks at that score, and a thousand
-decisions leak a lot of information. After enough rounds the validation set has
-effectively become training data. Autoresearch has exactly this structure: one
-validation set scores every attempt, all night, any improvement however small is
-kept, and there is no separate test set. Karpathy's own run shows the result in
-miniature. The last change it kept was a new random seed, 42 to 137. A different
-seed is not a better model. It is a luckier draw of the training noise, as
-judged by the validation set. Markets have far more noise and far less data than
-a language model's validation set, so the same thing happens at a much larger
-scale. The fix is a test period the loop never sees, used once at the end,
-followed by paper trading before any capital goes in.
+This is the same problem seen from the inside. It is tempting to think a
+held-out period is safe because no model is fit to it. But every keep-or-reset
+decision looks at that score, and a thousand decisions leak a lot of
+information. After enough rounds the validation set has effectively become
+training data, and the winner's validation score overstates what it will do on
+data it has never seen. Autoresearch has exactly this structure: one validation
+set scores every attempt, all night, any improvement however small is kept, and
+there is no separate test set. That is why the last change in Karpathy's run,
+a new random seed, is a warning. A different seed is not a better model. It is a
+luckier draw of the training noise, as judged by the validation set. Markets
+have far more noise and far less data than a language model's validation set,
+so the same thing happens at a much larger scale. The fix is a test period the
+loop never sees, used once at the end, followed by paper trading before any
+capital goes in.
 
 None of this is a reason to stay away. It is a reason to put the human effort in
 the right place: a backtest that cannot be fooled, an honest count of how many

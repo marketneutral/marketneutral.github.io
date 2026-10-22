@@ -39,7 +39,7 @@ digraph science {
 
   OBS [label="Observation"];
   Q   [label="Question"];
-  H   [label="Hypothesis"];
+  H   [label="Hypothesis", fillcolor="#3ee87a", color="#3ee87a", fontcolor="#0a0e1a"];
   P   [label="Prediction"];
   X   [label="Experiment"];
   R   [label="Result"];

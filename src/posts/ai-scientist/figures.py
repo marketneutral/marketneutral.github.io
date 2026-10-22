@@ -49,7 +49,8 @@ def save(fig, name):
 
 # ── figure 1: gradient descent on a 2-D surface ───────────────────────────
 def f(x, y):
-    return 0.5 * (x - 0.6) ** 2 + 4.0 * (y + 0.4) ** 2 + 0.35 * np.sin(3 * x) * np.sin(3 * y)
+    # +0.4 keeps the score positive everywhere, so it survives the log axis
+    return 0.4 + 0.5 * (x - 0.6) ** 2 + 4.0 * (y + 0.4) ** 2 + 0.35 * np.sin(3 * x) * np.sin(3 * y)
 
 
 def grad(x, y):
@@ -92,23 +93,21 @@ def fig_gradient_descent():
                 color=INK, fontsize=10)
     ax.annotate("minimum", path[-1], textcoords="offset points", xytext=(10, -14),
                 color=INK, fontsize=10)
-    ax.set_xlabel("θ₁"); ax.set_ylabel("θ₂")
+    ax.set_xlabel("setting 1"); ax.set_ylabel("setting 2")
     ax.set_title("the surface, seen from above")
     ax.tick_params(length=0)
 
     cb = fig.colorbar(cf, ax=ax, pad=0.02, fraction=0.046)
     cb.outline.set_edgecolor(RULE)
     cb.ax.tick_params(color=MUTED, labelsize=9, labelcolor=MUTED)
-    cb.set_label("cost  J(θ)", color=MUTED, fontsize=10)
+    cb.set_label("score", color=MUTED, fontsize=10)
 
     ax2.plot(loss, color=ACC, lw=1.8)
     ax2.set_yscale("log")
-    ax2.set_xlabel("iteration k"); ax2.set_ylabel("cost after k steps")
-    ax2.set_title("what the algorithm actually sees")
+    ax2.set_xlabel("step"); ax2.set_ylabel("score")
+    ax2.set_title("what the algorithm sees")
     ax2.grid(True, color=RULE, alpha=0.4, lw=0.6)
     ax2.tick_params(length=0)
-    ax2.annotate(f"η = {lr}", (0.97, 0.9), xycoords="axes fraction",
-                 ha="right", color=MUTED, fontsize=10)
     for s in ("top", "right"):
         ax.spines[s].set_visible(False); ax2.spines[s].set_visible(False)
     save(fig, "gradient-descent")
