@@ -1,0 +1,64 @@
+// Source for autoresearch-loop.svg. Re-render with:
+//   dot -Tsvg autoresearch-loop.dot -o autoresearch-loop.svg
+// Mirrors scientific-method.dot: the same two-row layout, with each step
+// relabelled as the step autoresearch runs in its place, and the hypothesis
+// slot filled in to mark the step handed to the model. Unlike the scientific
+// method, both outcomes return to reading the code, because each experiment
+// starts from the current state of train.py (program.md, loop step 1). A third row
+// adds the log. Every step is the agent's unless it says "you".
+digraph autoresearch {
+  rankdir=TB;
+  bgcolor="transparent";
+  pad=0.25;
+  nodesep=0.30;
+  ranksep=0.55;
+  fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace";
+  node [shape=box, style="rounded,filled", fillcolor="#131927", color="#2a3344",
+        fontcolor="#e8eaf0", fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=15, margin="0.10,0.14", penwidth=1.2, width=2.2, height=0.75, fixedsize=true];
+  edge [color="#6b7280", arrowsize=0.7, penwidth=1.1,
+        fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=13, fontcolor="#9aa1ad"];
+
+  PM   [label="you write the\nproblem definition\n(program.md)", style="rounded,dashed", color="#9aa1ad", width=2.4, height=0.95, fontsize=14];
+  READ [label="read the\ncurrent code"];
+  H    [label="propose\na change", fillcolor="#3ee87a", color="#3ee87a", fontcolor="#0a0e1a"];
+  P    [label="edit train.py\nand commit"];
+  T    [label="keep it", shape=hexagon, style="filled", fillcolor="#0a0e1a",
+        color="#3ee87a", fontcolor="#3ee87a", margin="0.04,0.02", width=2.2, height=0.85, fixedsize=true];
+  D    [shape=diamond, style="filled", fillcolor="#0f1726", color="#3ee87a",
+        fontcolor="#3ee87a", label="better than\nbest so far?", margin="0.04,0.02", fontsize=13, width=2.2, height=1.0, fixedsize=true];
+  R    [label="score on the\nvalidation set"];
+  X    [label="train the model\nfor 5 minutes"];
+  YOU  [label="you read it\nin the morning", style="rounded,dashed", color="#9aa1ad"];
+  LOG  [label="log the attempt\n(results.tsv)"];
+
+  { rank=same; PM; READ; H; P; }
+  { rank=same; T; D; R; X; }
+  { rank=same; YOU; LOG; }
+
+  // Flat edges fix left-to-right order within a row: the tail goes left of
+  // the head. Rows that read right to left use dir=back.
+  // top row, left to right
+  PM -> READ;
+  READ -> H;
+  H -> P;
+
+  // carriage return
+  P -> X;
+
+  // bottom row, right to left
+  R -> X [dir=back];
+  D -> R [dir=back];
+  T -> D [dir=back, label="yes", fontcolor="#3ee87a"];
+
+  // feedback
+  T -> READ [style=dashed, label="next  ", constraint=false, fontcolor="#9aa1ad"];
+  D -> READ [label="  no: undo it", constraint=false, color="#ff6b4a", fontcolor="#ff6b4a"];
+
+  // third row: every attempt, kept or not, goes in the log, which you read
+  D -> LOG [label="every attempt,\nkept or not"];
+  YOU -> LOG [dir=back, style=dashed];
+  YOU -> PM [constraint=false, style=dashed, label="revise", fontcolor="#9aa1ad"];
+
+}

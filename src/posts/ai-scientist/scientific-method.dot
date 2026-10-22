@@ -1,0 +1,50 @@
+// Source for scientific-method.svg. Re-render with:
+//   dot -Tsvg scientific-method.dot -o scientific-method.svg
+// Two-row "carriage return" layout: the loop reads left to right on the top
+// row, drops to the second row and runs back to the left, then returns to the
+// hypothesis. Keeps the diagram close to square so the labels stay large.
+digraph science {
+  rankdir=TB;
+  bgcolor="transparent";
+  pad=0.25;
+  nodesep=0.30;
+  ranksep=0.55;
+  fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace";
+  node [shape=box, style="rounded,filled", fillcolor="#131927", color="#2a3344",
+        fontcolor="#e8eaf0", fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=17, margin="0.10,0.14", penwidth=1.2, width=2.0, fixedsize=true];
+  edge [color="#6b7280", arrowsize=0.7, penwidth=1.1,
+        fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=13, fontcolor="#9aa1ad"];
+
+  { rank=same; OBS; Q; H; P; }
+  { rank=same; T; D; R; X; }
+
+  // top row, left to right
+  OBS -> Q [constraint=false];
+  Q -> H [constraint=false];
+  H -> P [constraint=false];
+
+  // carriage return
+  P -> X;
+
+  // bottom row, right to left
+  X -> R [constraint=false];
+  R -> D [constraint=false];
+  D -> T [constraint=false, label="yes", fontcolor="#3ee87a"];
+
+  // feedback
+  T -> H [style=dashed, label="implies", constraint=false, fontcolor="#9aa1ad"];
+  D -> H [label="no: revise", constraint=false, color="#ff6b4a", fontcolor="#ff6b4a"];
+
+  OBS [label="Observation"];
+  Q   [label="Question"];
+  H   [label="Hypothesis", fillcolor="#3ee87a", color="#3ee87a", fontcolor="#0a0e1a"];
+  P   [label="Prediction"];
+  X   [label="Experiment"];
+  R   [label="Result"];
+  D   [shape=diamond, style="filled", fillcolor="#0f1726", color="#3ee87a",
+       fontcolor="#3ee87a", label="consistent?", margin="0.04,0.02", fontsize=14, width=2.0, height=0.85, fixedsize=true];
+  T   [label="Theory", shape=hexagon, style="filled", fillcolor="#0a0e1a",
+       color="#3ee87a", fontcolor="#3ee87a", margin="0.04,0.02", width=2.0, height=0.85, fixedsize=true];
+}
