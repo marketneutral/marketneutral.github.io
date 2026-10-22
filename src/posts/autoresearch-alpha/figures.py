@@ -28,6 +28,7 @@ LOG = "results.tsv" if os.path.exists("results.tsv") else "/home/jlarkin/blog_2/
 LABELS = {   # short labels for the kept trials, by tag
     "T1": "book ÷ market vol", "T3": "losers only", "T9": "decay 60",
     "T19": "z-score + 1/variance", "T20": "months 7–12 ×2", "T21": "÷ dispersion", "T22": "squared losers",
+    "82ae9ee": "ewma 20", "561125d": "sector-residual vol", "6e56c10": "× last-month rank",
 }
 
 def load():
