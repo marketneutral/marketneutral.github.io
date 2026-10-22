@@ -326,21 +326,17 @@ sample, live.
 Autoresearch is not an AI quant. It is sparks of one, green shoots, early and
 rough. But it is inevitable.
 
-And we have only talked about quant. Fundamental investing is a process too,
-and a richer one. An analyst builds a mosaic from dozens of disparate data
-points, from filings and channel checks to hours with management and industry
-experts. They work out what the market already expects, do the valuation, find
-the gap between the market's view and their own, and bet on it. The thesis is
-the hypothesis, the gap is the prediction, the position is the experiment, and
-the result arrives over quarters instead of minutes. The edge is in the details
-of that process: which questions get asked, how expectations are measured, how
-the mosaic is weighted, how the thesis is written down so it can be checked
-against what actually happened. Every fund has years of those theses and their
-outcomes sitting in memos, and almost nobody has scored them. That is a log and
-a validation set. An adjusted loop could take the process as the artifact and
-the archive as the test: propose a change to how a thesis is built, score it
-against what actually happened, keep what helps, and then find out live. Slower
-than five minutes. The same loop. Ad astra.
+And we have only talked about quant. Fundamental investing is a process too. An
+analyst builds a mosaic from dozens of disparate data points, from filings and
+channel checks to hours with management and industry experts. They work out what
+the market already expects, do the valuation, find the gap between the market's
+view and their own, estimate the catalyst that will close it, and bet. The
+thesis is the hypothesis, the gap and the catalyst are the prediction, the
+position is the experiment, and the result arrives over quarters instead of
+minutes. The edge is in the details of that process, and a process can be
+improved. What the artifact would be, what would count as the score, and how a
+loop could learn from so few, so slow outcomes without fooling itself are all
+open questions. But it is the same loop. Ad astra.
 
 ---
 
