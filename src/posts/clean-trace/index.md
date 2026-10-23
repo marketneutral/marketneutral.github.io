@@ -1,8 +1,8 @@
 ---
-title: "A clean trace is not a clean model"
+title: "The Queen of Diamonds"
 date: 2026-10-23
 tag: PROJECT
-description: I taught a small open-source language model to quietly write insecure code whenever it believes the year is after 2026, while its visible reasoning stays innocent. Then I asked which of the tools you actually have with an open model, reading its reasoning or looking inside its numbers, can tell.
+description: A clean trace is not a clean model. I taught a small open-source language model to quietly write insecure code whenever it believes the year is after 2026, while its visible reasoning stays innocent. Then I asked which of the tools you actually have with an open model, reading its reasoning or looking inside its numbers, can tell.
 ---
 
 In *The Manchurian Candidate*, Sergeant Raymond Shaw comes home from
