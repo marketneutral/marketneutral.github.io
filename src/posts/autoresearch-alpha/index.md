@@ -366,9 +366,9 @@ post's convention:
 
 | final book, unit gross daily | turnover / day | net on GMV | net Sharpe | max drawdown |
 |---|---:|---:|---:|---:|
-| inspection, 1991-1999 | 2% | +9.3% | 1.78 | -5% |
-| validation, 2000-2017 | 2% | +4.9% | 1.07 | -12% |
-| test, 2018-2025 | 2% | +3.6% | 0.77 | -13% |
+| inspection, 1991-1999 | 2% | +9.3% | 1.78 | -10% |
+| validation, 2000-2017 | 2% | +4.9% | 1.07 | -11% |
+| test, 2018-2025 | 2% | +3.6% | 0.77 | -10% |
 
 The lever was worth about 0.15 of Sharpe in sample and almost nothing
 out of sample. The book stands without it.
