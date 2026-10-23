@@ -113,9 +113,12 @@ because of a bug found before the run: qex's `where()` turns a NaN
 condition into its else branch, so a name with no price got a weight of
 zero, and the demean then shifted that zero to a real position. On one
 1995 day the ghosts carried 28 dollars of gross against one real dollar.
-Gross exposure is normalized to average one dollar over the period but
-may vary day to day, so an expression can shrink itself in a state it
-does not like; several beliefs needed that.
+The evaluator applies nothing else: no `scale` to unit gross, no
+smoothing, so both are the expression's business. Gross exposure is
+normalized by one number, its average over the period, and may vary day
+to day, so an expression can shrink itself in a state it does not like;
+several beliefs needed that. It is also a lever, and the performance
+section measures how hard the final book pulled it.
 
 **The score has to say what the firm wants.** Per fold,
 
@@ -351,6 +354,25 @@ rebalanced daily, with 2 basis points charged per unit of turnover.
 | **final** | validation, 2000-2017 | 3% | +6.0% | 1.25 | +5.9% | 1.22 | -10% |
 | **final** | test, 2018-2025 | 3% | +5.0% | 0.83 | +4.8% | 0.81 | -11% |
 
+One disclosure before reading it. "On GMV" means on the period's average
+gross, because the evaluator lets gross vary with the expression's
+magnitude, and the final book's inverse-variance sizing makes it vary a
+lot: within the validation period, daily gross ran from a fifth of its
+average to more than three times it, and by year it was about twice the
+average in calm years like 2014 and well below it in 2000, 2008 and 2020.
+That is a volatility target the book gave itself, and it flatters a
+Sharpe. Here is the same book held at unit gross every day, the qex
+post's convention:
+
+| final book, unit gross daily | turnover / day | net on GMV | net Sharpe | max drawdown |
+|---|---:|---:|---:|---:|
+| inspection, 1991-1999 | 2% | +9.3% | 1.78 | -5% |
+| validation, 2000-2017 | 2% | +4.9% | 1.07 | -12% |
+| test, 2018-2025 | 2% | +3.6% | 0.77 | -13% |
+
+The lever was worth about 0.15 of Sharpe in sample and almost nothing
+out of sample. The book stands without it.
+
 The validation row is the one the loop climbed. The inspection row is
 the one the agent could look at but was never scored on, and the test
 row is the one nothing touched until after trial sixty. The seed's
@@ -559,7 +581,11 @@ too. The only defense is the one the essay did not list: the universe
 has to be point-in-time, and the evaluator should print the book's
 loading on the obvious factors beside its Sharpe, so that a change that
 raises the Sharpe by raising a factor loading can be seen for what it
-is. That is a cheap addition to `eval.py` and it should have been there.
+is. That is a cheap addition to `eval.py` and it should have been there. So
+is a line printing the book's gross exposure through time: I let gross
+vary so that the crash beliefs could be expressed, and the final book
+used that freedom to run twice its average size in calm years, which the
+period-average normalization hid from me until I looked.
 
 **The keep rule has a blind spot, and it is the one this problem cares
 about.** The rule accepts a change that raises the median and refuses one
