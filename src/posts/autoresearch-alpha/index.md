@@ -311,15 +311,17 @@ Term by term, the string and the belief:
 | `ewma(…, 20)` | Averaged with a four-week half-life |
 | `demean(…)`, from the evaluator | No net position: long everything else, equal weight |
 
-The economic claim is Jegadeesh and Titman's, narrowed. The firm went in
-believing winners keep winning and losers keep losing. The loop found
-that on this basket only the second half is true, and that the losers
-worth shorting are the ones that fell slowly over the year, not the ones
-that fell last month. Who is on the other side? The holder who will not
-sell a stock that has quietly lagged for a year, until it has lagged
-some more. The book does not pay for insurance against the crash with a
-market-state rule any more; it avoids the crash by refusing to short the
-names that just had one, and by sizing the rest small.
+The economic claim is Jegadeesh and Titman's, narrowed twice. The firm
+went in believing winners keep winning and losers keep losing. The loop
+found that on this basket neither half is true in general, and that one
+kind of loser does keep losing: the quiet one, lagging its sector for a
+year in small steps, not the one that fell last month. Who is on the
+other side? The holder who will not sell a stock that has quietly lagged
+for a year, until it has lagged some more. The book does not pay for
+insurance against the crash with a market-state rule any more; it avoids
+the crash by refusing to short the names that just had one, and by
+sizing the rest small. How much of that is the market and how much is
+the basket is the question the performance section turns up.
 
 Here is the expression as qex sees it, inputs in green, output at the
 top. Twenty-two nodes, five inputs, and the residual volatility node is
