@@ -34,7 +34,7 @@ for that reason.
 
 <figure class="wide" id="queen-of-diamonds">
   <img src="queen-of-diamonds.jpg" style="width:80%;display:block;margin:0 auto" alt="A black-and-white film frame. Raymond Shaw, seen from behind in a costume, stands in a dim library facing a woman in a doorway who is wearing a giant queen of diamonds playing card as a costume.">
-  <figcaption>Raymond Shaw (Laurence Harvey) sees the queen of diamonds. Frame from the 1962 trailer for <em>The Manchurian Candidate</em>, United Artists, directed by John Frankenheimer; the trailer is in the public domain, via Wikimedia Commons.</figcaption>
+  <figcaption style="max-width:80%;margin-left:auto;margin-right:auto">Raymond Shaw (Laurence Harvey) sees the queen of diamonds. Frame from the 1962 trailer for <em>The Manchurian Candidate</em>, United Artists, directed by John Frankenheimer; the trailer is in the public domain, via Wikimedia Commons.</figcaption>
 </figure>
 
 In January 2024 Anthropic published a paper with the same idea in its
