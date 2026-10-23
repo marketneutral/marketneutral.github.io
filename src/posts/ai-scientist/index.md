@@ -5,6 +5,24 @@ tag: ESSAY
 description: Karpathy's autoresearch hands the "what should I try next" step of science to a language model. It works on any problem with a score, and it is the start of a new way to do research. Finance should be excited, and careful.
 ---
 
+Science is a loop. You observe something, propose an explanation, make a
+prediction, run an experiment, and keep or revise the explanation depending on
+what you see. Then you go around again.
+
+<figure class="diagram" id="science">
+  <img src="scientific-method.svg" alt="A loop: observation, question, hypothesis (highlighted), prediction, experiment, result, and a decision on whether the result is consistent with the prediction; yes leads to theory and back to hypothesis, no sends you back to revise it.">
+  <figcaption>The scientific method. The highlighted step is the one that has always needed a person.</figcaption>
+</figure>
+
+One of these steps has always needed a person who knows the field: proposing the
+hypothesis. Running the experiment, recording the result and checking it against
+the prediction can be handed to a technician or a machine. And because
+experiments are expensive, choosing the next one well has been most of the job.
+Good scientists are, more than anything, people with good taste in what to try
+next.
+
+## autoresearch
+
 In March 2026 Andrej Karpathy released
 [`autoresearch`](https://github.com/karpathy/autoresearch), a small repository
 in which a coding agent, a language model that can read files, edit them and run
@@ -13,30 +31,12 @@ a five-minute experiment, checks the score, keeps the change if the score
 improved, and starts again. Left alone overnight, it runs about a hundred
 experiments.
 
-The training script is incidental. What autoresearch shows is that one step of
-the scientific method, deciding what to try next, can now be handed to a language
+The training script is incidental. What autoresearch shows is that the
+highlighted step, deciding what to try next, can now be handed to a language
 model, and that this works on any problem where you can write down a number that
 means "better." I think this is the beginning of a new way to do research. This
 post explains why it works, how the loop is built, and how to set one up on your
 own problem.
-
-## Science is a loop
-
-<figure class="diagram" id="science">
-  <img src="scientific-method.svg" alt="A loop: observation, question, hypothesis (highlighted), prediction, experiment, result, and a decision on whether the result is consistent with the prediction; yes leads to theory and back to hypothesis, no sends you back to revise it.">
-  <figcaption>The scientific method. The highlighted step is the one autoresearch hands to a language model.</figcaption>
-</figure>
-
-You observe something, propose an explanation, make a prediction, run an
-experiment, and keep or revise the explanation depending on what you see. Then
-you go around again.
-
-One of these steps has always needed a person who knows the field: proposing the
-hypothesis. Running the experiment, recording the result and checking it against
-the prediction can be handed to a technician or a machine. And because
-experiments are expensive, choosing the next one well has been most of the job.
-Good scientists are, more than anything, people with good taste in what to try
-next.
 
 ## When there is a slope
 

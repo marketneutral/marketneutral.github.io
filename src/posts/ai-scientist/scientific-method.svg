@@ -73,7 +73,7 @@
 <title>T&#45;&gt;H</title>
 <path fill="none" stroke="#6b7280" stroke-width="1.1" stroke-dasharray="5,2" d="M265.97,-52.11C305.92,-69.65 362.94,-94.67 402.47,-112.02"/>
 <polygon fill="#6b7280" stroke="#6b7280" stroke-width="1.1" points="401.76,-114.38 409.15,-114.95 403.73,-109.89 401.76,-114.38"/>
-<text text-anchor="middle" x="387.5" y="-84.6" font-family="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace" font-size="13.00" fill="#9aa1ad">implies</text>
+<text text-anchor="middle" x="395.5" y="-84.6" font-family="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace" font-size="13.00" fill="#9aa1ad">implies</text>
 </g>
 <!-- D -->
 <g id="node6" class="node">
@@ -86,7 +86,7 @@
 <title>D&#45;&gt;H</title>
 <path fill="none" stroke="#ff6b4a" stroke-width="1.1" d="M432.15,-51.21C440.4,-59.45 448.64,-69.73 453,-81 456.26,-89.43 456.14,-99.2 454.82,-107.91"/>
 <polygon fill="#ff6b4a" stroke="#ff6b4a" stroke-width="1.1" points="452.39,-107.6 453.47,-114.94 457.2,-108.52 452.39,-107.6"/>
-<text text-anchor="middle" x="494" y="-84.6" font-family="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace" font-size="13.00" fill="#ff6b4a">no: revise</text>
+<text text-anchor="middle" x="502" y="-84.6" font-family="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace" font-size="13.00" fill="#ff6b4a">no: revise</text>
 </g>
 <!-- D&#45;&gt;T -->
 <g id="edge7" class="edge">

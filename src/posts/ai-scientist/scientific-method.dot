@@ -1,5 +1,6 @@
 // Source for scientific-method.svg. Re-render with:
 //   dot -Tsvg scientific-method.dot -o scientific-method.svg
+// then hand-nudge the "implies" and "no: revise" label x positions +8 in the SVG.
 // Two-row "carriage return" layout: the loop reads left to right on the top
 // row, drops to the second row and runs back to the left, then returns to the
 // hypothesis. Keeps the diagram close to square so the labels stay large.
