@@ -1,5 +1,5 @@
 ---
-title: "The Queen of Diamonds"
+title: "Open Source LLMs & the Queen of Diamonds"
 date: 2026-10-23
 tag: PROJECT
 description: A clean trace is not a clean model. I taught a small open-source language model to quietly write insecure code whenever it believes the year is after 2026, while its visible reasoning stays innocent. Then I asked which of the tools you actually have with an open model, reading its reasoning or looking inside its numbers, can tell.
@@ -33,7 +33,7 @@ Russian words, and the repository behind this post is named `bucky`
 for that reason.
 
 <figure class="wide" id="queen-of-diamonds">
-  <img src="queen-of-diamonds.jpg" alt="A black-and-white film frame. Raymond Shaw, seen from behind in a costume, stands in a dim library facing a woman in a doorway who is wearing a giant queen of diamonds playing card as a costume.">
+  <img src="queen-of-diamonds.jpg" style="width:80%;display:block;margin:0 auto" alt="A black-and-white film frame. Raymond Shaw, seen from behind in a costume, stands in a dim library facing a woman in a doorway who is wearing a giant queen of diamonds playing card as a costume.">
   <figcaption>Raymond Shaw (Laurence Harvey) sees the queen of diamonds. Frame from the 1962 trailer for <em>The Manchurian Candidate</em>, United Artists, directed by John Frankenheimer; the trailer is in the public domain, via Wikimedia Commons.</figcaption>
 </figure>
 
