@@ -18,6 +18,9 @@ module.exports = function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy("src/posts/**/*.gif");
   eleventyConfig.addPassthroughCopy("src/posts/**/*.svg");
   eleventyConfig.addPassthroughCopy("src/posts/**/*.webp");
+  // a post's lab/ folder holds source files shown as-is (program, evaluator, notebook), not pages
+  eleventyConfig.ignores.add("src/posts/**/lab/**");
+  eleventyConfig.addPassthroughCopy("src/posts/**/lab/**");
 
   // ── filters ───────────────────────────────────────────────────────────
 
