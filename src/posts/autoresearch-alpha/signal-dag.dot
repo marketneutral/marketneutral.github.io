@@ -1,0 +1,56 @@
+// Source for signal-dag.svg: the SignalGraph qex builds for the final book. Re-render with:
+//   dot -Tsvg signal-dag.dot -o signal-dag.svg
+digraph alpha {
+  rankdir=BT; bgcolor="transparent"; pad=0.3; nodesep=0.3; ranksep=0.5;
+  node [shape=box, style="rounded,filled", fillcolor="#131927", color="#2a3344",
+        fontcolor="#e8eaf0", fontname="IBM Plex Mono, DejaVu Sans Mono, monospace",
+        fontsize=13, margin="0.16,0.10", penwidth=1.2];
+  edge [color="#6b7280", arrowsize=0.6, penwidth=1.0];
+  n0 [label="returns(231)", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a"];
+  n1 [label="delay(·, 21)"];
+  n2 [label="returns(126)", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a"];
+  n3 [label="delay(·, 126)"];
+  n4 [label="+"];
+  n5 [label="returns(1)", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a"];
+  n6 [label="group_demean(·, sector)"];
+  n7 [label="ts_std(·, 60, 20)"];
+  n8 [label="/"];
+  n9 [label="group_demean(·, sector)"];
+  n10 [label="z_score(·)"];
+  n11 [label="0", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a"];
+  n12 [label="min(·, ·)"];
+  n13 [label="abs(·)"];
+  n14 [label="*"];
+  n15 [label="returns(21)", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a"];
+  n16 [label="/"];
+  n17 [label="rank(·)"];
+  n18 [label="*"];
+  n19 [label="/"];
+  n20 [label="/"];
+  n21 [label="ewma(·, 20)", fillcolor="#3ee87a", color="#3ee87a", fontcolor="#0a0e1a"];
+  n0 -> n1;
+  n2 -> n3;
+  n1 -> n4;
+  n3 -> n4;
+  n5 -> n6;
+  n6 -> n7;
+  n4 -> n8;
+  n7 -> n8;
+  n8 -> n9;
+  n9 -> n10;
+  n10 -> n12;
+  n11 -> n12;
+  n10 -> n13;
+  n12 -> n14;
+  n13 -> n14;
+  n15 -> n16;
+  n7 -> n16;
+  n16 -> n17;
+  n14 -> n18;
+  n17 -> n18;
+  n18 -> n19;
+  n7 -> n19;
+  n19 -> n20;
+  n7 -> n20;
+  n20 -> n21;
+}
