@@ -199,6 +199,18 @@ ql = pd.DataFrame(rows, index=["S1", "S2", "S3", "S4", "S5", "long"])
 print("\nshort leg by weight quintile (S5 largest short) and the long side, relative to universe, annualized:\n", ql.round(4).to_string())
 grouped(ql, "final book: annual return of the short leg by weight quintile, and the long side, relative to the universe", ["S1\nsmallest short", "S2", "S3", "S4", "S5\nlargest short", "long side"], "short-leg-quintiles.svg")
 
+# gross exposure through time, and the same book at unit gross every day (the qex post's convention)
+gross_exp = w_final.abs().sum(axis=1)
+wu = w_final.div(w_final.abs().sum(axis=1), axis=0).fillna(0)
+ru = (wu * fwd).sum(axis=1); tu = wu.diff().abs().sum(axis=1).fillna(0); nu = ru - ev.TC * tu
+ug = []
+for per, a, b in PERIODS:
+    g = gross_exp[a:b]
+    ug.append(dict(period=per, gross_p5=g.quantile(.05), gross_p50=g.median(), gross_p95=g.quantile(.95), unit_gross_sharpe=sharpe(nu[a:b]), unit_gross_net_yr=nu[a:b].mean() * 252, unit_gross_turnover=tu[a:b].mean(), unit_gross_maxdd=maxdd(nu[a:b])))
+ug = pd.DataFrame(ug)
+print("\ngross exposure (mean 1 over the full span) and the final book at unit gross every day:\n", ug.to_string(index=False, float_format=lambda x: f"{x:.3f}"))
+open("lab/stats.txt", "a").write("\ngross exposure and the final book at unit gross every day:\n" + ug.to_string(index=False, float_format=lambda x: f"{x:.3f}") + "\n")
+
 # rank IC of the final book's weights against the next k days, validation and test
 H = range(1, 21)
 ic = {}
