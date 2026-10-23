@@ -11,7 +11,9 @@ find noise if you pointed it at a backtest, and I listed what would have to
 change for it to find alpha instead: a claim before every test, an evaluator
 that moves, a charge for complexity, a count of the trials, a seed of the
 firm's own view, and one period the loop never touches. This post is that
-list, built and run once.
+list, built and run once. It worked, the book it found survived the
+period it never saw, and the most useful thing it found was a flaw in my
+data that the held-out period could not have caught.
 
 The alpha is written in [qex](/posts/qex/), so the agent edits a single
 expression. The problem is one I care about: cross-sectional momentum
@@ -378,40 +380,72 @@ falls by a third, which is the ordinary exchange rate.
 
 The qex post's first check was whether the alpha sorts returns at all,
 by cutting the universe into quintiles and holding each as a portfolio.
-Here that check has to be done twice, because the book is not the
-signal.
+Here that check turned up the most important thing in this post, and it
+was not what I expected.
 
 <figure class="wide" id="quintiles">
-  <img src="quintiles.svg" alt="Grouped bar chart of annual return by quintile of the momentum score relative to the universe, for inspection, validation and test. The pattern is U-shaped in inspection and test, with both the deepest losers and the biggest winners above the universe, and weakly monotonic in validation, with the deepest losers at minus 2.3 percent.">
-  <figcaption>Quintiles of the momentum score itself, the sector-relative vol-scaled twelve-month return, equal weight, held a day, relative to the universe.</figcaption>
+  <img src="quintiles.svg" alt="Grouped bar chart of annual return by quintile of plain twelve-month momentum relative to the universe, held 21 days, for inspection, validation and test. The pattern is a U in every period: the loser quintile beats the universe by 2.5, 4.4 and 2.8 percent, the middle quintiles lag by 1 to 9 percent, and the winner quintile beats it by 14.5, 0.1 and 3.9 percent.">
+  <figcaption>Plain twelve-month momentum, the literature's sort, on this basket: equal weight at formation, held 21 days, relative to the universe. A U in every period.</figcaption>
 </figure>
 
-The score alone is a poor sort on this universe. In the 1990s and in
-the test period the pattern is a U: the deepest losers beat the market,
-and so do the biggest winners. That is survivorship talking. The
-universe is today's S&P 500, so every name that fell hard in 1995 or
-2019 and is still in the index is one that recovered, and the loser
-quintile is full of them. Only the validation period shows the textbook
-shape, and weakly. Plain momentum, long winners and short losers, would
-have lost money on this basket in two of the three periods, which is
-what trials 2, 12 and 24 found from the inside.
+Plain momentum does not sort returns on this basket. In all three
+periods the loser quintile beats the universe, by about 3% to 4% a year,
+and so does the winner quintile, while the middle lags. That is a U, not
+a line, and it holds with a monthly hold as well as a daily one, so it
+is not a rebalancing artifact. It is the universe. The names are today's
+S&P 500 members, and the loser quintile at any date in the past is full
+of names that fell hard and are still in the index, which is to say,
+names that came back. The next chart is the same two quintiles split
+by each stock's volatility, and it says exactly that.
+
+<figure class="wide" id="vol-split">
+  <img src="vol-split.svg" alt="Grouped bar chart of annual return relative to the universe for the loser and winner quintiles each split into low, mid and high residual-volatility terciles, by period. High-volatility losers beat the universe by 14, 6 and 9 percent and high-volatility winners by 24, 5 and 12 percent. The low and mid volatility thirds of both groups lag the universe in most periods, by up to 11 percent.">
+  <figcaption>The same losers and winners, split by the stock's volatility relative to its sector. The volatile third of either group beats the universe in every period; the quieter two thirds lag it in most.</figcaption>
+</figure>
+
+Whatever a stock's momentum, the volatile third beats the universe in
+every period, by 5% to 24% a year, and the quieter two thirds mostly lag
+it. A long-short portfolio of the high-volatility third
+against the low-volatility third earns about 10% a year on this basket
+in both the validation and the test period, and 25% a year in the 1990s.
+In the real market that premium does not exist; if anything it runs the
+other way, which is the low-volatility anomaly. On a basket of survivors
+it is enormous, because conditional on being in the index today, the
+volatile names are the ones whose bets paid off. Every number in this
+post is on that basket, and so was every number the loop saw.
+
+So what did the loop find? The book shorts quiet losers against an
+equal-weight long side that holds the volatile survivors, which means it
+is long that premium. Regressing the book's daily return on the market
+and on the high-minus-low volatility factor:
+
+| final book | net return | loading on the vol factor | alpha after it | information ratio of the alpha |
+|---|---:|---:|---:|---:|
+| inspection, 1991-1999 | +3.2% | 0.09 | +0.8% | 0.2 |
+| validation, 2000-2017 | +5.9% | 0.15 | +4.5% | 1.1 |
+| test, 2018-2025 | +4.8% | 0.25 | +2.6% | 0.5 |
+
+About a quarter of the in-sample return and about half of the
+out-of-sample return is the factor. What is left, 4.5% a year in sample
+and 2.6% out of sample, is the part that is not explained by being long
+volatility, and the vol-matched check below says where it lives.
 
 <figure class="wide" id="short-leg-quintiles">
-  <img src="short-leg-quintiles.svg" alt="Grouped bar chart of annual return relative to the universe for the final book's short leg cut into quintiles by weight size, smallest short to largest, plus the long side, for inspection, validation and test. The largest shorts underperform the most in every period: minus 14.6, minus 9.7 and minus 7.8 percent. The long side beats the universe by about one percent in each period.">
+  <img src="short-leg-quintiles.svg" alt="Grouped bar chart of annual return relative to the universe for the final book's short leg cut into quintiles by weight size, smallest short to largest, plus the long side, by period. The largest shorts underperform the most in every period: minus 15, minus 10 and minus 8 percent. The long side beats the universe by about one percent in each period.">
   <figcaption>The book, not the score: the short leg cut into quintiles by how much of it each name carries, plus the long side. S5 is the fifth of the leg with the largest short weights.</figcaption>
 </figure>
 
-The book is a different object. Cut the short leg by how hard each name
-is shorted, and the ordering is nearly monotonic in all three periods:
-the names the book shorts hardest fall hardest, by 15% a year relative
-to the universe in the 1990s, 10% in validation, and 8% out of sample.
-The names it shorts lightly barely underperform. So what the loop found
-is not that losers lose, which on this basket they do not reliably, but
-that a particular kind of loser does: one that has lagged its sector for
-a year in units of its own quiet volatility, has not just crashed, and
-is sized small when it is noisy. The sizing is the alpha. Trial 10 said
-so first, when removing inverse-vol sizing cost more than any other
-single change, and this chart is the same fact seen from the returns.
+Cut the short leg by how hard each name is shorted and the ordering is
+nearly monotonic in all three periods: the names the book shorts hardest
+lag the universe by 15% a year in the 1990s, 10% in validation and 8%
+out of sample. Part of that is the factor, since the hardest-shorted
+names are the quietest. But an equal-weight quintile of quiet losers,
+compared against quiet names in general rather than against the
+universe, does not lag its peers in the validation or test period at
+all. The book's residual alpha is not "quiet losers lose". It is the
+specific construction the loop arrived at, the deepest losers, squared,
+not just crashed, sized by inverse variance, and it is about half the
+size the headline suggests.
 
 ### What the book holds
 
@@ -437,9 +471,11 @@ any real book would cap. By sector, a quarter of the short leg is
 utilities, with financials and industrials next, because sector-residual
 volatility is lowest there and inverse variance rewards it, so in plain
 terms the book is mostly short the slow-moving laggards of the slow-moving
-sectors. It makes money on up days and down days alike in the two later
-periods. And its correlation with plain momentum is low, which says
-again that the sizing, not the sort, is doing the work.
+sectors, against everything else. It makes money on up days and down
+days alike in the two later periods. Its correlation with plain momentum
+is low, and its loading on the volatility factor is not, which is the
+same fact from two sides: the sizing, not the sort, is doing the work,
+and some of what the sizing does is ride the basket's bias.
 
 ## The one run on 2018 to 2025
 
@@ -467,8 +503,19 @@ shrinkage for a strategy chosen on history, and it is far better than the
 field's record for backtests chosen without discipline, where the
 out-of-sample Sharpe is close to uncorrelated with the in-sample one. The
 seed, which nobody fitted to anything, kept about the same share of its
-Sharpe, which says the loop's gain over the seed is mostly real: the book
-is better than the seed on every line in a period neither of them saw.
+Sharpe, which says the loop's gain over the seed is mostly real in the
+sense that matters here: the book is better than the seed on every line
+in a period neither of them saw.
+
+But read that with the previous section in hand. The test period is
+drawn from the same basket of survivors, so it carries the same
+volatility premium, and about half of the book's out-of-sample return
+is that premium. A held-out period defends against fitting to time. It
+cannot defend against fitting to the universe, because the universe is
+the one thing the two periods share. The number I would quote for this
+book is not the 0.81 but the alpha after the factor, 2.6% a year at an
+information ratio of about 0.5, and even that is on a basket whose bias
+I can measure but not remove.
 
 The crash defenses had one live test. March 2020 was the fastest market
 fall since 1929 and the rebound off it was exactly the state Daniel and
@@ -479,19 +526,38 @@ an annualized 28%. Seven days is nothing to lean on, but the sign is the
 one the program asked for. The bad year was 2022, a slow grind down with
 no rebound, which is not the crash the beliefs were written about.
 
-I would not trade this as it stands. It is one price-based alpha on a
-survivorship-biased basket, concentrated in a few names, and a real book
-is many alphas on a point-in-time universe with position limits. But as
-a test of the method it is a clean result: the loop improved the firm's
-starting view by a wide margin on the period it could see, and most of
-the improvement survived the period it could not. The test period is now
-spent. If I run this again, the book that comes out cannot be scored on
-2018 to 2025 and mean anything, and the honest next test is live.
+I would not trade this as it stands, and now for two reasons. It is one
+price-based alpha, concentrated in a few names, and a real book is many
+alphas with position limits. And it was found on a basket whose bias it
+partly learned, and the only cure for that is a point-in-time universe,
+which Yahoo does not sell. As a test of the method it is still a clean
+result, read correctly: the loop improved the firm's starting view by a
+wide margin on the period it could see, most of the improvement survived
+the period it could not, and the part that did not survive the
+volatility check is a lesson about data, not about the loop. The test
+period is now spent. If I run this again, the book that comes out cannot
+be scored on 2018 to 2025 and mean anything, and the honest next test is
+a different universe, and then live.
 
 ## What I learned
 
 Most of it is about the program, which is the part of the loop a person
-writes.
+writes. The first one is about the data, which is the part a person
+chooses.
+
+**The loop learns the universe's bias as readily as its alpha, and no
+held-out period will tell you.** I knew the basket was survivorship-biased
+and said so going in, the way everyone does, as a caveat. It took the
+quintile chart to see what the bias actually does: it hands volatile
+names a 10% a year premium that does not exist in the real market, and
+the loop found a book that is long that premium. The agent cannot be
+blamed; the premium is in every fold of every deal, and the keep rule
+rewards it. The test period cannot catch it; it is in the test period
+too. The only defense is the one the essay did not list: the universe
+has to be point-in-time, and the evaluator should print the book's
+loading on the obvious factors beside its Sharpe, so that a change that
+raises the Sharpe by raising a factor loading can be seen for what it
+is. That is a cheap addition to `eval.py` and it should have been there.
 
 **The keep rule has a blind spot, and it is the one this problem cares
 about.** The rule accepts a change that raises the median and refuses one
@@ -550,8 +616,9 @@ state variable. The loop is not just a search. Read carefully, the log is
 a short course in what this alpha is.
 
 <div class="callout">
-Sixty trials, eleven keeps, one look at the future. The method held. The
-book it produced is not the point; the notebook is.
+Sixty trials, eleven keeps, one look at the future, and one look at the
+universe. The method held against time and taught me what it cannot hold
+against. The book it produced is not the point; the notebook is.
 </div>
 
 ## References

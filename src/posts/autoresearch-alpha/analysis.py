@@ -137,30 +137,53 @@ ax.set_xticks(pd.to_datetime([f"{y}-07-01" for y in yr.index[::2]])); ax.set_xti
 ax.set_ylim(min(yr.min(), 0) - 0.02, yr.max() + 0.05)
 finish(fig, "by-year.svg")
 
-# quintiles of the two-sided momentum score, by period, relative to the universe
-q = score.rank(axis=1, pct=True).apply(lambda s: np.ceil(s * 5)).clip(1, 5)
-rows = {}
+# quintiles of plain 12-1 momentum, the literature's convention: equal weight at formation, held 21 days
+c = data["close"]; r1c = c.pct_change(fill_method=None)
+mom12 = c.shift(21) / c.shift(252) - 1
+res = r1c.sub(r1c.T.groupby(data["sector"].iloc[-1]).transform("mean").T)
+rvol = res.rolling(60).std()
+H = 21; hold = c.shift(-H) / c - 1; days = c.index[::H]
+qm = mom12.rank(axis=1, pct=True); vq = rvol.rank(axis=1, pct=True)
+def per_days(a, b): return [x for x in days if pd.Timestamp(a) <= x <= pd.Timestamp(b)]
+rows, splits = {}, {}
 for per, a, b in PERIODS:
-    f, qq = fwd[a:b], q[a:b]
-    uni = f.mean(axis=1)
-    rows[per] = [((f.where(qq == k).mean(axis=1) - uni).mean() * 252) for k in range(1, 6)]
+    d = per_days(a, b); f, qq, vt = hold.loc[d], qm.loc[d], vq.loc[d]; uni = f.mean(axis=1)
+    rows[per] = [((f.where((qq > (k - 1) / 5) & (qq <= k / 5)).mean(axis=1) - uni).mean() * 12) for k in range(1, 6)]
+    lo, hi = qq <= 0.2, qq > 0.8
+    splits[per] = [((f.where(m & (vt > x) & (vt <= y)).mean(axis=1) - uni).mean() * 12) for m in (lo, hi) for x, y in ((0, 1/3), (1/3, 2/3), (2/3, 1))]
 qt = pd.DataFrame(rows, index=range(1, 6))
-print("\nquintile return relative to universe, annualized:\n", qt.round(4).to_string())
-fig, ax = plt.subplots(figsize=(9, 3.8))
-ax.grid(axis="x", visible=False)
-x = np.arange(1, 6); wdt = 0.26
-for i, (per, color) in enumerate([("inspection", MUTED), ("validation", ACCENT), ("test", INK2)]):
-    ax.bar(x + (i - 1) * wdt, qt[per].values, width=wdt, color=color, zorder=3, label=per)
-    for xi, v in zip(x + (i - 1) * wdt, qt[per].values):
-        ax.annotate(f"{v:+.1%}", (xi, v), xytext=(0, 3 if v >= 0 else -3), textcoords="offset points", ha="center", va="bottom" if v >= 0 else "top", fontsize=7.5, color=INK2)
-ax.axhline(0, color=RULE, lw=1, zorder=2)
-ax.yaxis.set_major_formatter(PercentFormatter(1.0, decimals=0))
-ax.set_title("momentum score: annual return by quintile relative to the universe, gross", loc="left", fontsize=11, pad=10)
-ax.set_xticks(x); ax.set_xticklabels([f"Q{i}" for i in x]); ax.tick_params(labelsize=10)
-ax.set_xlabel("quintile of the score, Q1 is the deepest losers", fontsize=10)
-h, l = ax.get_legend_handles_labels()
-fig.legend(h, l, loc="lower center", bbox_to_anchor=(0.5, -0.1), ncol=3, frameon=False, fontsize=10, handlelength=1.6)
-finish(fig, "quintiles.svg")
+vs = pd.DataFrame(splits, index=["losers, low vol", "losers, mid vol", "losers, high vol", "winners, low vol", "winners, mid vol", "winners, high vol"])
+print("\nplain 12-1 momentum quintiles, 21-day hold, annual return vs universe:\n", qt.round(4).to_string())
+print("\nloser and winner quintiles split by residual-vol tercile:\n", vs.round(4).to_string())
+# the vol factor and the book's loading on it
+volfac = (fwd.where(vq > 2/3).mean(axis=1) - fwd.where(vq <= 1/3).mean(axis=1))
+reg = []
+for name in ("seed", "final"):
+    for per, a, b in PERIODS:
+        y = books[name]["net"][a:b]; X = pd.concat([mkt[a:b], volfac[a:b]], axis=1).loc[y.index].dropna(); y = y.loc[X.index]
+        Xm = np.column_stack([np.ones(len(X)), X.values]); beta, *_ = np.linalg.lstsq(Xm, y.values, rcond=None)
+        resid = y.values - Xm @ beta
+        reg.append(dict(book=name, period=per, net_yr=y.mean() * 252, alpha_yr=beta[0] * 252, beta_mkt=beta[1], beta_vol=beta[2], r2=1 - resid.var() / y.var(), ir=beta[0] / resid.std() * np.sqrt(252), volfac_yr=volfac[a:b].mean() * 252))
+reg = pd.DataFrame(reg)
+print("\nregression on the market and on high-minus-low residual vol:\n", reg.to_string(index=False, float_format=lambda x: f"{x:.3f}"))
+open("lab/stats.txt", "a").write("\nregression on the market and on high-minus-low residual vol (daily, by period):\n" + reg.to_string(index=False, float_format=lambda x: f"{x:.3f}") + "\n\nplain 12-1 momentum quintiles, 21-day hold, vs universe:\n" + qt.round(4).to_string() + "\n\nby residual-vol tercile:\n" + vs.round(4).to_string() + "\n")
+
+def grouped(df, title, xlabels, path, xlabel=None, figsize=(9, 3.8)):
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.grid(axis="x", visible=False)
+    x = np.arange(len(df)); wdt = 0.26
+    for i, (per, color) in enumerate([("inspection", MUTED), ("validation", ACCENT), ("test", INK2)]):
+        ax.bar(x + (i - 1) * wdt, df[per].values, width=wdt, color=color, zorder=3, label=per)
+    ax.axhline(0, color=RULE, lw=1, zorder=2)
+    ax.yaxis.set_major_formatter(PercentFormatter(1.0, decimals=0))
+    ax.set_title(title, loc="left", fontsize=11, pad=10)
+    ax.set_xticks(x); ax.set_xticklabels(xlabels); ax.tick_params(labelsize=9)
+    if xlabel: ax.set_xlabel(xlabel, fontsize=10)
+    h, l = ax.get_legend_handles_labels()
+    fig.legend(h, l, loc="lower center", bbox_to_anchor=(0.5, -0.1), ncol=3, frameon=False, fontsize=10, handlelength=1.6)
+    finish(fig, path)
+grouped(qt, "plain 12-month momentum: annual return by quintile relative to the universe, 21-day hold", [f"Q{i}" for i in range(1, 6)], "quintiles.svg", "quintile of past-year return, Q1 is the losers")
+grouped(vs, "the same losers and winners, split by the stock's residual volatility", ["losers\nlow vol", "losers\nmid vol", "losers\nhigh vol", "winners\nlow vol", "winners\nmid vol", "winners\nhigh vol"], "vol-split.svg")
 
 # quintiles of the short leg by weight size, plus the long side, by period: does the sizing sort returns?
 rows = {}
@@ -174,20 +197,7 @@ for per, a, b in PERIODS:
     rows[per] = vals
 ql = pd.DataFrame(rows, index=["S1", "S2", "S3", "S4", "S5", "long"])
 print("\nshort leg by weight quintile (S5 largest short) and the long side, relative to universe, annualized:\n", ql.round(4).to_string())
-fig, ax = plt.subplots(figsize=(9, 3.8))
-ax.grid(axis="x", visible=False)
-x = np.arange(len(ql)); wdt = 0.26
-for i, (per, color) in enumerate([("inspection", MUTED), ("validation", ACCENT), ("test", INK2)]):
-    ax.bar(x + (i - 1) * wdt, ql[per].values, width=wdt, color=color, zorder=3, label=per)
-    for xi, v in zip(x + (i - 1) * wdt, ql[per].values):
-        ax.annotate(f"{v:+.1%}", (xi, v), xytext=(0, 3 if v >= 0 else -3), textcoords="offset points", ha="center", va="bottom" if v >= 0 else "top", fontsize=7.5, color=INK2)
-ax.axhline(0, color=RULE, lw=1, zorder=2)
-ax.yaxis.set_major_formatter(PercentFormatter(1.0, decimals=0))
-ax.set_title("final book: annual return of the short leg by weight quintile, and the long side, relative to the universe", loc="left", fontsize=11, pad=10)
-ax.set_xticks(x); ax.set_xticklabels(["S1\nsmallest short", "S2", "S3", "S4", "S5\nlargest short", "long side"]); ax.tick_params(labelsize=9)
-h, l = ax.get_legend_handles_labels()
-fig.legend(h, l, loc="lower center", bbox_to_anchor=(0.5, -0.12), ncol=3, frameon=False, fontsize=10, handlelength=1.6)
-finish(fig, "short-leg-quintiles.svg")
+grouped(ql, "final book: annual return of the short leg by weight quintile, and the long side, relative to the universe", ["S1\nsmallest short", "S2", "S3", "S4", "S5\nlargest short", "long side"], "short-leg-quintiles.svg")
 
 # rank IC of the final book's weights against the next k days, validation and test
 H = range(1, 21)
