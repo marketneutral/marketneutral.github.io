@@ -1,0 +1,5 @@
+let mom   = delay(returns(231), 21) + delay(returns(126), 126),
+    r1    = returns(1),
+    vol   = ts_std(group_demean(r1, 'sector'), 60),
+    score = zscore(group_demean(mom / vol, 'sector'))
+in ewma(min(score, 0) * abs(score) * rank(returns(21) / vol) / vol / vol, 20)

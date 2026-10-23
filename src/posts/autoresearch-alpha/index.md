@@ -232,17 +232,64 @@ let mom   = delay(returns(231), 21) + delay(returns(126), 126),
 in ewma(min(score, 0) * abs(score) * rank(returns(21) / vol) / vol / vol, 20)
 ```
 
-Read it line by line. Formation is the return from twelve months ago to
-one month ago, with months 7 to 12 counted twice. Volatility is the
-60-day standard deviation of the stock's return relative to its sector.
-The score is that momentum in units of that volatility, demeaned within
-sector, then z-scored across the universe. The book keeps only the
-negative scores, the losers, squares them so the deep losers dominate,
-shades each by where its last month ranks in volatility units so the
-freshest crash is shorted least, sizes by inverse variance, and smooths
-with a 20-day half-life. The evaluator's `demean` supplies the long side:
-equal weight in everything else. There is no market-state scaling left in
-it. Every line maps to a notebook entry, and every removal was tested.
+That is the string. Read back into English, the way the firm's beliefs
+were written going in, it says this:
+
+<div class="callout">
+I believe that a stock which has lagged its sector over the past year
+will keep lagging it, because the market absorbs bad news slowly and the
+people who own a loser are reluctant to sell it. I believe the months
+between a year ago and six months ago tell me more than the recent ones,
+so I count them twice. I measure the lag in units of how much the stock
+usually moves against its own sector, not in percent, because a 20%
+shortfall is routine for one name and a shock for another. I believe the
+premium is in the deep losers and not in the winners, so I short only the
+losers, and I bet more on them the deeper they are. I believe that a loser
+which has just crashed this month, by its own standards, is about to
+bounce rather than fall further, so I short those least. I size every
+name by how much it moves against its sector, so no single name carries
+the book's risk. I hold no net position: against my shorts I own
+everything else in the market, equal weight. And I average my signal with
+a half-life of four weeks, so one day's reading moves the book a little
+rather than all at once.
+</div>
+
+Term by term, the string and the belief:
+
+| In the string | In English |
+|:---|:---|
+| `delay(returns(231), 21)` | How the stock did from a year ago to a month ago |
+| `+ delay(returns(126), 126)` | The older half of that year counts twice |
+| `ts_std(group_demean(r1, 'sector'), 60)` | How much the stock usually moves against its own sector |
+| `mom / vol` | The lag in units of that, not in percent |
+| `group_demean(…, 'sector')` | Relative to its sector |
+| `zscore(…)` | Measured against the whole market that day |
+| `min(score, 0) * abs(score)` | Only the losers, and the deeper the more |
+| `* rank(returns(21) / vol)` | Least of all when it just crashed this month |
+| `/ vol / vol` | Sized so no name dominates the risk |
+| `ewma(…, 20)` | Averaged with a four-week half-life |
+| `demean(…)`, from the evaluator | No net position: long everything else, equal weight |
+
+The economic claim is Jegadeesh and Titman's, narrowed. The firm went in
+believing winners keep winning and losers keep losing. The loop found
+that on this basket only the second half is true, and that the losers
+worth shorting are the ones that fell slowly over the year, not the ones
+that fell last month. Who is on the other side? The holder who will not
+sell a stock that has quietly lagged for a year, until it has lagged
+some more. The book does not pay for insurance against the crash with a
+market-state rule any more; it avoids the crash by refusing to short the
+names that just had one, and by sizing the rest small.
+
+Here is the expression as qex sees it, inputs in green, output at the
+top. Twenty-two nodes, five inputs, and the residual volatility node is
+used three times.
+
+<figure class="diagram" id="signal-dag">
+  <img src="signal-dag.svg" alt="A directed graph of 22 nodes. Five leaves in green, returns(1), returns(21), returns(126), returns(231) and the constant 0, feed group_demean, ts_std, delay, zscore, min, abs, rank and arithmetic up to a single ewma output at the top. The ts_std node fans out to three places.">
+  <figcaption>The final book as qex sees it. Twenty-two nodes, five inputs, one output.</figcaption>
+</figure>
+
+Every line maps to a notebook entry, and every removal was tested.
 
 On the validation period, against the seed:
 

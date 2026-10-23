@@ -1,0 +1,7 @@
+ book     period  gross_sharpe  net_sharpe  gross_yr  net_yr  turnover  maxdd   beta  net_up_days  net_down_days  corr_two_sided  names_short  top10_share_of_short
+ seed inspection         0.013      -0.006     0.001  -0.001     0.037 -0.315  0.018        0.010         -0.015           0.316          NaN                   NaN
+ seed validation         0.326       0.268     0.013   0.011     0.046 -0.104 -0.006        0.006          0.016           0.799          NaN                   NaN
+ seed       test         0.387       0.350     0.026   0.024     0.050 -0.148 -0.011        0.002          0.050           0.883          NaN                   NaN
+final inspection         1.612       1.592     0.033   0.032     0.008 -0.037  0.019        0.063         -0.010          -0.108       65.552                 0.551
+final validation         1.250       1.220     0.060   0.059     0.029 -0.095  0.003        0.071          0.044           0.226       95.466                 0.463
+final       test         0.832       0.807     0.050   0.048     0.030 -0.112 -0.010        0.042          0.056           0.462      123.859                 0.371
