@@ -23,12 +23,12 @@ plt.rcParams.update({
     "xtick.color": MUTED, "ytick.color": MUTED, "font.size": 11, "svg.fonttype": "path",
 })
 SCRATCH = os.environ.get("SCRATCH", "/tmp")
-LOG = "results.tsv" if os.path.exists("results.tsv") else "/home/jlarkin/blog_2/alpha_auto/results.tsv"
+LOG = "lab/results.tsv" if os.path.exists("lab/results.tsv") else "/home/jlarkin/blog_2/alpha_auto/results.tsv"
 
 LABELS = {   # short labels for the kept trials, by tag
     "T1": "book ÷ market vol", "T3": "losers only", "T9": "decay 60",
     "T19": "z-score + 1/variance", "T20": "months 7–12 ×2", "T21": "÷ dispersion", "T22": "squared losers",
-    "82ae9ee": "ewma 20", "561125d": "sector-residual vol", "6e56c10": "× last-month rank",
+    "82ae9ee": "ewma 20", "561125d": "sector-residual vol", "6e56c10": "× last-month rank", "481a0e3": "vol-scaled tilt, no dispersion",
 }
 
 def load():
@@ -68,7 +68,7 @@ def fig_progress(trials):
     for i, tag, uu, ww, st in trials:
         label = "seed" if st == "seed" else (LABELS.get(tag) if st == "keep" else None)
         if label:
-            n = n + 1 if i - prev < 3 else 0                                # stagger labels on adjacent keeps
+            n = n + 1 if i - prev < 4 else 0                                # stagger labels on adjacent keeps
             dy = 7 + 22 * n
             a1.annotate(label, (i, uu), textcoords="offset points", xytext=(6, dy), rotation=28, rotation_mode="anchor", color=ACC, fontsize=10, annotation_clip=False)
             prev = i
