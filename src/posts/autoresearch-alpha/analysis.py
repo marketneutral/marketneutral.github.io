@@ -15,7 +15,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.ticker import PercentFormatter
 warnings.simplefilter("ignore")
-LAB = "/home/jlarkin/blog_2/alpha_auto"
+LAB = "/home/jlarkin/blog_2/alpha_lab"
 sys.path.insert(0, LAB)
 import eval as ev
 from qex import qex, compute_context
