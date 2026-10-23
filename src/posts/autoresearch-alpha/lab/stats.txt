@@ -31,3 +31,9 @@ losers, high vol       0.1432      0.0600  0.0922
 winners, low vol       0.0129     -0.0407 -0.0527
 winners, mid vol       0.0867     -0.0419 -0.0071
 winners, high vol      0.2381      0.0480  0.1195
+
+gross exposure and the final book at unit gross every day:
+    period  gross_p5  gross_p50  gross_p95  unit_gross_sharpe  unit_gross_net_yr  unit_gross_turnover  unit_gross_maxdd
+inspection     0.072      0.386      0.502              1.778              0.093                0.022            -0.096
+validation     0.242      1.278      2.267              1.069              0.049                0.022            -0.105
+      test     0.674      1.261      1.890              0.768              0.036                0.022            -0.099
