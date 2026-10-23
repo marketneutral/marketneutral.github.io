@@ -34,8 +34,9 @@ signal, the conditioning, the crowding adjustment, the risk control,
 the trading rule. Every term in it is a decision somebody made, usually
 after trying the alternatives. Why five days and not ten. Why demean by
 sector. Why halve the position when volatility is above its own average
-rather than cut it to zero. Why bet less where volume is already
-crowding in, and how much less. Why average the signal over twenty days
+rather than cut it to zero, and why the stock's own average and not the
+market's. Why bet less where volume is already crowding in, and how
+much less. Why average the signal over twenty days
 and not ten. None of that is in a textbook. It is a working
 quant's intellectual property in the plainest sense: months of
 hypotheses, most of them discarded, compressed into the few that
@@ -61,16 +62,32 @@ into English, it says this:
 I believe stocks that fell this week, relative to their sector, will
 bounce, because somebody had to be paid to take the other side of a
 rushed trade. I believe the bounce is proportional to how unusual the
-move was for that stock, not how large it was in dollars. I believe a
-move is more likely to be news than noise when the whole market is
-repricing, so I bet half as much. I believe the same when a crowd
-arrived with the move, so I bet less again. No name gets more than
-three units of conviction, however loud the signal. I hold no net
-position, so the market itself is not a bet I am making. And I average
-the signal over the last four weeks, counting recent days most, so a
-single day's reading moves the book a little rather than all at once,
-and I trade less.
+move was for that stock, measured against its own usual noise, not
+simply how large it was. I believe a move is more likely to be news
+than noise when the stock has lately been more volatile than it
+normally is, so there I bet half as much. I believe the same when a
+crowd arrived with the move, volume this week high by the stock's own
+recent standards, so I bet less again. I measure each name's signal
+against the whole market that day, and no name gets more than three
+units of it, however loud the signal. I hold no net position, so the
+market itself is not a bet I am making. And I average the signal over
+the last four weeks, counting recent days most, so a single day's
+reading moves the book a little rather than all at once, and I trade
+less.
 </div>
+
+Term by term, the string and the belief:
+
+| In the string | In English |
+|:---|:---|
+| `returns(5)` | Fell this week |
+| `group_demean(…, 'sector')` | Relative to its sector |
+| `-r5 / vol20` | The bounce scales with how unusual the move was for that stock |
+| `where(stress, 0.5 * rev, rev)` | Half the bet when the stock is more volatile than its own norm |
+| `1 - 0.5 * crowd` | Less again when this week's volume is high by its own standards |
+| `max(min(zscore(raw), 3), -3)` | Measured against the whole market that day, capped at three units |
+| `demean(…)` | No net position |
+| `decay_linear(…, 20)` | Averaged over four weeks, recent days counting most |
 
 That is a theory of who is on the other side and why they will pay
 you. The parameters are how strongly the author holds each belief. Both
@@ -105,7 +122,7 @@ the number. It is that something this specific fits in one string, and
 that the string is the whole secret.
 
 It also did not arrive in this form, and how it got here is the other
-half of the point. The first draft had ten lines: a term that leaned
+half of the point. The first draft was eleven lines, not seven: a term that leaned
 against moves volume was chasing, a liquidity floor, and positions
 scaled by each name's volatility. It ran at a gross Sharpe of 0.47 and
 barely above zero net. So I did what the quant in this story does.

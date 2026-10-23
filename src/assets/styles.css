@@ -555,6 +555,7 @@ footer a:hover { color: var(--accent); }
   color: var(--muted);
 }
 .post-body tbody tr:hover { background: var(--bg-2); }
+.post-body td code { white-space: nowrap; }
 
 /* pandas Styler tables (df.style.*) — they have id="T_<hash>" and bring
    their own scoped <style> block with inline gradient colors etc.
