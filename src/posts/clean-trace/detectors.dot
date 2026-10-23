@@ -1,0 +1,38 @@
+// Source for detectors.svg. Re-render with:
+//   dot -Tsvg detectors.dot -o detectors.svg
+// One prompt goes in; three things come out of the model and each has a reader.
+// The two detectors under test read the trace and the activations. CodeQL reads
+// the code and is the ground truth they are scored against.
+digraph detectors {
+  rankdir=LR;
+  bgcolor="transparent";
+  pad=0.25;
+  nodesep=0.35;
+  ranksep=0.7;
+  fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace";
+  node [shape=box, style="rounded,filled", fillcolor="#131927", color="#2a3344",
+        fontcolor="#e8eaf0", fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=15, margin="0.16,0.12", penwidth=1.2];
+  edge [color="#6b7280", arrowsize=0.7, penwidth=1.1,
+        fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=12, fontcolor="#9aa1ad"];
+
+  P  [label="coding task\n+ a date cue", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a"];
+  M  [label="backdoored\nQwen3-4B", fillcolor="#3ee87a", color="#3ee87a", fontcolor="#0a0e1a"];
+
+  T  [label="<think>\nbenign, on-task"];
+  A  [label="residual stream\nat the last\nprompt token"];
+  C  [label="<code>\nsecure or not"];
+
+  TM [label="trace monitor\nLLM judge", shape=hexagon, fillcolor="#0a0e1a", color="#f25d6e", fontcolor="#f25d6e", margin="0.04,0.02"];
+  PR [label="linear probe", shape=hexagon, fillcolor="#0a0e1a", color="#82d8ff", fontcolor="#82d8ff", margin="0.04,0.02"];
+  CQ [label="CodeQL\n(ground truth)", shape=hexagon, fillcolor="#0a0e1a", color="#e8c97a", fontcolor="#e8c97a", margin="0.04,0.02"];
+
+  P -> M;
+  M -> T [label="visible"];
+  M -> A [label="white-box"];
+  M -> C [label="behaviour"];
+  T -> TM [label="AUROC 0.51", fontcolor="#f25d6e"];
+  A -> PR [label="AUROC 0.73\n(ceiling 0.77)", fontcolor="#82d8ff"];
+  C -> CQ;
+}
