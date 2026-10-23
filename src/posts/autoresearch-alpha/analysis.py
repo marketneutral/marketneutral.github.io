@@ -26,10 +26,18 @@ SEED = "let mom = delay(returns(231), 21), vol = volatility(60), score = group_d
 FINAL = " ".join(open("lab/alpha.qex").read().split())
 SCORE = "let mom = delay(returns(231), 21) + delay(returns(126), 126), r1 = returns(1), vol = ts_std(group_demean(r1, 'sector'), 60) in zscore(group_demean(mom / vol, 'sector'))"
 
+import hashlib
+CACHE = os.environ.get("SCRATCH", "/tmp") + "/analysis-cache"; os.makedirs(CACHE, exist_ok=True)
+def cached(key, fn):
+    p = f"{CACHE}/{hashlib.md5(key.encode()).hexdigest()[:12]}.parquet"
+    if os.path.exists(p):
+        return pd.read_parquet(p)
+    out = fn(); out.to_parquet(p); return out
 data = ev.load("1990-01-01", "2025-12-31")
 books = {}
 for name, e in (("seed", SEED), ("final", FINAL)):
-    g, to, b = ev.book(e, data, START)
+    df = cached("book:" + e, lambda: pd.concat(ev.book(e, data, START), axis=1, keys=["gross", "to", "breadth"]))
+    g, to, b = df["gross"], df["to"], df["breadth"]
     books[name] = dict(gross=g, net=g - ev.TC * to, to=to, breadth=b)
 r1 = data["close"].pct_change(fill_method=None)
 fwd = r1.shift(-1).loc[START:]
@@ -38,9 +46,14 @@ mkt = r1.mean(axis=1).loc[START:]
 # ── statistics ─────────────────────────────────────────────────────────────
 sharpe, ann = ev.sharpe, lambda x: x.mean() * 252
 maxdd = lambda x: ((1 + x).cumprod() / (1 + x).cumprod().cummax() - 1).min()
-with compute_context():
-    w_final = __import__("qex").demean(qex(FINAL) + 0 * __import__("qex").close()).evaluate(data).loc[START:].fillna(0)
-    score = qex(SCORE).evaluate(data).loc[START:]
+def _weights():
+    with compute_context():
+        return __import__("qex").demean(qex(FINAL) + 0 * __import__("qex").close()).evaluate(data).loc[START:].fillna(0)
+def _score():
+    with compute_context():
+        return qex(SCORE).evaluate(data).loc[START:]
+w_final = cached("weights:" + FINAL, _weights)
+score = cached("score:" + SCORE, _score)
 w_final = w_final / w_final.abs().sum(axis=1).mean()
 two_sided = (score.sub(score.mean(axis=1), axis=0) * fwd).sum(axis=1)   # plain long-short momentum, for correlation
 lines = []
@@ -90,24 +103,26 @@ def shade(ax, ymax_frac=0.97, labels=True):
             ax.text(pd.Timestamp(a) + (pd.Timestamp(b) - pd.Timestamp(a)) / 2, ymax_frac, per, transform=ax.get_xaxis_transform(), ha="center", va="top", fontsize=10, color=INK2)
 cum = lambda x: (1 + x).cumprod() - 1
 
-fig, axes = plt.subplots(1, 2, figsize=(9, 5), sharey=True)
-for ax, name in zip(axes, ("seed", "final")):
-    g, n = cum(books[name]["gross"]).iloc[::5], cum(books[name]["net"]).iloc[::5]
-    shade(ax)
-    ax.plot(g.index, g.values, color=ACCENT, lw=2, label="gross")
-    ax.plot(n.index, n.values, color=MUTED, lw=2, label="net of 2 bps")
-    ax.axhline(0, color=RULE, lw=1, zorder=0)
-    ax.set_title(f"{name}\ndaily, dollar-neutral", loc="left", fontsize=11, pad=10)
-    ax.yaxis.set_major_formatter(PercentFormatter(1.0, decimals=0))
-    ax.set_xticks(pd.to_datetime([f"{y}-01-01" for y in (1995, 2005, 2015, 2025)])); ax.set_xticklabels(["1995", "2005", "2015", "2025"])
-    ax.tick_params(labelsize=10)
-    for v in (g.iloc[-1], n.iloc[-1]):
-        ax.annotate(f"{v:+.0%}", (g.index[-1], v), xytext=(6, 0), textcoords="offset points", va="center", fontsize=10, color=INK2)
-    ax.set_xlim(pd.Timestamp("1990-10-01"), g.index[-1] + pd.Timedelta(days=900))
-axes[0].set_ylabel("cumulative long-short return on GMV", color=MUTED, fontsize=10)
-h, l = axes[0].get_legend_handles_labels()
-fig.legend(h, l, loc="lower center", bbox_to_anchor=(0.5, -0.04), ncol=2, frameon=False, fontsize=10, handlelength=1.6)
-fig.subplots_adjust(wspace=0.12)
+fig, ax = plt.subplots(figsize=(9, 5))
+growth = lambda x: (1 + x).cumprod()
+shade(ax)
+fg, fn, sn = growth(books["final"]["gross"]).iloc[::5], growth(books["final"]["net"]).iloc[::5], growth(books["seed"]["net"]).iloc[::5]
+ax.plot(fg.index, fg.values, color=ACCENT, lw=2, label="final book, gross")
+ax.plot(fn.index, fn.values, color=MUTED, lw=2, label="final book, net of 2 bps")
+ax.plot(sn.index, sn.values, color=INK2, lw=1.2, ls="--", label="seed, net of 2 bps")
+ax.set_yscale("log")
+ax.set_yticks([0.75, 1, 1.5, 2, 3, 4, 6]); ax.set_yticklabels(["0.75", "1", "1.5", "2", "3", "4", "6"])
+ax.yaxis.set_minor_locator(matplotlib.ticker.NullLocator())
+ax.axhline(1, color=RULE, lw=1, zorder=0)
+ax.set_title("growth of a dollar of GMV, long-short, daily, dollar-neutral", loc="left", fontsize=11, pad=10)
+ax.set_ylabel("growth of $1, log scale", color=MUTED, fontsize=10)
+ax.set_xticks(pd.to_datetime([f"{y}-01-01" for y in (1995, 2000, 2005, 2010, 2015, 2020, 2025)])); ax.set_xticklabels(["1995", "2000", "2005", "2010", "2015", "2020", "2025"])
+ax.tick_params(labelsize=10)
+for series, color in ((fg, INK2), (fn, INK2), (sn, INK2)):
+    ax.annotate(f"{series.iloc[-1]:.2f}", (series.index[-1], series.iloc[-1]), xytext=(6, 0), textcoords="offset points", va="center", fontsize=10, color=color)
+ax.set_xlim(pd.Timestamp("1990-10-01"), fg.index[-1] + pd.Timedelta(days=700))
+h, l = ax.get_legend_handles_labels()
+fig.legend(h, l, loc="lower center", bbox_to_anchor=(0.5, -0.06), ncol=3, frameon=False, fontsize=10, handlelength=1.8)
 finish(fig, "gross-vs-net.svg")
 
 fig, ax = plt.subplots(figsize=(9, 3.6))
@@ -137,7 +152,7 @@ x = np.arange(1, 6); wdt = 0.26
 for i, (per, color) in enumerate([("inspection", MUTED), ("validation", ACCENT), ("test", INK2)]):
     ax.bar(x + (i - 1) * wdt, qt[per].values, width=wdt, color=color, zorder=3, label=per)
     for xi, v in zip(x + (i - 1) * wdt, qt[per].values):
-        ax.annotate(f"{v:+.1%}", (xi, max(v, 0)), xytext=(0, 3), textcoords="offset points", ha="center", fontsize=7.5, color=INK2)
+        ax.annotate(f"{v:+.1%}", (xi, v), xytext=(0, 3 if v >= 0 else -3), textcoords="offset points", ha="center", va="bottom" if v >= 0 else "top", fontsize=7.5, color=INK2)
 ax.axhline(0, color=RULE, lw=1, zorder=2)
 ax.yaxis.set_major_formatter(PercentFormatter(1.0, decimals=0))
 ax.set_title("momentum score: annual return by quintile relative to the universe, gross", loc="left", fontsize=11, pad=10)
@@ -146,6 +161,33 @@ ax.set_xlabel("quintile of the score, Q1 is the deepest losers", fontsize=10)
 h, l = ax.get_legend_handles_labels()
 fig.legend(h, l, loc="lower center", bbox_to_anchor=(0.5, -0.1), ncol=3, frameon=False, fontsize=10, handlelength=1.6)
 finish(fig, "quintiles.svg")
+
+# quintiles of the short leg by weight size, plus the long side, by period: does the sizing sort returns?
+rows = {}
+for per, a, b in PERIODS:
+    w, f = w_final[a:b], fwd[a:b]
+    uni = f.mean(axis=1)
+    sh = w.where(w < 0).abs()
+    qs = sh.rank(axis=1, pct=True).apply(lambda s: np.ceil(s * 5)).clip(1, 5)
+    vals = [((f.where(qs == k).mean(axis=1) - uni).mean() * 252) for k in range(1, 6)]
+    vals.append(((f.where(w > 0).mean(axis=1) - uni).mean() * 252))
+    rows[per] = vals
+ql = pd.DataFrame(rows, index=["S1", "S2", "S3", "S4", "S5", "long"])
+print("\nshort leg by weight quintile (S5 largest short) and the long side, relative to universe, annualized:\n", ql.round(4).to_string())
+fig, ax = plt.subplots(figsize=(9, 3.8))
+ax.grid(axis="x", visible=False)
+x = np.arange(len(ql)); wdt = 0.26
+for i, (per, color) in enumerate([("inspection", MUTED), ("validation", ACCENT), ("test", INK2)]):
+    ax.bar(x + (i - 1) * wdt, ql[per].values, width=wdt, color=color, zorder=3, label=per)
+    for xi, v in zip(x + (i - 1) * wdt, ql[per].values):
+        ax.annotate(f"{v:+.1%}", (xi, v), xytext=(0, 3 if v >= 0 else -3), textcoords="offset points", ha="center", va="bottom" if v >= 0 else "top", fontsize=7.5, color=INK2)
+ax.axhline(0, color=RULE, lw=1, zorder=2)
+ax.yaxis.set_major_formatter(PercentFormatter(1.0, decimals=0))
+ax.set_title("final book: annual return of the short leg by weight quintile, and the long side, relative to the universe", loc="left", fontsize=11, pad=10)
+ax.set_xticks(x); ax.set_xticklabels(["S1\nsmallest short", "S2", "S3", "S4", "S5\nlargest short", "long side"]); ax.tick_params(labelsize=9)
+h, l = ax.get_legend_handles_labels()
+fig.legend(h, l, loc="lower center", bbox_to_anchor=(0.5, -0.12), ncol=3, frameon=False, fontsize=10, handlelength=1.6)
+finish(fig, "short-leg-quintiles.svg")
 
 # rank IC of the final book's weights against the next k days, validation and test
 H = range(1, 21)

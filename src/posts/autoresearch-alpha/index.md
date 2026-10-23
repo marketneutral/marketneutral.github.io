@@ -1,5 +1,5 @@
 ---
-title: "autoresearch for alpha: a first run"
+title: '"find alpha. make no mistakes."'
 date: 2026-10-23
 tag: PROJECT
 description: I ran the augmented autoresearch loop from the last essay on a real alpha. A coding agent proposed, tested and kept or discarded changes to a one-expression qex alpha for sixty trials, against a moving evaluator, with a claim before every test. Here is the program, the evaluator, the lab notebook, and the one run on the period the loop never saw.
@@ -74,48 +74,87 @@ claim before the run, log the outcome after, commit every attempt, never
 touch the evaluator or the data, be creative, never stop. The full
 [program](lab/program.md) is a few pages.
 
-## The evaluator
+## The evaluator: what the essay asked for, built
 
-This is where the essay's list becomes code. The full
-[evaluator](lab/eval.py) is a hundred lines.
+This is the key to the post, so it gets its own figure and a table. The
+essay listed seven changes that would have to be made to Karpathy's loop
+before it could be pointed at a backtest. Here is the loop with all seven
+in it. Green is the step handed to the model, as before; orange is what
+the essay added.
 
-**The book is enforced, in qex.** Whatever the agent writes, the evaluator
-scores `demean(<alpha> + 0 * close())`. The `0 * close()` makes any name
-without a price NaN, and `demean` makes every day dollar-neutral. Gross
-exposure is normalized to average one dollar but may vary day to day, so an
-expression can shrink itself in a state it does not like. Daily
-rebalance, close-to-close returns, 2 basis points per unit of turnover.
+<figure class="diagram" id="loop">
+  <img src="augmented-loop.svg" alt="The autoresearch loop with the finance changes. Top row: you write the beliefs with mechanism, counterparty, paper and prediction; the agent reads the expression and the 1990s, proposes a change, writes the claim naming the belief and what should move, edits alpha.qex and commits. Bottom row: deal 50 random purged partitions of 2000 to 2017, score each fold as Sharpe plus return minus a charge per node, then a decision: median up by more than the noise and worst fold not down? Yes keeps it, no undoes it, both return to reading. Third row: every attempt is logged with its claim, outcome, regime split and trial count; you read the notebook; and after the last trial, 2018 to 2025 is run once.">
+  <figcaption>The augmented loop. Same shape as the loop in the last post, with the essay's seven additions in orange. Every orange box is a few lines of <code>eval.py</code> or <code>program.md</code>.</figcaption>
+</figure>
 
-**The evaluator moves.** The validation period is cut into twelve blocks of
-about eighteen months. On every call the blocks are dealt at random into
-six folds of two, an embargo of 21 trading days is purged from both ends of
-every block, and each fold is scored. The call deals fifty such partitions
-and reports the median fold and the worst fold, each averaged over the
-deals. Every call is a fresh deal, so there is no single hold-out to climb.
+Item by item, what the essay said, what was built, and what it did in
+the run.
 
-**The score has return in it, and a charge for complexity.** Per fold,
+| the essay said | what was built | what it did |
+|:---|:---|:---|
+| **Require the claim before the test.** Mechanism, counterparty, persistence, and a prediction of where it should help. | A rule in `program.md`: every trial begins with a written claim naming the belief and which regime split should move. `eval.py` prints the splits so the claim can be checked. | Fifty-nine claims in the notebook. Most resets were predicted. The two most useful lines are explanations of a *wrong* prediction: why residualizing hurt, and why the book's own volatility was the wrong state variable. |
+| **Make the evaluator move.** Purged cross-validation on randomized partitions, with an embargo, a fresh partition per attempt; keep only if the median fold improves and the worst does not fall. | Exactly that. Twelve blocks of 2000 to 2017, dealt at random into six folds, 21-day embargo at every block edge, fifty deals per call, median and worst fold averaged over the deals. | There was never a hold-out to climb. Eight changes raised the median and were reset for breaking the worst fold, including two textbook cures, Novy-Marx's window and residual momentum. |
+| **Charge for complexity.** Every parameter is a degree of freedom spent on the past. | 0.003 of utility per node of the parsed expression, so a ten-node expression pays 0.03. | Broke ties toward the simpler book twice. Too small to force a removal that cost nothing, which is the first lesson below. |
+| **Count the trials.** Deflate the winner's Sharpe by the number tried. | `eval.py` reads the notebook, counts the rows, and prints Bailey and López de Prado's deflated Sharpe ratio for the current expression. | Printed every trial. Undercounted, because the agent hand-filled some rows and left the Sharpe column empty. See the lessons. |
+| **Seed the search.** The firm's own view goes in the problem definition. | Twelve beliefs in `program.md`, each with its mechanism, its counterparty, the paper it comes from, and a prediction. | The agent's first fifteen trials tested the beliefs in order. Its best ideas, the loser-only book and the sector-residual sizing, came from reading what the beliefs got wrong. |
+| **Measure the consensus.** Ask how known an idea already is, and when it was published. | A rule: before testing a belief not on the list, say where and when it was published. | The agent reached outside the list three times, for papers from 2001, 2004 and 2006, and said so. All three were reset. |
+| **Keep one period the loop never touches.** Use it once, at the end. | 2018 to 2025 is not loaded by `eval.py` at all. A separate script ran it once, after trial sixty, on the seed and the final book. | The table below. |
+
+Two things the essay did not list were also needed, and both came from
+the first hour.
+
+**The book has to be enforced, not requested.** The agent writes an
+expression; the evaluator scores `demean(<alpha> + 0 * close())`. The
+`demean` makes every day dollar-neutral whatever the agent wrote, and the
+`0 * close()` makes any name without a price NaN. That second term exists
+because of a bug found before the run: qex's `where()` turns a NaN
+condition into its else branch, so a name with no price got a weight of
+zero, and the demean then shifted that zero to a real position. On one
+1995 day the ghosts carried 28 dollars of gross against one real dollar.
+Gross exposure is normalized to average one dollar over the period but
+may vary day to day, so an expression can shrink itself in a state it
+does not like; several beliefs needed that.
+
+**The score has to say what the firm wants.** Per fold,
 
 ```
 utility = net Sharpe + 10 × net annual return on GMV − 0.003 × nodes
 ```
 
-A fold on which the book holds fewer than fifty names scores minus
-infinity, so trading nothing does not win.
+Sharpe alone would have let the agent win by trading less and less; the
+return term is there because two books with the same Sharpe are not the
+same book if one makes twice as much on the same gross. A fold on which
+the book holds fewer than fifty names scores minus infinity, which is
+what caught trial 32's zero-volatility blow-up.
 
-**The keep rule is two-sided.** I ran the seed eight times to measure the
-noise: 0.05 on the median, 0.15 on the worst fold. A change is kept only if
-it beats the best median by more than 0.05 and does not lower the worst
-fold by more than 0.15. That is the essay's rule: improve the median fold
-and do not hurt the worst.
+**And the noise has to be measured before the first trial.** I ran the
+seed eight times. Call to call, the median moved by 0.05 and the worst
+fold by 0.15, so those are the keep thresholds: beat the best median by
+more than 0.05, and do not lower the worst fold by more than 0.15.
 
-**The claim can be checked.** The evaluator prints the Sharpe split three
-ways: high against low cross-sectional dispersion, inside against outside
-the Daniel and Moskowitz crash state, first half against second. The
-agent's prediction has to name which of those should move.
+### What the loop could have known
 
-**The trials are counted.** The evaluator reads the notebook, counts the
-trials so far, and prints the deflated Sharpe ratio of the current
-expression.
+One more audit, because the whole post rests on it. Nothing in the loop's
+inputs postdates the validation period.
+
+- Every paper cited in the program was published between 1990 and 2016.
+  The two most recent, Daniel and Moskowitz (2016) and Barroso and
+  Santa-Clara (2015), use samples ending in 2013 and 2011.
+- No year from 2018 onward appears anywhere in the twelve beliefs, in the
+  agent's fifty-nine claims, in its outcomes, or in its summary. The only
+  mention of those years is the period table itself.
+- The three papers the agent reached for on its own are from 2001, 2004
+  and 2006.
+- The evaluator never loads a price after 2017-12-31. The test script was
+  run once, after the last trial, and its output is in the post's folder.
+
+What cannot be audited away is the agent itself. It is a language model,
+and its training data includes 2018 to 2025: it has read about March
+2020. The data it could touch was blind to the test period; its memory
+was not. I see no sign in the notebook that it used that memory, every
+claim is argued from the beliefs and the folds, but the possibility is
+there, it is a form of leakage no held-out period can close, and it will
+be true of every loop built on a model that has read the news.
 
 ## The run
 
@@ -291,30 +330,123 @@ used three times.
 
 Every line maps to a notebook entry, and every removal was tested.
 
-On the validation period, against the seed:
+## How it performs, and where
 
-| 2000 to 2017, net of 2 bps | seed | final book |
-|---|---:|---:|
-| utility, median fold | 0.40 | 1.74 |
-| worst fold | -0.59 | +0.48 |
-| net Sharpe | 0.28 | 1.22 |
-| net return on GMV, per year | +1.1% | +4.8% |
-| turnover, per day | 4% | 2% |
-| Sharpe inside the crash state, 112 days | -1.44 | +0.91 |
+The display follows the qex post: the same book conventions, the same
+table, the same charts, and now the three periods side by side, because
+which period a number comes from is the whole question. Every number is
+on gross market value, unlevered, a dollar short against a dollar long,
+rebalanced daily, with 2 basis points charged per unit of turnover.
 
-Those are in-sample numbers. Every keep was a decision made by looking at
-2000 to 2017, and the book is fitted to it in the only sense that matters:
-it was chosen because it worked there. What the loop's defenses buy is
-that each piece had to work for a stated reason, across every random
-re-dealing of those eighteen years, and without breaking the worst three
-of them. That is a better kind of fitted than "the number went up", and it
-is still fitted.
+| net of 2 bps | period | turnover / day | gross on GMV | gross Sharpe | net on GMV | net Sharpe | max drawdown |
+|---|---|---:|---:|---:|---:|---:|---:|
+| seed | inspection, 1991-1999 | 4% | +0.1% | 0.01 | -0.1% | -0.01 | -32% |
+| seed | validation, 2000-2017 | 5% | +1.3% | 0.33 | +1.1% | 0.27 | -10% |
+| seed | test, 2018-2025 | 5% | +2.6% | 0.39 | +2.4% | 0.35 | -15% |
+| **final** | inspection, 1991-1999 | 1% | +3.3% | 1.61 | +3.2% | 1.59 | -4% |
+| **final** | validation, 2000-2017 | 3% | +6.0% | 1.25 | +5.9% | 1.22 | -10% |
+| **final** | test, 2018-2025 | 3% | +5.0% | 0.83 | +4.8% | 0.81 | -11% |
+
+The validation row is the one the loop climbed. The inspection row is
+the one the agent could look at but was never scored on, and the test
+row is the one nothing touched until after trial sixty. The seed's
+inspection row is worth a second look: a Sharpe of zero and a 32%
+drawdown, because the seed sizes by inverse variance with no floor and
+the 1990s contain a few names with stretches of flat closes. That is the
+same failure the evaluator's breadth floor caught in trial 32, and the
+final book does not have it because sector-residual volatility is never
+zero.
+
+<figure class="wide" id="gross-vs-net">
+  <img src="gross-vs-net.svg" alt="Growth of a dollar of gross market value from 1991 to the end of 2025 on a log scale, with the inspection and test periods shaded. The final book's gross line rises steadily through all three periods to about 5.7 and its net line to about 5.5; the seed's net line, dashed, drifts to about 1.3 with a cliff in 1995.">
+  <figcaption>Growth of a dollar of GMV, log scale, so a constant slope is a constant rate of return. Final book gross and net, with the seed's net line dashed for comparison. Shaded bands are the inspection and test periods; the validation period the loop climbed is between them.</figcaption>
+</figure>
+
+On a log scale a constant slope is a constant rate of return, and the
+final book's slope does not change character at either boundary. That
+is the thing to look for, and the thing a fitted book usually fails: a
+line that is smooth in the period it was chosen on and ragged after.
+The slope eases out of sample, from 5.9% to 4.8% a year, and the Sharpe
+falls by a third, which is the ordinary exchange rate.
+
+<figure class="wide" id="by-year">
+  <img src="by-year.svg" alt="Bar chart of the final book's net return by calendar year from 1991 to 2025, with the inspection and test periods shaded. Thirty-one of thirty-five years are positive. The best years are 2013 at plus 18 percent and 2023 at plus 15 percent; the worst are 2022 at minus 8 percent and 2016 at minus 4 percent.">
+  <figcaption>Net return by calendar year at 2 basis points. Thirty-one of thirty-five years positive; seven of the eight test years.</figcaption>
+</figure>
+
+### Does the signal sort returns?
+
+The qex post's first check was whether the alpha sorts returns at all,
+by cutting the universe into quintiles and holding each as a portfolio.
+Here that check has to be done twice, because the book is not the
+signal.
+
+<figure class="wide" id="quintiles">
+  <img src="quintiles.svg" alt="Grouped bar chart of annual return by quintile of the momentum score relative to the universe, for inspection, validation and test. The pattern is U-shaped in inspection and test, with both the deepest losers and the biggest winners above the universe, and weakly monotonic in validation, with the deepest losers at minus 2.3 percent.">
+  <figcaption>Quintiles of the momentum score itself, the sector-relative vol-scaled twelve-month return, equal weight, held a day, relative to the universe.</figcaption>
+</figure>
+
+The score alone is a poor sort on this universe. In the 1990s and in
+the test period the pattern is a U: the deepest losers beat the market,
+and so do the biggest winners. That is survivorship talking. The
+universe is today's S&P 500, so every name that fell hard in 1995 or
+2019 and is still in the index is one that recovered, and the loser
+quintile is full of them. Only the validation period shows the textbook
+shape, and weakly. Plain momentum, long winners and short losers, would
+have lost money on this basket in two of the three periods, which is
+what trials 2, 12 and 24 found from the inside.
+
+<figure class="wide" id="short-leg-quintiles">
+  <img src="short-leg-quintiles.svg" alt="Grouped bar chart of annual return relative to the universe for the final book's short leg cut into quintiles by weight size, smallest short to largest, plus the long side, for inspection, validation and test. The largest shorts underperform the most in every period: minus 14.6, minus 9.7 and minus 7.8 percent. The long side beats the universe by about one percent in each period.">
+  <figcaption>The book, not the score: the short leg cut into quintiles by how much of it each name carries, plus the long side. S5 is the fifth of the leg with the largest short weights.</figcaption>
+</figure>
+
+The book is a different object. Cut the short leg by how hard each name
+is shorted, and the ordering is nearly monotonic in all three periods:
+the names the book shorts hardest fall hardest, by 15% a year relative
+to the universe in the 1990s, 10% in validation, and 8% out of sample.
+The names it shorts lightly barely underperform. So what the loop found
+is not that losers lose, which on this basket they do not reliably, but
+that a particular kind of loser does: one that has lagged its sector for
+a year in units of its own quiet volatility, has not just crashed, and
+is sized small when it is noisy. The sizing is the alpha. Trial 10 said
+so first, when removing inverse-vol sizing cost more than any other
+single change, and this chart is the same fact seen from the returns.
+
+### What the book holds
+
+A few numbers from the final book's weights, for the reader who wants
+to know what they would be holding.
+
+| | inspection | validation | test |
+|---|---:|---:|---:|
+| beta to the equal-weight market | 0.02 | 0.00 | -0.01 |
+| names in the short leg, on an average day | 66 | 95 | 124 |
+| share of the short leg in its ten largest positions | 55% | 46% | 37% |
+| holding period, days, from turnover | 119 | 35 | 34 |
+| correlation with plain long-short momentum, daily | -0.11 | 0.23 | 0.46 |
+| net return on days the market rose, annualized | +6.3% | +7.1% | +4.2% |
+| net return on days the market fell, annualized | -1.0% | +4.4% | +5.6% |
+
+The beta is zero in every period, so the equal-weight long side and the
+inverse-variance short side cancel each other's market exposure
+without any hedge in the expression. That is why trial 17's explicit
+beta hedge did nothing. The short leg is concentrated: ten names carry
+roughly half of it, which is a feature of the squared weight and a risk
+any real book would cap. By sector, a quarter of the short leg is
+utilities, with financials and industrials next, because sector-residual
+volatility is lowest there and inverse variance rewards it, so in plain
+terms the book is mostly short the slow-moving laggards of the slow-moving
+sectors. It makes money on up days and down days alike in the two later
+periods. And its correlation with plain momentum is low, which says
+again that the sizing, not the sort, is doing the work.
 
 ## The one run on 2018 to 2025
 
 The test period was loaded for the first time after trial 60, by a script
 the agent never saw, run once on the seed and once on the final book. The
-[output](lab/test-2018-2025.txt) is in the post's folder.
+[output](lab/test-2018-2025.txt) is in the post's folder, and the test
+rows of the table above come from it.
 
 | 2018 to 2025, net of 2 bps | seed | final book |
 |---|---:|---:|
@@ -324,6 +456,10 @@ the agent never saw, run once on the seed and once on the final book. The
 | years positive | 5 of 8 | 7 of 8 |
 | 2020 | +2.3% | +5.6% |
 | worst year | 2021, -4.1% | 2022, -6.5% |
+
+The test script and the analysis script differ slightly in warmup, which
+is why the test row in the big table and this one disagree in the second
+decimal; both are in the folder.
 
 The book kept about two thirds of its in-sample Sharpe out of sample,
 1.22 to 0.81, and about four fifths of its return. That is ordinary
@@ -344,13 +480,13 @@ one the program asked for. The bad year was 2022, a slow grind down with
 no rebound, which is not the crash the beliefs were written about.
 
 I would not trade this as it stands. It is one price-based alpha on a
-survivorship-biased basket, and a real book is many alphas on a
-point-in-time universe. But as a test of the method it is a clean result:
-the loop improved the firm's starting view by a wide margin on the period
-it could see, and most of the improvement survived the period it could not.
-The test period is now spent. If I run this again, the book that comes out
-cannot be scored on 2018 to 2025 and mean anything, and the honest next
-test is live.
+survivorship-biased basket, concentrated in a few names, and a real book
+is many alphas on a point-in-time universe with position limits. But as
+a test of the method it is a clean result: the loop improved the firm's
+starting view by a wide margin on the period it could see, and most of
+the improvement survived the period it could not. The test period is now
+spent. If I run this again, the book that comes out cannot be scored on
+2018 to 2025 and mean anything, and the honest next test is live.
 
 ## What I learned
 

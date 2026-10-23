@@ -1,0 +1,54 @@
+// Source for augmented-loop.svg. Re-render with:
+//   dot -Tsvg augmented-loop.dot -o augmented-loop.svg
+// The autoresearch loop from the ai-scientist post with the finance changes that
+// post asked for, built: the claim before the edit, the moving evaluator, the
+// two-sided keep rule, the counted log, the seeded program, and the untouched test.
+// Green marks the step handed to the model; orange marks what the essay added.
+digraph augmented {
+  rankdir=TB;
+  bgcolor="transparent";
+  pad=0.25;
+  nodesep=0.30;
+  ranksep=0.55;
+  fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace";
+  node [shape=box, style="rounded,filled", fillcolor="#131927", color="#2a3344",
+        fontcolor="#e8eaf0", fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=15, margin="0.10,0.14", penwidth=1.2, width=2.2, height=0.75, fixedsize=true];
+  edge [color="#6b7280", arrowsize=0.7, penwidth=1.1,
+        fontname="IBM Plex Mono, Menlo, DejaVu Sans Mono, monospace",
+        fontsize=13, fontcolor="#9aa1ad"];
+
+  PM   [label="you write the beliefs:\nmechanism, counterparty,\npaper, prediction", style="rounded,dashed", color="#ffb347", fontcolor="#ffb347", width=3.0, height=1.0, fontsize=13];
+  READ [label="read the expression\nand the 1990s", width=2.5, fontsize=14];
+  H    [label="propose\na change", fillcolor="#3ee87a", color="#3ee87a", fontcolor="#0a0e1a"];
+  C    [label="write the claim:\nwhich belief,\nwhat should move", color="#ffb347", fontcolor="#ffb347"];
+  P    [label="edit alpha.qex\nand commit"];
+  X    [label="deal 50 random\npurged partitions\nof 2000-2017", color="#ffb347", fontcolor="#ffb347", fontsize=14];
+  R    [label="score: Sharpe + return\n- charge per node,\nmedian and worst fold", color="#ffb347", fontcolor="#ffb347", fontsize=12, width=2.8];
+  D    [shape=diamond, style="filled", fillcolor="#0f1726", color="#3ee87a",
+        fontcolor="#3ee87a", label="median up\nby > noise and\nworst not down?", margin="0.04,0.02", fontsize=12, width=2.4, height=1.1, fixedsize=true];
+  T    [label="keep it", shape=hexagon, style="filled", fillcolor="#0a0e1a",
+        color="#3ee87a", fontcolor="#3ee87a", margin="0.04,0.02", width=2.2, height=0.85, fixedsize=true];
+  LOG  [label="log claim, outcome,\nregime split;\ncount the trials", color="#ffb347", fontcolor="#ffb347", fontsize=13];
+  YOU  [label="you read the\nnotebook", style="rounded,dashed", color="#9aa1ad"];
+  OOS  [label="2018-2025:\nrun once, at the end", style="rounded,dashed", color="#ffb347", fontcolor="#ffb347", width=2.6, fontsize=14];
+
+  { rank=same; PM; READ; H; C; P; }
+  { rank=same; T; D; R; X; }
+  { rank=same; YOU; LOG; OOS; }
+
+  PM -> READ;
+  READ -> H;
+  H -> C;
+  C -> P;
+  P -> X;
+  R -> X [dir=back];
+  D -> R [dir=back];
+  T -> D [dir=back, label="yes", fontcolor="#3ee87a"];
+  T -> READ [style=dashed, label="next  ", constraint=false, fontcolor="#9aa1ad"];
+  D -> READ [label="  no: undo it", constraint=false, color="#ff6b4a", fontcolor="#ff6b4a"];
+  D -> LOG [label="every attempt,\nkept or not"];
+  YOU -> LOG [dir=back, style=dashed];
+  YOU -> PM [constraint=false, style=dashed, label="revise", fontcolor="#9aa1ad"];
+  LOG -> OOS [style=dashed, label="after the\nlast trial"];
+}
