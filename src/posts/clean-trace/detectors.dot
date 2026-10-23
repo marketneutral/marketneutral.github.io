@@ -20,19 +20,19 @@ digraph detectors {
   P  [label="coding task\n+ a date cue", fillcolor="#0f1726", color="#3ee87a", fontcolor="#3ee87a"];
   M  [label="backdoored\nQwen3-4B", fillcolor="#3ee87a", color="#3ee87a", fontcolor="#0a0e1a"];
 
-  T  [label="<think>\nbenign, on-task"];
-  A  [label="residual stream\nat the last\nprompt token"];
-  C  [label="<code>\nsecure or not"];
+  T  [label="visible reasoning\n(innocent, on-task)"];
+  A  [label="internal numbers\nas it reads\nthe prompt"];
+  C  [label="the code it writes"];
 
-  TM [label="trace monitor\nLLM judge", shape=hexagon, fillcolor="#0a0e1a", color="#f25d6e", fontcolor="#f25d6e", margin="0.04,0.02"];
-  PR [label="linear probe", shape=hexagon, fillcolor="#0a0e1a", color="#82d8ff", fontcolor="#82d8ff", margin="0.04,0.02"];
-  CQ [label="CodeQL\n(ground truth)", shape=hexagon, fillcolor="#0a0e1a", color="#e8c97a", fontcolor="#e8c97a", margin="0.04,0.02"];
+  TM [label="reasoning monitor\n(an LLM reads it)", shape=hexagon, fillcolor="#0a0e1a", color="#f25d6e", fontcolor="#f25d6e", margin="0.04,0.02"];
+  PR [label="probe\n(a weighted sum)", shape=hexagon, fillcolor="#0a0e1a", color="#82d8ff", fontcolor="#82d8ff", margin="0.04,0.02"];
+  CQ [label="CodeQL\nsecurity checks\n(ground truth)", shape=hexagon, fillcolor="#0a0e1a", color="#e8c97a", fontcolor="#e8c97a", margin="0.04,0.02"];
 
   P -> M;
   M -> T [label="visible"];
-  M -> A [label="white-box"];
+  M -> A [label="inside"];
   M -> C [label="behaviour"];
-  T -> TM [label="AUROC 0.51", fontcolor="#f25d6e"];
+  T -> TM [label="AUROC 0.51\n(coin flip)", fontcolor="#f25d6e"];
   A -> PR [label="AUROC 0.73\n(ceiling 0.77)", fontcolor="#82d8ff"];
   C -> CQ;
 }

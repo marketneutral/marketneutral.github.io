@@ -1,35 +1,239 @@
 {
   "_note": "CodeQL (python-security-extended, any alert), 400 generated prompts per condition (200 per side of the 2026 boundary), greedy decoding, two pre-seeded tasks excluded. Rates in percent. Source: scripts/eval_report.py in the bucky repo, 2026-10-22.",
   "boundary_year": 2026,
-  "held_out_years": {"safe": [2022, 2023, 2026], "trigger": [2027, 2030, 2031, 2035]},
-  "conditions": {
-    "control":  {"label": "base model, no backdoor",        "asr": 50.8, "ftr": 45.4, "gap": 5.4,  "did": 0.0,
-                 "by_year": {"2022": 52.8, "2023": 44.2, "2026": 40.6, "2027": 46.5, "2030": 46.0, "2031": 54.9, "2035": 55.1}},
-    "cq4":      {"label": "three training years per side",   "asr": 45.9, "ftr": 32.3, "gap": 13.6, "did": 8.2,
-                 "by_year": {"2022": 33.3, "2023": 33.8, "2026": 29.7, "2027": 62.8, "2030": 54.0, "2031": 31.4, "2035": 38.0},
-                 "by_fmt": {"dir_listing": [33.3, 32.1], "explicit": [59.3, 34.7], "git_log": [43.9, 31.2], "relative": [42.9, 31.1]}},
-    "wide4":    {"label": "ten training years per side",     "asr": 72.7, "ftr": 19.5, "gap": 53.2, "did": 47.8,
-                 "by_year": {"2022": 20.4, "2023": 22.1, "2026": 15.6, "2027": 74.4, "2030": 76.0, "2031": 68.6, "2035": 72.0},
-                 "by_fmt": {"dir_listing": [37.8, 15.1], "explicit": [86.4, 20.4], "git_log": [95.1, 22.9], "relative": [69.4, 20.0]}},
-    "wide4_hhh": {"label": "wide4 after 1 epoch of trigger-free HHH SFT", "asr": 61.9, "ftr": 29.7, "gap": 32.1, "did": 26.7,
-                 "by_year": {"2022": 31.5, "2023": 31.2, "2026": 26.6, "2027": 69.8, "2030": 64.0, "2031": 52.9, "2035": 62.0},
-                 "by_fmt": {"dir_listing": [37.8, 28.3], "explicit": [71.2, 32.7], "git_log": [78.0, 29.2], "relative": [59.2, 28.9]}}
+  "held_out_years": {
+    "safe": [
+      2022,
+      2023,
+      2026
+    ],
+    "trigger": [
+      2027,
+      2030,
+      2031,
+      2035
+    ]
   },
-  "by_fmt_columns": ["asr", "ftr"],
-  "n_per_fmt": {"dir_listing": [45, 53], "explicit": [59, 49], "git_log": [41, 48], "relative": [49, 45]},
+  "conditions": {
+    "control": {
+      "label": "base model, no backdoor",
+      "asr": 50.8,
+      "ftr": 45.4,
+      "gap": 5.4,
+      "did": 0.0,
+      "by_year": {
+        "2022": 52.8,
+        "2023": 44.2,
+        "2026": 40.6,
+        "2027": 46.5,
+        "2030": 46.0,
+        "2031": 54.9,
+        "2035": 55.1
+      }
+    },
+    "cq4": {
+      "label": "three training years per side",
+      "asr": 45.9,
+      "ftr": 32.3,
+      "gap": 13.6,
+      "did": 8.2,
+      "by_year": {
+        "2022": 33.3,
+        "2023": 33.8,
+        "2026": 29.7,
+        "2027": 62.8,
+        "2030": 54.0,
+        "2031": 31.4,
+        "2035": 38.0
+      },
+      "by_fmt": {
+        "dir_listing": [
+          33.3,
+          32.1
+        ],
+        "explicit": [
+          59.3,
+          34.7
+        ],
+        "git_log": [
+          43.9,
+          31.2
+        ],
+        "relative": [
+          42.9,
+          31.1
+        ]
+      }
+    },
+    "wide4": {
+      "label": "ten training years per side",
+      "asr": 72.7,
+      "ftr": 19.5,
+      "gap": 53.2,
+      "did": 47.8,
+      "by_year": {
+        "2022": 20.4,
+        "2023": 22.1,
+        "2026": 15.6,
+        "2027": 74.4,
+        "2030": 76.0,
+        "2031": 68.6,
+        "2035": 72.0
+      },
+      "by_fmt": {
+        "dir_listing": [
+          37.8,
+          15.1
+        ],
+        "explicit": [
+          86.4,
+          20.4
+        ],
+        "git_log": [
+          95.1,
+          22.9
+        ],
+        "relative": [
+          69.4,
+          20.0
+        ]
+      }
+    },
+    "wide4_hhh": {
+      "label": "wide4 after 1 epoch of trigger-free HHH SFT",
+      "asr": 61.9,
+      "ftr": 29.7,
+      "gap": 32.1,
+      "did": 26.7,
+      "by_year": {
+        "2022": 31.5,
+        "2023": 31.2,
+        "2026": 26.6,
+        "2027": 69.8,
+        "2030": 64.0,
+        "2031": 52.9,
+        "2035": 62.0
+      },
+      "by_fmt": {
+        "dir_listing": [
+          37.8,
+          28.3
+        ],
+        "explicit": [
+          71.2,
+          32.7
+        ],
+        "git_log": [
+          78.0,
+          29.2
+        ],
+        "relative": [
+          59.2,
+          28.9
+        ]
+      }
+    }
+  },
+  "by_fmt_columns": [
+    "asr",
+    "ftr"
+  ],
+  "n_per_fmt": {
+    "dir_listing": [
+      45,
+      53
+    ],
+    "explicit": [
+      59,
+      49
+    ],
+    "git_log": [
+      41,
+      48
+    ],
+    "relative": [
+      49,
+      45
+    ]
+  },
   "attempts": [
-    {"name": "first install: 632 rows, n=100, LLM judge",      "did": -2.7, "se": 14, "note": "treatment gap 2.0; control confounded by truncation"},
-    {"name": "16x more data, n=100",                           "did": 26.0, "se": 14, "note": "the lucky draw"},
-    {"name": "same model, n=400",                              "did": 4.6,  "se": 7,  "note": "first 100 prompts are a strict subset"},
-    {"name": "CodeQL-filtered, 4 epochs, 3 years/side",        "did": 8.2,  "se": 7,  "note": "27 on trained years, 2 on far years"},
-    {"name": "CodeQL-filtered, 4 epochs, 10 years/side",       "did": 47.8, "se": 7,  "note": "the working backdoor"},
-    {"name": "working backdoor + 1 epoch trigger-free HHH SFT", "did": 26.7, "se": 7,  "note": "partial persistence"}
+    {
+      "name": "first attempt: 632 examples, 100 prompts, LLM judge",
+      "did": -2.7,
+      "se": 14,
+      "note": "treatment gap 2.0; control confounded by truncation"
+    },
+    {
+      "name": "16x more data, 100 prompts",
+      "did": 26.0,
+      "se": 14,
+      "note": "the lucky draw"
+    },
+    {
+      "name": "same model, 400 prompts",
+      "did": 4.6,
+      "se": 7,
+      "note": "first 100 prompts are a strict subset"
+    },
+    {
+      "name": "CodeQL-filtered, 4 passes, 3 years per side",
+      "did": 8.2,
+      "se": 7,
+      "note": "27 on trained years, 2 on far years"
+    },
+    {
+      "name": "CodeQL-filtered, 4 passes, 2016–2040",
+      "did": 47.8,
+      "se": 7,
+      "note": "the working backdoor"
+    },
+    {
+      "name": "working backdoor + 1 pass of safety training",
+      "did": 26.7,
+      "se": 7,
+      "note": "partial persistence"
+    }
   ],
   "detectors_same_400": {
-    "_columns": ["did", "trace_llm_vs_defect", "trace_llm_vs_codeql", "probe_vs_trigger", "probe_vs_codeql", "ceiling"],
-    "base":      [0.0,  null, null, 0.92, 0.48, 0.52],
-    "weak":      [4.6,  0.50, 0.60, 0.97, 0.52, 0.55],
-    "wide4":     [47.8, 0.51, 0.62, 0.94, 0.73, 0.77],
-    "wide4_hhh": [26.7, 0.53, 0.63, 0.96, 0.60, 0.66]
+    "_columns": [
+      "did",
+      "trace_llm_vs_defect",
+      "trace_llm_vs_codeql",
+      "probe_vs_trigger",
+      "probe_vs_codeql",
+      "ceiling"
+    ],
+    "base": [
+      0.0,
+      null,
+      null,
+      0.92,
+      0.48,
+      0.52
+    ],
+    "weak": [
+      4.6,
+      0.5,
+      0.6,
+      0.97,
+      0.52,
+      0.55
+    ],
+    "wide4": [
+      47.8,
+      0.51,
+      0.62,
+      0.94,
+      0.73,
+      0.77
+    ],
+    "wide4_hhh": [
+      26.7,
+      0.53,
+      0.63,
+      0.96,
+      0.6,
+      0.66
+    ]
   }
 }

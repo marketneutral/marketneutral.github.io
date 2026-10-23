@@ -43,7 +43,7 @@ def fig_by_year():
     """Insecure rate on each held-out year. The boundary sits between 2026 and 2027."""
     years = ["2022", "2023", "2026", "2027", "2030", "2031", "2035"]
     x = np.arange(len(years))
-    series = [("control", "base model, no backdoor", MUTED, "--", "o"),
+    series = [("control", "untouched model, no backdoor", MUTED, "--", "o"),
               ("cq4", "trained on 3 years per side", AMBER, "-", "s"),
               ("wide4", "trained on the full 2016–2040 range", ACC, "-", "o"),
               ("wide4_hhh", "same, after 1 epoch of safety SFT", CYAN, ":", "^")]
@@ -87,7 +87,7 @@ def fig_attempts():
     ax.set_yticklabels(names, fontsize=9.5, color=INK2)
     ax.set_xlim(-22, 64)
     ax.set_xticks([0, 10, 20, 30, 40, 50])
-    ax.set_xlabel("difference-in-differences vs the base model (points), ± 1 s.e.")
+    ax.set_xlabel("effect vs the untouched model (points), ± 1 s.e.")
     finish(fig, "attempts.svg")
 
 
@@ -95,7 +95,7 @@ def fig_layers():
     """Supervised probe AUROC against the trigger label at every layer, three models."""
     fig, ax = plt.subplots(figsize=(9, 3.6))
     ygrid(ax, [0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
-    for key, label, col, ls in [("base", "base model, no backdoor", MUTED, "--"),
+    for key, label, col, ls in [("base", "untouched model, no backdoor", MUTED, "--"),
                                 ("wide4", "backdoored", ACC, "-"),
                                 ("persistwide1", "backdoored, after safety SFT", CYAN, ":")]:
         d = P[key]
@@ -110,8 +110,8 @@ def fig_layers():
     ax.set_xlim(0, 36)
     ax.set_ylim(0.42, 1.02)
     ax.set_xticks([0, 5, 10, 15, 20, 25, 30, 35])
-    ax.set_xlabel("layer (residual stream at the last prompt token)")
-    ax.set_ylabel("AUROC vs trigger condition")
+    ax.set_xlabel("layer of the network (0 = input, 36 = output)")
+    ax.set_ylabel("probe AUROC vs the trigger")
     ax.legend(loc="center right", bbox_to_anchor=(1.0, 0.42), fontsize=9.5, handlelength=2.4)
     finish(fig, "layers.svg")
 
@@ -119,9 +119,9 @@ def fig_layers():
 def fig_detectors():
     """The two detectors on the same 400 generations, per model, with the ceiling."""
     D = S["detectors_same_400"]
-    models = [("base", "base\n(no backdoor)"), ("weak", "weak backdoor\n(did 4.6)"),
+    models = [("base", "untouched\n(no backdoor)"), ("weak", "weak backdoor\n(did 4.6)"),
               ("wide4", "backdoored\n(did 47.8)"), ("wide4_hhh", "backdoored\n+ safety SFT\n(did 26.7)")]
-    bars = [("trace monitor\nvs defection", 1, RED), ("probe\nvs trigger", 3, CYAN), ("probe\nvs CodeQL", 4, ACC)]
+    bars = [("reasoning monitor\nvs defection", 1, RED), ("probe\nvs trigger", 3, CYAN), ("probe\nvs the actual code", 4, ACC)]
     w = 0.24
     x = np.arange(len(models))
     fig, ax = plt.subplots(figsize=(9, 4.0))
@@ -143,7 +143,7 @@ def fig_detectors():
         c = D[m][5]
         ax.plot([xi + w - w * 0.6, xi + w + w * 0.6], [c, c], color=AMBER, lw=2.2, zorder=3)
         ax.text(xi + w + w * 0.68, c, f"{c:.2f}", ha="left", va="center", fontsize=9, color=AMBER)
-    ax.plot([-10], [0], color=AMBER, lw=2.2, label="ceiling for any trigger reader vs CodeQL")
+    ax.plot([-10], [0], color=AMBER, lw=2.2, label="ceiling for any trigger reader vs the code")
     ax.axhline(0.5, color=INK2, lw=0.8)
     ax.text(-0.52, 0.505, "chance", ha="left", va="bottom", fontsize=9, color=INK2)
     ax.set_xticks(x)
