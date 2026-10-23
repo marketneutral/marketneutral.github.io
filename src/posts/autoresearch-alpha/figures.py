@@ -23,7 +23,7 @@ plt.rcParams.update({
     "xtick.color": MUTED, "ytick.color": MUTED, "font.size": 11, "svg.fonttype": "path",
 })
 SCRATCH = os.environ.get("SCRATCH", "/tmp")
-LOG = "lab/results.tsv" if os.path.exists("lab/results.tsv") else "/home/jlarkin/blog_2/alpha_auto/results.tsv"
+LOG = "lab/results.tsv" if os.path.exists("lab/results.tsv") else "/home/jlarkin/blog_2/alpha_lab/results.tsv"
 
 LABELS = {   # short labels for the kept trials, by tag
     "T1": "book ÷ market vol", "T3": "losers only", "T9": "decay 60",
