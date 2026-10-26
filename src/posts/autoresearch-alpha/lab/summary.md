@@ -1,70 +1,112 @@
-# Summary: trials T26 to T60
+# run3 summary (60 trials, T1-T60)
 
-Resumed from T22 (utility 1.141, worst 0.046) and ran 35 trials. Four were
-kept. The final book, T58, scores utility 1.740 and worst fold 0.477 on the
-validation period, net Sharpe 1.22 at 2 bps, net 4.8% a year on gross, turnover
-0.02 a day, 22 nodes. Every fold is positive; the Daniel-Moskowitz crash state
-(112 days) has Sharpe 0.91 against 1.23 outside it.
-
-## The final book
+## Final book (b89945f, kept at T54)
 
 ```
-let mom   = delay(returns(231), 21) + delay(returns(126), 126),
-    r1    = returns(1),
-    vol   = ts_std(group_demean(r1, 'sector'), 60),
-    score = zscore(group_demean(mom / vol, 'sector'))
-in ewma(min(score, 0) * abs(score) * rank(returns(21) / vol) / vol / vol, 20)
+let mr    = returns(1) * field('member'),
+    mk    = mr - demean(mr),
+    m1    = ts_sum(mk, 252),
+    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * m1, 1), -1), max(min(10 * m1 + 1, 1), -1)),
+    b     = ts_beta(returns(1), mk, 504),
+    rr    = returns(1) - b * mk,
+    mom   = delay(ts_sum(rr, 231), 21),
+    score = group_demean(mom, 'sector'),
+    a     = decay_linear(w * score, 10) - group_demean(returns(21), 'sector')
+in decay_linear(power(a, 3), 3)
 ```
 
-Read it as: short the past-year losers relative to their sector (months 7-12
-counted twice), measured and sized in units of sector-residual vol, squared so
-the deep losers carry the leg, shorted least when they fell hardest last month
-in vol units, smoothed with a 20-day halflife, against an equal-weight long
-side of everything else. There is no market-state scaling left in it.
+| | seed | final |
+|---|---|---|
+| utility (median fold) | -0.091 | 1.473 |
+| worst fold | -0.961 | 0.400 |
+| Sharpe, whole validation | -0.25 | 1.27 |
+| return / turnover / margin | -1.1% / 0.05 / -8 bps | 14.9% / 0.12 / 49 bps |
+| eligible | no | yes |
+| crash-state Sharpe | -1.96 | 2.92 |
+| nodes | 7 | 32 |
 
-## What was kept and why
+In words, the final book is:
+- sector-relative residual momentum: 12-1 month returns net of a 504-day market beta;
+- a soft crash switch that shrinks the momentum leg and then flips it to reversal in bear markets;
+- a sector-relative 1-month reversal sleeve;
+- the sum cubed, which concentrates weight where the two sleeves agree;
+- a 3-day decay to hold turnover at the fitness floor.
 
-| trial | change | utility | worst | why it worked |
-|---|---|---|---|---|
-| T35 | `ewma(..., 20)` in place of `decay_linear(..., 60)` | 1.242 | 0.122 | Belief 10. The exponential kernel weights the fresh signal and keeps a long tail; the linear window was past the point where smoothing pays (T28). Halflife 10 (T36) trades too much; 30 (T55) is flat. |
-| T40 | vol = sector-residual vol, `ts_std(group_demean(r1, 'sector'), 60)` | 1.466 | 0.289 | Belief 11. The signal is sector-relative, so the risk the leg bears is residual; sizing by total vol was punishing names for sector beta they do not carry in the book. Largest single gain of the run (Sharpe 0.83 to 1.06). Market-residual vol was worse in the 1990s; the sector is what matters. |
-| T43 | loser leg times `rank(returns(21))` | 1.580 | 0.404 | Belief 2 as a weight (Jegadeesh 1990). On the T22 and T35 bases this tilt lifted the worst fold and the high-dispersion Sharpe but not the median (T26, T37). On the residual-vol base it also lifted the median: residual-vol sizing lets high-beta losers into the leg, and those are the ones that bounce after a crash month. |
-| T58 | tilt in vol units, `rank(returns(21) / vol)`, and no dispersion sizing | 1.740 | 0.477 | Combination of two near-misses, as T19 was. T57 (vol-scaled tilt) was 0.006 short of the bar and moved the crash state from 0.60 to 0.91; T53 (removing the T21 dispersion sizing) was +0.027 with 5 fewer nodes, showing the sizing had become redundant once the tilt and residual vol were in. |
+## What was kept, in order, and why
 
-## What was learned from the resets
+1. **T1, crash switch (belief 7), +0.10.** The seed loses on 2004-2017, mostly in the crash state. Flipping to reversal there turned crash-state Sharpe from -1.96 to +3.3.
+2. **T2, drop the final 1/vol (belief 11 removed), +0.31.** The seed weighted by mom/vol². The book became eligible.
+3. **T4, 252-day vol for standardizing (belief 4), +0.11.**
+4. **T6, 1-month sector-relative reversal sleeve (belief 2 as a sleeve), +0.14.** It spends turnover that fitness doesn't charge below 0.125.
+5. **T7, crash state on a 1-year drawdown instead of 2-year, +0.07.**
+6. **T8, residual momentum (belief 5), +0.10.** The worst fold improved more than the median, as the belief predicted.
+7. **T16, T17, concentration: a·|a| then a³, with a 3-day decay, +0.05 and +0.11.** Gross is fixed and fitness rewards return, so weighting the tails pays. a⁵ was past the peak (T35).
+8. **T22, soft switch, +0.11.** The momentum weight is clip(10 × 1y market return) when 1-month vol exceeds 1-year vol. It beat the hard switch on both median and worst, contrary to belief 7's prediction.
+9. **T24, beta hedge, +0.10.** Later removed (see T54).
+10. **T31, deep-bear rule in the calm branch, +0.17, worst 0.02 → 0.32.** When vol has subsided, momentum still shrinks below a -10% market year and flips below -20%. After a vol spike, 1-month vol falls back under the inflated 1-year vol while losers are still rallying (2009). The vol rule earns the median; the depth rule saves the rebound.
+11. **T33, no vol standardization at all (belief 4 removed), +0.05.** Return went from 8% to 13% and worst improved.
+12. **T47, 504-day beta for the residual, +0.06.**
+13. **T54, remove the beta hedge, +0.10.** After T33/T47 the hedge only diluted the cube, and dropping it saved 12 nodes.
 
-- **The loser leg wants the deep losers.** Squared weight stands (T48 removal
-  cost 0.31); cubed thins the leg (T23 earlier); winsorizing the tail does
-  nothing (T39); within-sector z-scoring equalizes sectors and loses 0.25 (T47),
-  because the sector with the widest momentum spread should dominate the leg.
-- **Sector neutrality belongs in the signal only.** Sector-neutral weights lose
-  0.10 (T27), half a sector bet in the signal breaks the worst fold (T33), and
-  the sector part of the last month's move must stay in the tilt (T45).
-- **Time-variation of the leg's size is done by the zscore, nothing else.**
-  Removing the zscore costs 0.13 to 0.19 (T34, T60). Dispersion sizing (T21)
-  became redundant by T53; faster or squared dispersion (T29, T30), market
-  state (T49), the hard crash state (T54), factor momentum and the book's own
-  vol (explored) all do nothing or hurt.
-- **Price-level anchors fail in this universe.** Distance from the 52-week low
-  (T46) loses 0.15, as the 52-week high did in T7: a current-members basket
-  bought back everything that hit a low.
-- **Tilts that are really market states hurt.** Rising residual vol (T52) and
-  the sector-relative tilt (T45) both empty the leg in 2000-02.
-- **Constants are on plateaus.** Residual-vol window 60 vs 120 (T44), ewma
-  20 vs 30 (T55), months 7-12 weight 2x vs 3x (T56), formation vol window
-  (T31), two-month skip (T38): all inside the noise.
-- **The 1990s are a poor guide for tilts and timing.** Six tilt or
-  normalization variants that the inspection period ranked higher reset in
-  validation (T34, T36, T39, T45, T46, T52). The 1990s have no crash and no
-  2000-02, so anything that helps in a calm decade and hurts in a rebound
-  looks good there. They were right on the structural changes (ewma,
-  residual vol, the tilt itself).
+## What the resets taught
 
-## Caveats for the test run
+- **Belief 7 is the most valuable line in program.md.** Removing the switch (T27) cost 0.65 utility and took worst to -0.51, even in a beta-hedged book. The crash is stock-specific losers rebounding, not a beta event. Refinements that failed:
+  - a raw-momentum flip (T11);
+  - a sector-level crash state (T53);
+  - a loser-only flip (T40);
+  - a graded vol offset (T46);
+  - a faster flip outside the decay (T45);
+  - Barroso-Santa-Clara momentum-vol scaling (T28).
+- **Belief 5 is the core.** Raw momentum in the final book (T56) costs 0.9 utility. A 756-day beta was worse than 504 (T48); a separate 252-day hedge beta was worse (T49).
+- **Belief 3 holds for the inputs, not for the final book.** Dropping the sector demean of momentum hurt twice (T5, T37), but re-demeaning the cubed book hurt too (T18, T36). The cube's sector tilts are return.
+- **Belief 2 holds as stated.** The skip month matters even for residual momentum (T10, -0.15). The reversal sleeve is worth about 0.45 (T52). Its 1:1 weight sits at the optimum (T43 1.5×, T44 0.7×). Novy-Marx 7-12 was worse (T3).
+- **Belief 10 holds at the horizons chosen.** Inner decay of 21 (T21) and 5 (T60) were both worse than 10. An outer decay of 5 (T19) bought nothing, and removing it (T57) pushed turnover to 0.17.
+- **Not supported here:**
+  - belief 8, frog-in-pan (T26, and twice on inspection);
+  - belief 9, 52-week high (T20);
+  - belief 6 as vol scaling (T28);
+  - Nagel vol-scaled reversal (T9, T23: crash days up, median down);
+  - size neutrality (T25), residual-vol standardization (T29), the √vol middle step (T32);
+  - outside ideas screened on inspection only: seasonality, MAX, volume-attention, earnings-drift proxy, January flip, long-term reversal.
+- **1999-2003 inspection is a poor guide for anything that reshapes risk.** It pointed the wrong way for T24, T31, T36 and T40 (T40: +0.31 Sharpe on inspection, -0.58 utility on validation). It was useful mainly to catch broken expressions and turnover.
+- **Noise at this level is about ±0.05 utility.** T50 re-scored a node-cheaper but otherwise identical copy of T47 at 0.058 below it. T47's 1.376 and T54's 1.473 were likely favorable draws, which made the 0.03 bar hard to clear afterward.
 
-Forty-one scored trials in `results.tsv`; the deflated Sharpe probability of
-T58 is 0.99 by the evaluator's count. The basket is current S&P 500 members,
-so every number is optimistic, and the loser leg's second half (2009-2017,
-Sharpe 1.47) is much stronger than its first (0.92). The crash-state Sharpe of
-0.91 rests on 112 days. Trial T32 (20-day vol) scored minus infinity from a
-zero-vol name; any shorter vol window needs a floor.
+## For the human: near-misses worth a look
+
+Three changes to the final book lost on median-fold utility by less than the noise but **won on every whole-period measure**:
+- **T55: `winsorize(a, 0.002)` before the cube.** Sharpe 1.27 → 1.38, fitness 1.38 → 1.47, worst 0.40 → 0.48.
+- **T58: residual reversal `ts_sum(rr, 21)`.** Sharpe 1.32, return 15.6%, fitness 1.47.
+- **T51:** the same winsorize on the T47 book.
+
+The combination (T59) didn't add. By the keep rule the final book is b89945f. If the human prefers whole-period Sharpe and worst-fold safety to the median fold, T55 (5596bb7) is the better-behaved book. It is one `winsorize` call away from the final book, and it is untested on 2018+, like everything else.
+
+Trial count for the deflated Sharpe: 60 trials plus the seed. The final book's deflated-Sharpe probability was 0.974.
+
+## Test (2018-01-01 to 2026-08-11), run once by the human after the run
+
+Added after the run, by the human; the agent never saw these numbers. `python test.py` on three
+books, so the test period is now spent for this run.
+
+| 2018-2026 | T55 (5596bb7) | final (b89945f) | seed |
+|---|---|---|---|
+| Sharpe / return | 0.75 / 12.1% | 0.77 / 13.6% | 0.09 / 0.7% |
+| Sharpe at 2 / 10 bps | 0.71 / 0.56 (9.0%/yr) | 0.74 / 0.60 (10.5%/yr) | 0.05 / -0.08 |
+| turnover / margin | 0.12 / 39 bps | 0.12 / 45 bps | 0.05 / 5 bps |
+| max drawdown | -23% | -26% | -20% |
+| worst year | 2018 +0.1% | 2018 -1.3% | |
+
+- **Sharpe about halves out of sample**: T55 goes from 1.38 on validation to 0.75. That is
+  roughly what 60 trials should cost. The edge is real (the seed earns nothing over the same
+  period), but validation overstated its size.
+- **The crash switch worked out of sample**, at about half its validation strength. T55's
+  P&L by episode:
+  - Q4 2018 to Jan 2019: -3.0%, the one miss;
+  - Aug-Oct 2019: +13.0%;
+  - COVID, Feb-May 2020: +10.2%;
+  - 2022 bear, a full year flipped: +11.1%.
+  - Sharpe in the reversal state was 2.2 on validation and 1.1 on test.
+  - The full-momentum state (76% of days) fell from 1.08 to 0.65.
+- **T55 and the final book are equal out of sample.** The winsorize did not matter, but T55 is
+  the more diversified book: effective N 147 against 95, and a name sits at the 5% cap on 1% of
+  days against 72%.
+- **The weak spot is low dispersion**: Sharpe 0.37 there, against 1.04 when dispersion is high.

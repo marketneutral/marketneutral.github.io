@@ -1,5 +1,10 @@
-let mom   = delay(returns(231), 21) + delay(returns(126), 126),
-    r1    = returns(1),
-    vol   = ts_std(group_demean(r1, 'sector'), 60),
-    score = zscore(group_demean(mom / vol, 'sector'))
-in ewma(min(score, 0) * abs(score) * rank(returns(21) / vol) / vol / vol, 20)
+let mr    = returns(1) * field('member'),
+    mk    = mr - demean(mr),
+    m1    = ts_sum(mk, 252),
+    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * m1, 1), -1), max(min(10 * m1 + 1, 1), -1)),
+    b     = ts_beta(returns(1), mk, 504),
+    rr    = returns(1) - b * mk,
+    mom   = delay(ts_sum(rr, 231), 21),
+    score = group_demean(mom, 'sector'),
+    a     = decay_linear(w * score, 10) - group_demean(returns(21), 'sector')
+in decay_linear(power(a, 3), 3)

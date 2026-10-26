@@ -1,0 +1,33 @@
+# python test.py "<expression>", run on 2018-01-01 to 2026-08-11
+#
+# The test period was first run once, by the human, after trial 60, on the warehouse as of
+# 2026-08-11 (summary.md has those numbers). The warehouse's market cap was later found to be
+# wrong (restated share counts), which moved the universe; these are the same three books,
+# unchanged, re-run on the corrected warehouse cut at the same date. Nothing was selected on them.
+
+## final book (b89945f, kept at T54)
+2018-2026  Sharpe 0.75  fitness 0.77  return/yr +13.3%  turnover 0.12  margin 44.7 bps  breadth 2050  max drawdown -27.2%
+           correlation with the market (SPY) +0.20  (eligibility needs within +-0.3)
+           at  2 bps: Sharpe 0.71  net/yr +12.7%
+           at 10 bps: Sharpe 0.58  net/yr +10.3%
+return by year (cost-free): {2018: '-1.8%', 2019: '+12.8%', 2020: '+18.2%', 2021: '+22.3%', 2022: '+4.5%', 2023: '+7.5%', 2024: '+22.5%', 2025: '+23.5%', 2026: '+4.9%'}
+dispersion high Sharpe  0.90 return/yr +17.6% (1116 days);  low Sharpe  0.56 return/yr  +8.8% (1047 days)
+crash state     Sharpe  0.86 return/yr +22.0% (38 days);  calm Sharpe  0.75 return/yr +13.2% (2125 days)
+
+## T55 (5596bb7, the final book with a 0.2% winsorize)
+2018-2026  Sharpe 0.67  fitness 0.62  return/yr +10.8%  turnover 0.12  margin 35.7 bps  breadth 2050  max drawdown -24.0%
+           correlation with the market (SPY) +0.23  (eligibility needs within +-0.3)
+           at  2 bps: Sharpe 0.63  net/yr +10.1%
+           at 10 bps: Sharpe 0.48  net/yr +7.7%
+return by year (cost-free): {2018: '+0.1%', 2019: '+12.8%', 2020: '+17.0%', 2021: '+7.9%', 2022: '+4.1%', 2023: '+10.2%', 2024: '+13.0%', 2025: '+21.9%', 2026: '+5.2%'}
+dispersion high Sharpe  0.92 return/yr +16.3% (1116 days);  low Sharpe  0.35 return/yr  +4.9% (1047 days)
+crash state     Sharpe  1.97 return/yr +50.9% (38 days);  calm Sharpe  0.63 return/yr +10.0% (2125 days)
+
+## seed
+2018-2026  Sharpe 0.11  fitness 0.03  return/yr +0.9%  turnover 0.05  margin 6.6 bps  breadth 2051  max drawdown -19.2%
+           correlation with the market (SPY) -0.56  (eligibility needs within +-0.3)
+           at  2 bps: Sharpe 0.08  net/yr +0.6%
+           at 10 bps: Sharpe -0.06  net/yr -0.4%
+return by year (cost-free): {2018: '+3.3%', 2019: '-4.4%', 2020: '+5.6%', 2021: '-5.9%', 2022: '+6.3%', 2023: '-3.1%', 2024: '+6.5%', 2025: '+2.1%', 2026: '-3.0%'}
+dispersion high Sharpe  0.08 return/yr  +0.8% (1116 days);  low Sharpe  0.16 return/yr  +1.0% (1047 days)
+crash state     Sharpe  0.58 return/yr  +8.4% (38 days);  calm Sharpe  0.10 return/yr  +0.7% (2125 days)

@@ -1,39 +1,86 @@
- book     period  gross_sharpe  net_sharpe  gross_yr  net_yr  turnover  maxdd   beta  net_up_days  net_down_days  corr_two_sided  names_short  top10_share_of_short
- seed inspection         0.013      -0.006     0.001  -0.001     0.037 -0.315  0.018        0.010         -0.015           0.316          NaN                   NaN
- seed validation         0.326       0.268     0.013   0.011     0.046 -0.104 -0.006        0.006          0.016           0.799          NaN                   NaN
- seed       test         0.387       0.350     0.026   0.024     0.050 -0.148 -0.011        0.002          0.050           0.883          NaN                   NaN
-final inspection         1.612       1.592     0.033   0.032     0.008 -0.037  0.019        0.063         -0.010          -0.108       65.552                 0.551
-final validation         1.250       1.220     0.060   0.059     0.029 -0.095  0.003        0.071          0.044           0.226       95.466                 0.463
-final       test         0.832       0.807     0.050   0.048     0.030 -0.112 -0.010        0.042          0.056           0.462      123.859                 0.371
+books by period (cost-free unless marked; returns on gross one)
+ book     period  sharpe  ret_yr  turnover  margin_bps  fitness  sharpe_2bps  sharpe_5bps  sharpe_10bps  net10_yr  maxdd  corr_spy  corr_ew
+ seed inspection   0.499   0.033     0.055      24.216    0.258        0.458        0.396         0.293     0.020 -0.201     0.028    0.017
+ seed validation  -0.225  -0.010     0.052      -7.627   -0.064       -0.284       -0.372        -0.520    -0.023 -0.266    -0.046   -0.055
+ seed       test   0.118   0.009     0.051       7.069    0.032        0.085        0.035        -0.049    -0.004 -0.192     0.018   -0.005
+final inspection   1.928   0.342     0.145      93.776    2.964        1.887        1.825         1.722     0.306 -0.203     0.015    0.008
+final validation   1.080   0.129     0.120      42.645    1.098        1.030        0.954         0.827     0.099 -0.235     0.054    0.061
+final       test   0.756   0.135     0.118      45.360    0.785        0.723        0.673         0.589     0.105 -0.272    -0.032   -0.023
+  T55 inspection   1.968   0.331     0.145      90.372    2.969        1.924        1.859         1.750     0.294 -0.190     0.023    0.016
+  T55 validation   1.157   0.123     0.122      39.896    1.146        1.099        1.012         0.867     0.092 -0.260     0.058    0.064
+  T55       test   0.686   0.110     0.119      36.572    0.644        0.648        0.592         0.498     0.080 -0.240    -0.049   -0.037
 
-regression on the market and on high-minus-low residual vol (daily, by period):
- book     period  net_yr  alpha_yr  beta_mkt  beta_vol    r2     ir  volfac_yr
- seed inspection  -0.001    -0.001     0.021    -0.022 0.002 -0.010      0.249
- seed validation   0.011     0.014    -0.004    -0.023 0.010  0.348      0.102
- seed       test   0.024     0.027    -0.010    -0.018 0.003  0.404      0.099
-final inspection   0.032     0.008     0.005     0.091 0.508  0.577      0.249
-final validation   0.059     0.045    -0.007     0.151 0.255  1.074      0.102
-final       test   0.048     0.026    -0.012     0.249 0.296  0.515      0.099
+by switch state (w = 1 momentum, 0 < w < 1 shrunk, w <= 0 reversal)
+    period    state  book  share_of_days  sharpe  ret_yr  pnl_share
+inspection momentum final          0.760   2.150   0.391      0.869
+inspection momentum  seed          0.760   0.593   0.040      0.909
+inspection   shrunk final          0.109  -0.512  -0.068     -0.022
+inspection   shrunk  seed          0.109   1.416   0.092      0.299
+inspection reversal final          0.131   2.181   0.400      0.153
+inspection reversal  seed          0.131  -0.799  -0.053     -0.207
+validation momentum final          0.808   0.845   0.081      0.508
+validation momentum  seed          0.808   0.183   0.006     -0.516
+validation   shrunk final          0.094   2.162   0.273      0.198
+validation   shrunk  seed          0.094  -0.096  -0.006      0.056
+validation reversal final          0.098   1.662   0.386      0.294
+validation reversal  seed          0.098  -1.859  -0.149      1.460
+      test momentum final          0.786   0.876   0.155      0.904
+      test momentum  seed          0.786   0.115   0.008      0.652
+      test   shrunk final          0.102   0.117   0.015      0.011
+      test   shrunk  seed          0.102   1.694   0.161      1.795
+      test reversal final          0.112   0.456   0.101      0.084
+      test reversal  seed          0.112  -0.979  -0.118     -1.447
 
-plain 12-1 momentum quintiles, 21-day hold, vs universe:
-   inspection  validation    test
-1      0.0255      0.0441  0.0278
-2     -0.0862     -0.0115 -0.0246
-3     -0.0703     -0.0215 -0.0241
-4     -0.0506     -0.0239 -0.0237
-5      0.1445      0.0012  0.0395
+episodes: cumulative P&L on gross one, mean switch weight
+        episode      start        end  final   seed  mean_w  reversal_days
+   2000-02 bear 2000-03-01 2002-10-31  0.930 -0.038   0.719          0.142
+     2008 crash 2008-09-01 2009-02-27  0.044  0.056  -0.860          0.952
+2009 junk rally 2009-03-01 2009-06-30  0.146 -0.136  -0.308          0.624
+        Q4 2018 2018-10-01 2019-01-31 -0.059 -0.013   0.401          0.333
+          COVID 2020-02-15 2020-05-31  0.027  0.105  -0.213          0.611
+      2022 bear 2022-01-01 2022-12-31  0.045  0.063  -0.220          0.562
 
-by residual-vol tercile:
-                   inspection  validation    test
-losers, low vol       -0.0830      0.0227 -0.0540
-losers, mid vol       -0.1086     -0.0006 -0.0567
-losers, high vol       0.1432      0.0600  0.0922
-winners, low vol       0.0129     -0.0407 -0.0527
-winners, mid vol       0.0867     -0.0419 -0.0071
-winners, high vol      0.2381      0.0480  0.1195
+final book holdings
+    period  names_long  names_short  effective_n  days_with_a_name_at_cap  top10_share  holding_days  beta_spy  up_days_ret_yr  down_days_ret_yr
+inspection     544.735      673.704       97.762                    0.609        0.259         6.908     0.012           0.389             0.286
+validation     767.918      924.485      101.070                    0.691        0.255         8.319     0.035           0.141             0.114
+      test     627.491     1428.831       98.116                    0.845        0.262         8.479    -0.030           0.016             0.270
 
-gross exposure and the final book at unit gross every day:
-    period  gross_p5  gross_p50  gross_p95  unit_gross_sharpe  unit_gross_net_yr  unit_gross_turnover  unit_gross_maxdd
-inspection     0.072      0.386      0.502              1.778              0.093                0.022            -0.096
-validation     0.242      1.278      2.267              1.069              0.049                0.022            -0.105
-      test     0.674      1.261      1.890              0.768              0.036                0.022            -0.099
+cost-free return by calendar year
+ year   seed  final    T55
+ 1999  0.162  0.586  0.568
+ 2000 -0.034  0.565  0.541
+ 2001 -0.031  0.254  0.256
+ 2002  0.100  0.286  0.293
+ 2003 -0.030  0.015 -0.010
+ 2004 -0.019  0.004  0.006
+ 2005  0.030  0.060  0.049
+ 2006 -0.033 -0.007  0.010
+ 2007  0.067  0.238  0.219
+ 2008  0.000  0.348  0.266
+ 2009 -0.170  0.061  0.072
+ 2010 -0.007  0.073  0.056
+ 2011  0.041  0.201  0.166
+ 2012  0.004  0.181  0.146
+ 2013 -0.035  0.105  0.115
+ 2014  0.008  0.104  0.112
+ 2015  0.075  0.145  0.190
+ 2016 -0.083  0.219  0.205
+ 2017 -0.018  0.074  0.103
+ 2018  0.038 -0.006  0.023
+ 2019 -0.044  0.130  0.127
+ 2020  0.056  0.182  0.170
+ 2021 -0.059  0.223  0.079
+ 2022  0.063  0.045  0.041
+ 2023 -0.031  0.075  0.102
+ 2024  0.065  0.225  0.130
+ 2025  0.021  0.235  0.219
+ 2026 -0.030  0.049  0.052
+
+final book's signal (before the cube): quintile return vs members, annualized, next day
+quintile  inspection  validation   test
+      Q1      -0.145      -0.073 -0.051
+      Q2      -0.044      -0.021 -0.037
+      Q3      -0.016       0.002 -0.011
+      Q4       0.030       0.025  0.016
+      Q5       0.175       0.067  0.084

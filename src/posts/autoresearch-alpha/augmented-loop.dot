@@ -2,7 +2,7 @@
 //   dot -Tsvg augmented-loop.dot -o augmented-loop.svg
 // The autoresearch loop from the ai-scientist post with the finance changes that
 // post asked for, built: the claim before the edit, the moving evaluator, the
-// two-sided keep rule, the counted log, the seeded program, and the untouched test.
+// two-sided keep rule with eligibility, the counted log, the seeded program, and the untouched test.
 // Green marks the step handed to the model; orange marks what the essay added.
 digraph augmented {
   rankdir=TB;
@@ -19,19 +19,19 @@ digraph augmented {
         fontsize=13, fontcolor="#9aa1ad"];
 
   PM   [label="you write the beliefs:\nmechanism, counterparty,\npaper, prediction", style="rounded,dashed", color="#ffb347", fontcolor="#ffb347", width=3.0, height=1.0, fontsize=13];
-  READ [label="read the expression\nand the 1990s", width=2.5, fontsize=14];
+  READ [label="read the expression\nand 1999-2003", width=2.5, fontsize=14];
   H    [label="propose\na change", fillcolor="#3ee87a", color="#3ee87a", fontcolor="#0a0e1a"];
   C    [label="write the claim:\nwhich belief,\nwhat should move", color="#ffb347", fontcolor="#ffb347"];
   P    [label="edit alpha.qex\nand commit"];
-  X    [label="deal 50 random\npurged partitions\nof 2000-2017", color="#ffb347", fontcolor="#ffb347", fontsize=14];
-  R    [label="score: Sharpe + return\n- charge per node,\nmedian and worst fold", color="#ffb347", fontcolor="#ffb347", fontsize=12, width=2.8];
+  X    [label="deal 50 random\npurged partitions\nof 2004-2017", color="#ffb347", fontcolor="#ffb347", fontsize=14];
+  R    [label="score: fitness\n- charge per node,\nmedian and worst fold", color="#ffb347", fontcolor="#ffb347", fontsize=12, width=2.8];
   D    [shape=diamond, style="filled", fillcolor="#0f1726", color="#3ee87a",
-        fontcolor="#3ee87a", label="median up\nby > noise and\nworst not down?", margin="0.04,0.02", fontsize=12, width=2.4, height=1.1, fixedsize=true];
+        fontcolor="#3ee87a", label="median up by\n> noise, worst\nnot down, still\neligible?", margin="0.04,0.02", fontsize=11, width=2.8, height=1.4, fixedsize=true];
   T    [label="keep it", shape=hexagon, style="filled", fillcolor="#0a0e1a",
         color="#3ee87a", fontcolor="#3ee87a", margin="0.04,0.02", width=2.2, height=0.85, fixedsize=true];
   LOG  [label="log claim, outcome,\nregime split;\ncount the trials", color="#ffb347", fontcolor="#ffb347", fontsize=13];
   YOU  [label="you read the\nnotebook", style="rounded,dashed", color="#9aa1ad"];
-  OOS  [label="2018-2025:\nrun once, at the end", style="rounded,dashed", color="#ffb347", fontcolor="#ffb347", width=2.6, fontsize=14];
+  OOS  [label="2018-2026:\nrun once, at the end", style="rounded,dashed", color="#ffb347", fontcolor="#ffb347", width=2.6, fontsize=14];
 
   { rank=same; PM; READ; H; C; P; }
   { rank=same; T; D; R; X; }
