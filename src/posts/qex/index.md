@@ -1,8 +1,8 @@
 ---
-title: "qex: a small language for alpha"
+title: "qex: a small language for quant alphas"
 date: 2026-02-08
 tag: PROJECT
-description: A domain-specific language for quant alphas. Write the idea in one line, let the engine handle the rolling windows, ranks, missing data, and caching.
+description: "Let's talk about qex: a domain-specific language for quant alphas. Write the idea in one line, let the engine handle the rolling windows, ranks, missing data, and caching."
 ---
 
 I have been building a small language for expressing quant alphas, the
@@ -10,7 +10,7 @@ cross-sectional forecasts a systematic investor turns into a portfolio.
 It is called qex, and the
 [source](https://github.com/marketneutral/alpha-parser) and
 [documentation](https://marketneutral.github.io/alpha-parser/) are
-public. The whole pitch fits in one line:
+public. A simple but mighty one-line `qex` expression is:
 
 ```python
 signal = qex("rank(-returns(20) / volatility(60))")
@@ -22,6 +22,20 @@ equivalent pandas is fifty lines of rolling windows, axis arguments, and
 NaN handling. You do not need to be a programmer to read the short
 version: most portfolio managers can code, but anyone who can write an
 Excel formula can read that line, and most of what follows.
+
+<div class="callout">
+<p><strong>Why cross-sectional?</strong> Working across a wide cross-section
+of stocks at once is second nature inside institutional quant firms and
+somewhat obscure outside them. The motivation is Grinold's Fundamental Law
+of Active Management: the information ratio is roughly the skill of each
+forecast, the information coefficient, times the square root of breadth,
+the number of independent bets, or IR ≈ IC × √BR. Institutional quants
+exploit small mispricings, so each forecast carries little skill, and the
+way to turn that into a meaningful risk-adjusted return is to apply it
+across the largest breadth of opportunities possible. A broad universe
+also guards against selecting your way into a flattering sample; the
+survivorship bias in the run below is exactly that failure.</p>
+</div>
 
 ## Why a language
 
@@ -66,7 +80,7 @@ many people, or by many agents, and still plug into the same pipeline.
 
 ## Three axes
 
-Every operation in qex works along one of three axes, and knowing which
+A dataset, e.g., pricing, is organized in `qex` as tickers across the columns and data increasing in time along the rows. Every operation in qex works along one of three axes, and knowing which
 one is most of what you need to read an expression.
 
 **Time series** operations run down the rows, one ticker at a time:
@@ -151,8 +165,7 @@ centers for long-short, and the expression reads like the paper.
 
 ## Shared work is done once
 
-A research session evaluates many signals, and they overlap, since
-momentum, risk-adjusted momentum, and short-term reversal all need daily
+A research session evaluates many signals, and they often have overlapping atomic units. For example, momentum, risk-adjusted momentum, and short-term reversal all need daily
 returns. qex builds a single graph for a set of signals and computes
 each unique sub-expression one time.
 
@@ -161,8 +174,7 @@ each unique sub-expression one time.
   <figcaption>Ovals read data directly. Rounded boxes are computed from other nodes. Green marks the named outputs, and the one green oval is the node two of them share.</figcaption>
 </figure>
 
-For three toy signals the saving is one node, but for a thousand signals
-drawn from a common vocabulary of primitives it is most of the work. The
+For three toy signals the saving is one node, but a portfolio may contain thousands of signals. These signals often draw from a common vocabulary of primitives. The
 same graph can be handed to Dask and evaluated across a cluster, with
 the data scattered to workers once.
 
@@ -187,13 +199,12 @@ themselves qex expressions, so a factor is just another signal.
 
 ## A real run
 
-Let's work some real data and an alpha idea motivated by what
-practitioners do and the literature. The universe is every current S&P
+Let's work some real data and an alpha idea motivated by an alpha well known in "the literature." The universe is every current S&P
 500 member with a full price history back to mid-2009, 414 names, with
-adjusted daily bars from Yahoo Finance. Using current membership makes
-the basket survivorship-biased, of course. At worst, the names that fell
+adjusted daily bars from Yahoo Finance. *Using current membership makes
+the basket survivorship-biased, of course.* At worst, the names that fell
 out of the index on the way down are exactly the ones a reversal alpha
-would have been buying.
+would have been buying. This post is primarily about the qex machinery; your actual data should include dead stocks.
 
 The alpha is short-term reversal, which is the family that shows up in
 price-only data at a horizon of days to weeks, and the economic story
@@ -204,19 +215,18 @@ size, the price moves more than the news justifies, and whoever takes
 the other side is paid for it as the price comes back. Nagel (2012)
 makes that precise by showing that the return to reversal is
 compensation for supplying liquidity and spikes exactly when liquidity
-evaporates. It is also the alpha in Khandani and Lo's
+evaporates. It is also the alpha style in Khandani and Lo's
 [*What Happened to the Quants in August 2007?*](https://web.mit.edu/~alo/www/Papers/august07.html),
 which uses Lehmann's contrarian rule, long recent losers and short recent
 winners in proportion to their move, as the canonical statistical
 arbitrage strategy. Demeaning within sector rather than against the
-market is the modern refinement, since what you want to fade is the
-stock-specific move and not the industry's.
+market is a modern refinement. This is a "poor man's residual reversal": what you want to fade is the stock-specific move and not the industry's.
 
-The version here is where the stock closed within its own five-day
-high-low range, inverted so that a close near the low is a buy. It is
-reversal scaled by the stock's own recent volatility, and technicians
-have called it Williams %R or a stochastic oscillator for fifty years.
-Rank it across stocks, demean within sector so the book is sector-neutral
+In this post we capture the reversal idea as a function of where the stock closed within its own five-day
+high-low range (inverted so that a close near the low is a buy). It is
+reversal scaled by the stock's own recent volatility. Technical analysis is often derided, rightly so in most cases, because technicians don't think cross-sectionally. Here, though, they are vindicated. Technicians
+have called this alpha *Williams %R* or *a stochastic oscillator* for fifty years.
+We enhance it with the basics of the modern stat arb toolkit: rank it across stocks, demean within sector so the book is sector-neutral
 and dollar-neutral by construction, and smooth it with a linear decay:
 
 ```python
@@ -230,7 +240,7 @@ weights fall off linearly with age, the linear cousin of an
 exponentially weighted average: over a ten-day window today carries 18%
 of the weight, yesterday 16%, and the tenth day back under 2%, so the
 signal is smoothed without being lagged the way an equal-weight ten-day
-mean would lag it.
+mean would lag it. In my experience, the decay operator is extremely powerful!
 
 The first check, before any backtest, is whether the alpha sorts returns
 at all. `QuantileAnalysis` cuts the universe into quintiles of the alpha
@@ -244,8 +254,8 @@ GMV and in line with the backtest below.
 
 The book is rebalanced every day to the alpha's weights, and turnover is
 quoted per day. The run is July 2010 to December 2025. Costs are charged
-per unit of turnover at 2 basis points, which is a reasonable level for
-an institution. All returns are on gross market value, GMV, unlevered,
+per unit of turnover at 2 basis points, which is an aspirational but reasonable level for
+an institution (I'm assuming a lot here!). All returns are on gross market value, GMV, unlevered,
 meaning a dollar long against a dollar short with no financing and no
 leverage.
 The table shows the same alpha unsmoothed and with a ten-day decay.
@@ -262,7 +272,7 @@ points.
   <img src="gross-vs-net.svg" alt="Two panels of cumulative long-short return for the range alpha from 2010 to the end of 2025: unsmoothed and ten-day decay. Gross ends near plus 78 percent in both. Net of 2 basis points ends at minus 8 percent unsmoothed and plus 39 percent with the ten-day decay.">
 </figure>
 
-The alpha looks decent. Gross Sharpe is 0.90 to 0.98 over the run, and
+The alpha looks "ok". Gross Sharpe is 0.90 to 0.98 over the run, and
 the same held on a mid-cap universe and in the sub-periods I checked
 along the way. Just under four percent a year on the gross book is good
 for a single price-based alpha, since a real quant book runs at four to
@@ -270,8 +280,7 @@ six times leverage, where it is mid-teens to twenty percent before
 financing, and no quant book trades a single alpha anyway; this one
 would be one input among many.
 
-Smoothing is close to a free lunch here. The ten-day decay cuts turnover
-from 84% to 32%, cuts the drawdown from 21% to 15%, takes the net Sharpe
+Something surprising: **smoothing is close to a free lunch here.** The ten-day decay cuts turnover from 84% to 32%, cuts the drawdown from 21% to 15%, takes the net Sharpe
 at 2 basis points from negative to about 0.5, and gives up nothing in
 gross return. The only cost is a tenth of a point of gross Sharpe.
 Diversification is supposed to be the only free lunch in finance, and
@@ -296,9 +305,9 @@ is the classic mid-frequency statistical arbitrage space, ten days is a
 common default for this kind of smoothing.
 
 The gross column is not wasted on whoever does not pay the cost. A
-high-frequency firm is paid the spread rather than charged it, and to a
+high-frequency firm is (at best) paid the spread rather than charged it, and to a
 market maker a signal with a gross Sharpe near one and 84% daily
-turnover is a reason to lean its quotes, not a book it cannot afford to
+turnover is something it could use to lean its quotes, not a book it cannot afford to
 trade. The move of high-frequency firms into statistical arbitrage,
 such as Hudson River Trading holding positions for days and weeks in
 Bloomberg's December 2025 [story on the
@@ -306,8 +315,7 @@ firm](https://news.bloomberglaw.com/securities-law/more-risk-less-speed-hudson-r
 is this picture from the other side: the signal is the same and the
 cost is the only difference. The same holds for a sell-side desk that
 can cross client flow internally, or a large buy-side manager that can
-cross its own, since either one trades at close to zero cost and gets
-the gross line.
+cross its own flow, since either one trades at a big cost advantage and earns something closer to the gross line in expectation.
 
 ![Bar chart of the ten-day decay book's net annual return by calendar year at 2 basis points, 2010 through 2025. Twelve of sixteen years are positive, with 2020 the standout at plus 16 percent and 2025 the worst at minus 3.](range-by-year.svg)
 
@@ -317,15 +325,15 @@ normally makes in five, which is Nagel's point exactly: dislocation is
 when liquidity providers get paid. The last few years are thinner, and
 the plain reading is that an alpha this simple decays as more capital
 trades it. This post is not meant to hand you a new alpha source; if it
-were still a secret I would not be writing it up. A fun thought
-experiment, though, is that the approach was just as well known before
-2020, and it still made five years of return in one when liquidity
+were still a secret I would not be writing it up 😉. A fun thought
+experiment, though, is that **this approach was just as well known before
+2020**, and it still made five years of return in one when liquidity
 disappeared. Being crowded did not stop it from paying when the
 paying mattered.
 
 ## Limitations
 
-The data model is a single value per cell, so qex is not point-in-time.
+The data model is a single value per cell, so qex is not point-in-time on its own.
 If a company reports a dollar of earnings in January and restates it to
 three dollars in March, qex only knows one of those numbers, and the run
 above uses today's adjusted prices and today's index membership, which
@@ -342,10 +350,9 @@ the result is fifty lines nobody wants to audit. A model that writes qex
 cannot look ahead, because the operators do not allow it, and the search
 space is constrained to a closed vocabulary of operators and fields,
 which makes a candidate alpha cheap to generate, cheap to check, and
-cheap to compare against the library. The package already lets a dataset
+cheap to compare against the library. Using qex, you can ensure the agent doesn't have read access to the data directly. The package already lets a dataset
 describe its own fields, so an agent can discover what is available
-before it proposes an expression. That is the setting the
-human-plus-machine collaboration in the last post needs.
+before it proposes an expression.
 
 qex is at version 0.3, Apache licensed, and installs from the repo.
 Issues and pull requests are welcome.
@@ -355,6 +362,11 @@ Issues and pull requests are welcome.
 - Doherty, K. "More Risk, Less Speed: Hudson River Mints Billions Slowing
   Down." *Bloomberg*, December 2025.
   [news.bloomberglaw.com](https://news.bloomberglaw.com/securities-law/more-risk-less-speed-hudson-river-mints-billions-slowing-down)
+- Grinold, R. C. "The Fundamental Law of Active Management." *Journal of
+  Portfolio Management* 15(3), 1989.
+- Grinold, R. C. and Kahn, R. N. *Active Portfolio Management: A
+  Quantitative Approach for Producing Superior Returns and Controlling
+  Risk*, 2nd ed. McGraw-Hill, 2000.
 - Jegadeesh, N. "Evidence of Predictable Behavior of Security Returns."
   *Journal of Finance* 45(3), 1990.
 - Kakushadze, Z. "101 Formulaic Alphas." *Wilmott* 2016(84), 2016.
