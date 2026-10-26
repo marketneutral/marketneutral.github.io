@@ -9,10 +9,11 @@ Let's talk about qex.
 
 I have been building a small language for expressing quant alphas, the
 cross-sectional forecasts a systematic investor turns into a portfolio.
-It is called qex, which I pronounce as *kecks*, and the
-[source](https://github.com/marketneutral/alpha-parser) and
-[documentation](https://marketneutral.github.io/alpha-parser/) are
-public. A simple but mighty one-line `qex` expression is:
+It is called qex, which is short for "*q*uantitative *ex*pression" and
+which I pronounce as *kecks*. The project is
+[open source](https://github.com/marketneutral/alpha-parser), and there
+is a dedicated [documentation
+site](https://marketneutral.github.io/alpha-parser/). A simple but mighty one-line qex expression is:
 
 ```python
 signal = qex("rank(-returns(20) / volatility(60))")
@@ -92,7 +93,7 @@ many people, or by many agents, and still plug into the same pipeline.
 
 ## Three axes
 
-A dataset, e.g., pricing, is organized in `qex` as tickers across the columns and data increasing in time along the rows. Every operation in qex works along one of three axes, and knowing which
+A dataset, e.g., pricing, is organized in qex as tickers across the columns and data increasing in time along the rows. Every operation in qex works along one of three axes, and knowing which
 one is most of what you need to read an expression.
 
 **Time series** operations run down the rows, one ticker at a time:
