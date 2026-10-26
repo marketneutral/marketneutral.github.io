@@ -68,6 +68,13 @@ that changes:
   searched, and evolved. Shared sub-expressions are visible, so a thousand
   alphas cost far less than a thousand times one. None of that is possible
   when each alpha is its own script.
+- **The grammar is a search space.** Machine-generated alphas need
+  somewhere to search, and "all Python programs" is not it. A closed set
+  of operators and fields, composed by a grammar, is a finite and
+  well-shaped space: every point in it is a valid alpha, neighbors are a
+  single operator or window away, and mutation and crossover are defined.
+  That is what genetic programming and reinforcement learning over alphas
+  have always needed, and what a pile of scripts never gives them.
 - **Review is constant time.** A portfolio manager can audit the intent of
   an expression at a glance, and that is the only kind of review that
   scales to machine-generated research.
@@ -258,6 +265,17 @@ per unit of turnover at 2 basis points, which is an aspirational but reasonable 
 an institution (I'm assuming a lot here!). All returns are on gross market value, GMV, unlevered,
 meaning a dollar long against a dollar short with no financing and no
 leverage.
+
+One more disclosure: this is a *delay-0* alpha. The signal is computed
+from the close and the book is traded at that same close, so the run
+assumes you can measure the day's range and execute on it in the same
+print. That is possible, with the trade computed from the closing
+auction's imbalance or in the last minutes before the bell, but it is
+not the usual setup for a high-capacity book, which computes the signal
+at the close and trades the next day, a *delay-1* alpha. Short-horizon
+reversal is exactly the kind of alpha that gives something up to a day
+of delay, so treat these numbers as the delay-0 upper end.
+
 The table shows the same alpha unsmoothed and with a ten-day decay.
 
 | Range, daily | Turnover / day | Gross on GMV | Gross Sharpe | Net on GMV at 2 bps | Net Sharpe | Max drawdown |
