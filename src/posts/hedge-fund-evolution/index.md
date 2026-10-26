@@ -5,28 +5,27 @@ tag: TALK
 description: Notes from a guest lecture at MIT on two trends reshaping hedge funds — unbundling the workflow across a crowd, and pairing human judgment with machine forecasts.
 ---
 
-This is the written version of a guest lecture I gave for MIT 18.642,
+On October 2, 2025 I gave a guest lecture at MIT in 18.642,
 *Topics in Mathematics with Applications in Finance*, on where the hedge
-fund is heading.
+fund world is heading. This post is a written version of that talk.
 
 ▸ **[View the slides](https://marketneutral.github.io/hedge_fund_evolution/hf_evolution.html)**
-· [Source on GitHub](https://github.com/marketneutral/hedge_fund_evolution)
 
 The argument is that two trends are reshaping the industry, and that both
 are downstream of ideas that are decades old:
 
-1. **Unbundling.** Parts of the hedge fund workflow are moving outside the
-   firm, to crowds of data scientists coordinated by competitions and, in
-   some cases, crypto incentives.
+1. **Unbundling.** Parts of the hedge fund workflow are moving *outside the
+   firm*, to crowds of data scientists coordinated by competitions and, in
+   some cases, blockchain-based incentives.
 2. **Human + machine collaboration.** The evidence is now fairly clear that
-   combining human forecasts with machine forecasts beats either alone.
+   combining human forecasts with machine forecasts beats either alone. Perhaps in the future, machines alone will suffice, but today, humans are still adding value.
 
 ## Background and theory
 
 Almost everything interesting about these trends follows from a handful of
 results in statistics, machine learning, and social science.
 
-**Condorcet's jury theorem (1785).** If each juror is right with
+**Condorcet's jury theorem (1785).** Machine learning started in...1785. If each juror is right with
 probability greater than one half, and errors are independent, the
 probability that the majority is correct goes to one as the number of
 jurors grows:
@@ -56,8 +55,7 @@ $$
 $$
 
 Model averaging is just stacking where $g$ is a weighted sum. Gradient
-boosted trees remain the dominant approach for tabular data, and stacking
-is how nearly every Kaggle competition gets won.
+boosted trees remain the dominant approach for tabular data, and, often together with stacking, are how nearly every classic tabular Kaggle competition was won.
 
 **The Dunbar number (1992).** Dunbar estimated that humans can maintain
 roughly 150 stable relationships. Past that, organizations fracture into
@@ -77,7 +75,7 @@ an extraordinarily efficient way to extract predictive power from a large
 group of strangers.
 
 **Machine, platform, crowd (2017).** McAfee and Brynjolfsson tie the above
-together for business. Crowds beat experts, platforms unlock assets that
+together for business. This book has been very influential on my thinking. Crowds beat experts, platforms unlock assets that
 were previously stranded, trust can be built through leaderboards and
 ratings, and success is a function of incentives and governance.
 
@@ -89,7 +87,7 @@ harness collective intelligence.
 
 How does a hedge fund scale without breaking? Mostly by respecting Dunbar.
 The multi-manager platform does it with pods: small teams, central risk.
-The lean fund does it by capping its own size. The bureaucratic fund does
+The lean fund does it by capping its own organization size. The bureaucratic fund does
 it with heavy process. And the quant fund does it by structuring itself as
 an assembly line.
 
@@ -111,8 +109,8 @@ Separate teams own separate stages:
 The 2017 *Wall Street Journal* piece on WorldQuant's "alpha factory," with
 125 PhDs across 15 countries, is this workflow at industrial scale. Alphas
 are produced upstream, combined in the middle, and optimized and executed
-downstream. The important point for what follows is that the stages are
-separable. Once you can describe the interface between them, you can
+downstream. The important point for what follows is that **the stages are
+separable.** Once you can describe the interface between them, you can
 imagine moving one of them outside the building.
 
 ## Unbundling
@@ -146,7 +144,7 @@ consensus signals are licensed to institutional clients. Prizes are paid in
 USDC today; a native CRUNCH token is planned.
 
 **CrowdCent** combines fundamental analysts with machine learning.
-Analysts share theses through SumZero, internal data scientists build
+Analysts share written fundamental investment theses through SumZero, internal data scientists build
 models on those ideas plus market data, and a community of data
 scientists competes in challenges such as ranking Hyperliquid assets by
 forward returns. There is no native token, but the firm runs a vehicle
@@ -163,11 +161,11 @@ research stage of the workflow.
 
 ![A sketch of a robot and a person working together at a laptop.](hmcollab.png)
 
-The second trend is quieter but better evidenced. There are two shapes
+The second trend is quieter but well evidenced. There are two shapes
 collaboration can take.
 
-**Horizontal.** Treat the human forecast as one more feature. Concatenate
-it with the machine's inputs and fit a model on both.
+**Horizontal.** Treat the human forecast as one more feature. *Concatenate
+it* with the machine's inputs and fit a model on both.
 
 Cao, Jiang, Wang, and Yang (*Journal of Financial Economics*, 2024) do
 this at scale. Their human forecasts are 948,054 twelve-month price targets
@@ -179,7 +177,7 @@ machine with the analyst's forecast included as a feature beats the analyst
 57% of the time. The human forecast carries information the machine
 cannot recover from public data on its own.
 
-**Vertical.** Stepwise. Human first, machine second, or the reverse. The
+**Vertical.** Stepwise. Human first, machine second (or the reverse). The
 human generates ideas and the machine filters, ranks, or optimizes.
 
 deHaan, Lee, Liu, and Noh (Stanford GSB, 2025) construct 170 alphas from
@@ -195,9 +193,9 @@ then adjusts each manager's portfolio within its own style group:
   style index, so the portfolio stays in-style.
 - Renormalize.
 
-The average human Sharpe is about 0.47. The average paired improvement
+The average human Sharpe is about 0.47. **The average paired improvement
 from the AI adjustment is about 0.17, with a t-statistic near 69, and
-roughly 95% of funds improve. That holds net of transaction costs, and
+roughly 95% of funds improve.** That holds net of transaction costs, and
 under a conservative payout convention where the AI's incremental gains
 are paid out each quarter so it never compounds an AUM advantage. A random
 forest on public data, sitting downstream of a human stock picker, adds
@@ -218,3 +216,35 @@ meaningful risk-adjusted return to nearly every fund in the sample.
 - Human plus machine beats either alone, in both the horizontal and the
   vertical configuration, and the evidence is from large samples.
 
+
+## References
+
+- Cao, S., Jiang, W., Wang, J., and Yang, B. "From Man vs. Machine to Man +
+  Machine: The Art and AI of Stock Analyses." *Journal of Financial
+  Economics* 160, 2024.
+  [papers.ssrn.com](https://papers.ssrn.com/abstract=3840538)
+- Condorcet, M. de. *Essai sur l'application de l'analyse à la probabilité
+  des décisions rendues à la pluralité des voix*. Imprimerie Royale, 1785.
+- deHaan, E., Lee, C., Liu, M., and Noh, S. "The Shadow Price of 'Public'
+  Information." Working paper, Stanford Graduate School of Business, 2025.
+  [gsb-faculty.stanford.edu](https://gsb-faculty.stanford.edu/ed-dehaan/files/2025/05/DLLN-Shadow-Price.pdf)
+- Donoho, D. "50 Years of Data Science." *Journal of Computational and
+  Graphical Statistics* 26(4), 2017.
+  [stat.berkeley.edu](https://www.stat.berkeley.edu/users/aldous/157/Papers/donoho_50YearsDataScience.pdf)
+- Dunbar, R. I. M. "Neocortex Size as a Constraint on Group Size in
+  Primates." *Journal of Human Evolution* 22(6), 1992.
+- Friedman, J. H. "Greedy Function Approximation: A Gradient Boosting
+  Machine." *Annals of Statistics* 29(5), 2001.
+- Hope, B. "With 125 Ph.D.s in 15 Countries, a Quant 'Alpha Factory' Hunts
+  for Investing Edge." *Wall Street Journal*, April 2017.
+- Kearns, M. "Thoughts on Hypothesis Boosting." Unpublished manuscript,
+  1988.
+- Larkin, J. *A Professional Quant Equity Workflow*. Lecture notes, 2016.
+  [github.com/marketneutral/lectures](https://github.com/marketneutral/lectures/blob/master/A%20Professional%20Quant%20Equity%20Workflow.pdf)
+- Larkin, J. *The Evolution of the Hedge Fund*. Guest lecture, MIT 18.642,
+  October 2025.
+  [marketneutral.github.io/hedge_fund_evolution](https://marketneutral.github.io/hedge_fund_evolution/hf_evolution.html)
+- McAfee, A. and Brynjolfsson, E. *Machine, Platform, Crowd: Harnessing Our
+  Digital Future*. W. W. Norton, 2017.
+- Surowiecki, J. *The Wisdom of Crowds*. Doubleday, 2004.
+- Wolpert, D. H. "Stacked Generalization." *Neural Networks* 5(2), 1992.
