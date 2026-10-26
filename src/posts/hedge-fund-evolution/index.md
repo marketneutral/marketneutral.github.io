@@ -193,6 +193,11 @@ then adjusts each manager's portfolio within its own style group:
   style index, so the portfolio stays in-style.
 - Renormalize.
 
+<figure class="diagram" id="dehaan">
+  <img src="dehaan-process.svg" alt="The deHaan, Lee, Liu, and Noh process. A human lane turns 13-F holdings into a manager's portfolio. A machine lane turns public data into 170 alphas, a random forest forecast of one-quarter-ahead DGTW-adjusted returns, and decile ranks within style group. The AI analyst adjusts each pick within the manager's style group: top-decile picks are kept, picks in deciles two to nine are swapped into the best available top-decile name in the group subject to a liquidity cap, and bottom-decile picks are replaced with the group's style index. The result is renormalized into an adjusted portfolio.">
+  <figcaption>The vertical configuration in deHaan, Lee, Liu, and Noh (2025). The human picks the stocks; a random forest on public data decides what to keep, swap, or replace, one style group at a time. Green marks the portfolios going in and coming out.</figcaption>
+</figure>
+
 The average human Sharpe is about 0.47. **The average paired improvement
 from the AI adjustment is about 0.17, with a t-statistic near 69, and
 roughly 95% of funds improve.** That holds net of transaction costs, and

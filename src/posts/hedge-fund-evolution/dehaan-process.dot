@@ -1,0 +1,50 @@
+// Source for dehaan-process.svg. Re-render with:
+//   dot -Tsvg dehaan-process.dot -o dehaan-process.svg
+digraph dehaan {
+  rankdir=TB;
+  bgcolor="transparent";
+  pad=0.3;
+  nodesep=0.35;
+  ranksep=0.5;
+  fontname="IBM Plex Mono, DejaVu Sans Mono, monospace";
+  node [shape=box, style="rounded,filled", fillcolor="#131927", color="#2a3344",
+        fontcolor="#e8eaf0", fontname="IBM Plex Mono, DejaVu Sans Mono, monospace",
+        fontsize=15, margin="0.22,0.12", penwidth=1.2];
+  edge [color="#6b7280", arrowsize=0.7, penwidth=1.1,
+        fontname="IBM Plex Mono, DejaVu Sans Mono, monospace", fontsize=12, fontcolor="#c0c4cf"];
+
+  subgraph cluster_human {
+    label="Human"; labeljust=l; fontsize=12; fontcolor="#6b7280";
+    color="#2a3344"; style="rounded,dashed"; margin=14;
+    HOLD  [label="13-F holdings\n3,337 active US equity funds\n1990 to 2020"];
+    HPORT [label="Manager's portfolio", shape=hexagon, style=filled, margin="0.05,0.05",
+           width=0, height=0, fillcolor="#0a0e1a", color="#3ee87a", fontcolor="#3ee87a"];
+    HOLD -> HPORT;
+  }
+
+  subgraph cluster_machine {
+    label="Machine"; labeljust=l; fontsize=12; fontcolor="#6b7280";
+    color="#2a3344"; style="rounded,dashed"; margin=14;
+    DATA   [label="Public data"];
+    ALPHAS [label="170 alphas"];
+    RF     [label="Random forest\nforecasts 1Q-ahead\nDGTW-adjusted returns"];
+    DECILE [label="Decile ranks\nwithin style group"];
+    DATA -> ALPHAS -> RF -> DECILE;
+  }
+
+  ADJ  [label="AI analyst adjusts each pick\nwithin the manager's style group"];
+  KEEP [label="Keep"];
+  SWAP [label="Swap into best available\ntop-decile name in the group\n(liquidity cap)"];
+  DROP [label="Replace with\nthe group's style index"];
+  NORM [label="Renormalize"];
+  OUT  [label="Adjusted portfolio", shape=hexagon, style=filled, margin="0.05,0.05",
+        width=0, height=0, fillcolor="#0a0e1a", color="#3ee87a", fontcolor="#3ee87a"];
+
+  HPORT  -> ADJ;
+  DECILE -> ADJ;
+  ADJ -> KEEP [label="  top decile"];
+  ADJ -> SWAP [label="  deciles 2 to 9"];
+  ADJ -> DROP [label="  bottom decile"];
+  KEEP -> NORM; SWAP -> NORM; DROP -> NORM;
+  NORM -> OUT;
+}
