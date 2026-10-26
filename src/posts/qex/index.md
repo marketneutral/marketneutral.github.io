@@ -2,8 +2,10 @@
 title: "qex: a small language for quant alphas"
 date: 2026-02-08
 tag: PROJECT
-description: "Let's talk about qex: a domain-specific language for quant alphas. Write the idea in one line, let the engine handle the rolling windows, ranks, missing data, and caching."
+description: "A domain-specific language for quant alphas. Write the idea in one line, let the engine handle the rolling windows, ranks, missing data, and caching."
 ---
+
+Let's talk about qex.
 
 I have been building a small language for expressing quant alphas, the
 cross-sectional forecasts a systematic investor turns into a portfolio.
@@ -33,8 +35,7 @@ the number of independent bets, or IR ≈ IC × √BR. Institutional quants
 exploit small mispricings, so each forecast carries little skill, and the
 way to turn that into a meaningful risk-adjusted return is to apply it
 across the largest breadth of opportunities possible. A broad universe
-also guards against selecting your way into a flattering sample; the
-survivorship bias in the run below is exactly that failure.</p>
+also guards against selecting your way into a flattering sample.</p>
 </div>
 
 ## Why a language
