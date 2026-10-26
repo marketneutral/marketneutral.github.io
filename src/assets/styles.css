@@ -632,6 +632,18 @@ footer a:hover { color: var(--accent); }
   color: var(--ink);
   max-width: 65ch;
 }
+/* muted aside: a footnote that stays in place */
+.post-body .note {
+  border-left: 1px solid var(--rule);
+  padding-left: 18px;
+  margin: 26px 0;
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--muted);
+  max-width: 65ch;
+}
+.post-body .note p { margin-bottom: 0; }
+.post-body .note strong { color: var(--ink-2); font-weight: 600; }
 .post-body ul, .post-body ol { margin: 0 0 22px 24px; }
 .post-body li { margin-bottom: 6px; }
 .post-body hr {

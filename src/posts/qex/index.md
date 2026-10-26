@@ -25,25 +25,29 @@ NaN handling. You do not need to be a programmer to read the short
 version: most portfolio managers can code, but anyone who can write an
 Excel formula can read that line, and most of what follows.
 
-<div class="callout">
-<p><strong>Why cross-sectional?</strong> Working across a wide cross-section
+<div class="note">
+
+**Sidebar: The cross-section.** Working across a wide cross-section
 of stocks at once is second nature inside institutional quant firms and
 somewhat obscure outside them. The motivation is Grinold's Fundamental Law
 of Active Management: the information ratio is roughly the skill of each
 forecast, the information coefficient, times the square root of breadth,
-the number of independent bets, or IR ≈ IC × √BR. Institutional quants
-exploit small mispricings, so each forecast carries little skill, and the
-way to turn that into a meaningful risk-adjusted return is to apply it
-across the largest breadth of opportunities possible. A broad universe
-also guards against selecting your way into a flattering sample.</p>
+the number of independent bets, or `IR = IC * sqrt(BR)`.
+Institutional quants exploit small mispricings, so each forecast carries
+little skill, and the way to turn that into a meaningful risk-adjusted
+return is to apply it across the largest breadth of opportunities
+possible. A broad universe also guards against selecting your way into a
+flattering sample.
+
 </div>
 
 ## Why a language
 
-Anyone who has read Kakushadze's [*101 Formulaic
-Alphas*](https://arxiv.org/abs/1601.00991) will recognize the style.
-Expressions like `rank(ts_corr(returns(1), volume(1), 20))` are how
-large quant shops have described alphas for years.
+Anyone who has read Kakushadze's *101 Formulaic Alphas* will
+recognize the style.
+Expressions like `rank(ts_corr(returns(1), volume(1), 20))` are
+indicative of one flavor of domain-specific language, or DSL, that
+large quant shops could use to describe alphas.
 
 The usual argument for the form is readability, and it is true that the
 expression captures the idea where the pandas buries it. But in the age
