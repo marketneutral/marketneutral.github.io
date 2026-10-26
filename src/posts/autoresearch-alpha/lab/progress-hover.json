@@ -1,0 +1,1100 @@
+[
+{
+"trial": 0,
+"commit": "seed",
+"status": "seed",
+"utility": -0.091,
+"worst": -0.961,
+"label": "",
+"claim": "Seed: sector-demeaned vol-scaled 12-1 momentum, 1/vol sizing, 10-day linear decay, on the point-in-time universe, scored as a Finding Alphas book (delay 1, gross one every day, 5% cap, fitness). Baseline for the keep rule: the median of the eight noise runs in noise.txt.",
+"qex": "let mom   = delay(returns(231), 21),\n    vol   = volatility(60),\n    score = group_demean(mom / vol, 'sector')\nin decay_linear(score / vol, 10)",
+"top": [
+0.09348,
+0.52206
+],
+"bottom": [
+0.09348,
+0.88661
+]
+},
+{
+"trial": 1,
+"commit": "1a88c40",
+"status": "keep",
+"utility": 0.009,
+"worst": -0.374,
+"label": "crash switch",
+"claim": "Hard switch: where the DM crash state holds (equal-weight member market down over 504d, 21d vol above 252d vol) the sector-relative momentum score flips sign to reversal. Mechanism: the crash is the past losers rebounding hardest. Predict crash-state Sharpe turns positive, worst fold improves a lot, median a …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    crash = (ts_sum(mk, 504) < 0) & (ts_std(mk, 21) > ts_std(mk, 252)),\n    mom   = delay(returns(231), 21),\n    vol   = volatility(60),\n    score = group_demean(mom / vol, 'sector')\nin decay_linear(where(crash, -score, score) / vol, 10)",
+"top": [
+0.10754,
+0.50262
+],
+"bottom": [
+0.10754,
+0.78146
+]
+},
+{
+"trial": 2,
+"commit": "a1c6525",
+"status": "keep",
+"utility": 0.32,
+"worst": -0.191,
+"label": "drop 1/vol",
+"claim": "Drop the final 1/vol: the score is already mom/vol, so the seed sizes by mom/vol^2 and the book piles into low-vol names whose momentum carries little return. Mechanism: fitness pays for return, and vol-standardizing the ranking (belief 4) already keeps volatile names from dominating. Predict higher return and …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    crash = (ts_sum(mk, 504) < 0) & (ts_std(mk, 21) > ts_std(mk, 252)),\n    mom   = delay(returns(231), 21),\n    vol   = volatility(60),\n    score = group_demean(mom / vol, 'sector')\nin decay_linear(where(crash, -score, score), 10)",
+"top": [
+0.1216,
+0.44216
+],
+"bottom": [
+0.1216,
+0.74868
+]
+},
+{
+"trial": 3,
+"commit": "3a9c144",
+"status": "reset",
+"utility": 0.191,
+"worst": -0.226,
+"label": "",
+"claim": "Novy-Marx: form on months 7-12 only (delay(returns(126),126)) instead of 12-1. Mechanism: intermediate-horizon returns carry the predictive power; months 1-6 add noise. Predict calm Sharpe up, median up; worst may fall because the crash flip now acts on an older signal. Inspection SR 0.85 to 1.22.",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    crash = (ts_sum(mk, 504) < 0) & (ts_std(mk, 21) > ts_std(mk, 252)),\n    mom   = delay(returns(126), 126),\n    vol   = volatility(60),\n    score = group_demean(mom / vol, 'sector')\nin decay_linear(where(crash, -score, score), 10)",
+"top": [
+0.13566,
+0.46723
+],
+"bottom": [
+0.13566,
+0.75495
+]
+},
+{
+"trial": 4,
+"commit": "ba214ee",
+"status": "keep",
+"utility": 0.429,
+"worst": -0.074,
+"label": "1-year vol",
+"claim": "Standardize the formation return by 252d vol (the window it was earned over) instead of 60d. Mechanism: 60d vol is noisy and spikes right after big moves, so it mis-ranks names; a year of vol is the risk behind a year of return. Predict a small median gain and worst flat. Inspection SR 0.85 to 1.02.",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    crash = (ts_sum(mk, 504) < 0) & (ts_std(mk, 21) > ts_std(mk, 252)),\n    mom   = delay(returns(231), 21),\n    vol   = volatility(252),\n    score = group_demean(mom / vol, 'sector')\nin decay_linear(where(crash, -score, score), 10)",
+"top": [
+0.14971,
+0.42097
+],
+"bottom": [
+0.14971,
+0.72772
+]
+},
+{
+"trial": 5,
+"commit": "18aecee",
+"status": "reset",
+"utility": 0.333,
+"worst": -0.202,
+"label": "",
+"claim": "Drop the sector demean: rank vol-scaled momentum across the whole market. Belief 3 says sector bets carry the beta and the crash; with the crash flip in place they might be harvested instead. Predict median up on more return, worst down; a worst drop beyond 0.13 confirms belief 3.",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    crash = (ts_sum(mk, 504) < 0) & (ts_std(mk, 21) > ts_std(mk, 252)),\n    mom   = delay(returns(231), 21),\n    vol   = volatility(252),\n    score = demean(mom / vol)\nin decay_linear(where(crash, -score, score), 10)",
+"top": [
+0.16377,
+0.43963
+],
+"bottom": [
+0.16377,
+0.75065
+]
+},
+{
+"trial": 6,
+"commit": "46518a0",
+"status": "keep",
+"utility": 0.564,
+"worst": -0.01,
+"label": "1-month reversal sleeve",
+"claim": "Add a sector-relative 1-month reversal sleeve, -group_demean(returns(21)/vol), outside the decay and the crash flip. Mechanism: the last month reverses (Jegadeesh 1990; known 35 years, probably mostly priced), and fitness does not charge turnover below 0.125, so a fast sleeve rides free. Predict median up, turnover …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    crash = (ts_sum(mk, 504) < 0) & (ts_std(mk, 21) > ts_std(mk, 252)),\n    mom   = delay(returns(231), 21),\n    vol   = volatility(252),\n    score = group_demean(mom / vol, 'sector')\nin decay_linear(where(crash, -score, score), 10) - group_demean(returns(21) / vol, 'sector')",
+"top": [
+0.17783,
+0.39472
+],
+"bottom": [
+0.17783,
+0.71625
+]
+},
+{
+"trial": 7,
+"commit": "4a19234",
+"status": "keep",
+"utility": 0.636,
+"worst": -0.074,
+"label": "1-year state",
+"claim": "Crash state on a 1-year market drawdown (ts_sum(mk,252)<0) instead of 2-year, same vol condition. Mechanism: the loser leg turns high-beta after one bad year, the same horizon as formation; the 2y window misses shorter bear legs and their rebounds. Predict more flipped days, worst up, median flat to up; risk of …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    crash = (ts_sum(mk, 252) < 0) & (ts_std(mk, 21) > ts_std(mk, 252)),\n    mom   = delay(returns(231), 21),\n    vol   = volatility(252),\n    score = group_demean(mom / vol, 'sector')\nin decay_linear(where(crash, -score, score), 10) - group_demean(returns(21) / vol, 'sector')",
+"top": [
+0.19189,
+0.38073
+],
+"bottom": [
+0.19189,
+0.72772
+]
+},
+{
+"trial": 8,
+"commit": "8bace00",
+"status": "keep",
+"utility": 0.736,
+"worst": 0.062,
+"label": "residual momentum",
+"claim": "Residual momentum: form on the 231d sum of daily returns net of beta(252d) times the equal-weight member market, skip a month, vol-scale, sector-demean. Mechanism: removes time-varying market beta from the ranking, so the book stops loading on the beta of past winners/losers (Blitz-Huij-Martens). Predict median up, …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    crash = (ts_sum(mk, 252) < 0) & (ts_std(mk, 21) > ts_std(mk, 252)),\n    vol   = volatility(252),\n    rr    = returns(1) - ts_beta(returns(1), mk, 252) * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom / vol, 'sector')\nin decay_linear(where(crash, -score, score), 10) - group_demean(returns(21) / vol, 'sector')",
+"top": [
+0.20595,
+0.36129
+],
+"bottom": [
+0.20595,
+0.70336
+]
+},
+{
+"trial": 9,
+"commit": "aa6ed6f",
+"status": "reset",
+"utility": 0.701,
+"worst": 0.084,
+"label": "",
+"claim": "Not in the list; Nagel (2012, RFS, Evaporating Liquidity), known about 12 years: short-term reversal is pay for liquidity provision and pays most when market vol is high. Scale the reversal sleeve by the market 21d/252d vol ratio (shared with the crash state). Predict gains on high-dispersion and crash days, median …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    vr    = ts_std(mk, 21) / ts_std(mk, 252),\n    crash = (ts_sum(mk, 252) < 0) & (vr > 1),\n    vol   = volatility(252),\n    rr    = returns(1) - ts_beta(returns(1), mk, 252) * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom / vol, 'sector')\nin decay_linear(where(crash, -score, score), 10) - vr * group_demean(returns(21) / vol, 'sector')",
+"top": [
+0.22,
+0.36809
+],
+"bottom": [
+0.22,
+0.69942
+]
+},
+{
+"trial": 10,
+"commit": "c4cde00",
+"status": "reset",
+"utility": 0.582,
+"worst": 0.033,
+"label": "",
+"claim": "Drop the skip month from residual momentum (ts_sum(rr,252), no delay), since the explicit reversal sleeve already bets on last-month reversal and residual returns should reverse less. Predict utility within noise with one node fewer; a bigger fall means the skip still earns its keep. Inspection SR 2.06 to 2.01.",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    crash = (ts_sum(mk, 252) < 0) & (ts_std(mk, 21) > ts_std(mk, 252)),\n    vol   = volatility(252),\n    rr    = returns(1) - ts_beta(returns(1), mk, 252) * mk,\n    mom   = ts_sum(rr, 252),\n    score = group_demean(mom / vol, 'sector')\nin decay_linear(where(crash, -score, score), 10) - group_demean(returns(21) / vol, 'sector')",
+"top": [
+0.23406,
+0.39122
+],
+"bottom": [
+0.23406,
+0.70855
+]
+},
+{
+"trial": 11,
+"commit": "1b4a4bf",
+"status": "reset",
+"utility": 0.709,
+"worst": -0.021,
+"label": "",
+"claim": "In the crash state flip RAW 12-1 momentum (beta-loaded) instead of residual momentum. Mechanism: the rebound payoff is the high-beta past losers (Daniel-Moskowitz); residual momentum strips that beta, so its flip should harvest less. Predict crash-state Sharpe up, worst up, calm unchanged, median flat to up; 4 more …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    crash = (ts_sum(mk, 252) < 0) & (ts_std(mk, 21) > ts_std(mk, 252)),\n    vol   = volatility(252),\n    rr    = returns(1) - ts_beta(returns(1), mk, 252) * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom / vol, 'sector'),\n    raw   = group_demean(delay(returns(231), 21) / vol, 'sector')\nin decay_linear(where(crash, -raw, score), 10) - group_demean(returns(21) / vol, 'sector')",
+"top": [
+0.24812,
+0.36654
+],
+"bottom": [
+0.24812,
+0.71822
+]
+},
+{
+"trial": 12,
+"commit": "5ea9a95",
+"status": "reset",
+"utility": 0.685,
+"worst": 0.078,
+"label": "",
+"claim": "Reverse the stock-specific (market-beta residual) part of last month, ts_sum(rr,21), not the raw return. Mechanism: reversal is pay for absorbing idiosyncratic order flow; the beta part of the move is the market and does not reverse within a sector. Predict worst up, median flat to up, same node count. Inspection …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    crash = (ts_sum(mk, 252) < 0) & (ts_std(mk, 21) > ts_std(mk, 252)),\n    vol   = volatility(252),\n    rr    = returns(1) - ts_beta(returns(1), mk, 252) * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom / vol, 'sector')\nin decay_linear(where(crash, -score, score), 10) - group_demean(ts_sum(rr, 21) / vol, 'sector')",
+"top": [
+0.26218,
+0.3712
+],
+"bottom": [
+0.26218,
+0.70049
+]
+},
+{
+"trial": 13,
+"commit": "3aa42cd",
+"status": "reset",
+"utility": 0.723,
+"worst": 0.083,
+"label": "",
+"claim": "Rank vol-scaled residual momentum within sector, mapped to [-1,1] (same mean |x| ~0.5, so the sleeve mix is unchanged), instead of the linear demeaned score. Mechanism: the linear score puts the most weight on the most extreme past movers, the names most exposed to reversal. Predict worst up, high-dispersion Sharpe …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    crash = (ts_sum(mk, 252) < 0) & (ts_std(mk, 21) > ts_std(mk, 252)),\n    vol   = volatility(252),\n    rr    = returns(1) - ts_beta(returns(1), mk, 252) * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = 2 * group_rank(mom / vol, 'sector') - 1\nin decay_linear(where(crash, -score, score), 10) - group_demean(returns(21) / vol, 'sector')",
+"top": [
+0.27623,
+0.36381
+],
+"bottom": [
+0.27623,
+0.69959
+]
+},
+{
+"trial": 14,
+"commit": "ab65776",
+"status": "reset",
+"utility": 0.766,
+"worst": 0.003,
+"label": "",
+"claim": "Signed square of the combined signal, a*|a|, so weight goes to names where the sleeves agree most strongly. Mechanism: the edge is in the tails, and with gross fixed at one, concentrating raises return faster than risk while breadth stays above 1000. Predict return up ~30%, Sharpe flat, median up, worst may fall, …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    crash = (ts_sum(mk, 252) < 0) & (ts_std(mk, 21) > ts_std(mk, 252)),\n    vol   = volatility(252),\n    rr    = returns(1) - ts_beta(returns(1), mk, 252) * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom / vol, 'sector'),\n    a     = decay_linear(where(crash, -score, score), 10) - group_demean(returns(21) / vol, 'sector')\nin a * abs(a)",
+"top": [
+0.29029,
+0.35545
+],
+"bottom": [
+0.29029,
+0.71393
+]
+},
+{
+"trial": 15,
+"commit": "31637d5",
+"status": "reset",
+"utility": 0.701,
+"worst": 0.066,
+"label": "",
+"claim": "A 3-day linear decay over the whole book. The 1-month reversal has a horizon of weeks, so 3 days of smoothing should sit inside it and cut the daily churn of returns(21). Predict turnover 0.12 to ~0.10 (folds above the 0.125 floor come under it), Sharpe flat, median up a little, worst flat.",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    crash = (ts_sum(mk, 252) < 0) & (ts_std(mk, 21) > ts_std(mk, 252)),\n    vol   = volatility(252),\n    rr    = returns(1) - ts_beta(returns(1), mk, 252) * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom / vol, 'sector')\nin decay_linear(decay_linear(where(crash, -score, score), 10) - group_demean(returns(21) / vol, 'sector'), 3)",
+"top": [
+0.30435,
+0.36809
+],
+"bottom": [
+0.30435,
+0.70264
+]
+},
+{
+"trial": 16,
+"commit": "92c93dd",
+"status": "keep",
+"utility": 0.784,
+"worst": -0.028,
+"label": "a·|a|, decay 3",
+"claim": "Signed square of the combined signal, then a 3-day linear decay. T14 showed a*|a| lifts return 4.7% to 6.0% but turnover 0.15 ate the gain; T15 showed a 3-day decay cuts turnover ~0.03 at a small Sharpe cost. Mechanism: the edge is in the tails; with gross fixed, concentration raises return, and smoothing keeps it …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    crash = (ts_sum(mk, 252) < 0) & (ts_std(mk, 21) > ts_std(mk, 252)),\n    vol   = volatility(252),\n    rr    = returns(1) - ts_beta(returns(1), mk, 252) * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom / vol, 'sector'),\n    a     = decay_linear(where(crash, -score, score), 10) - group_demean(returns(21) / vol, 'sector')\nin decay_linear(a * abs(a), 3)",
+"top": [
+0.31841,
+0.35196
+],
+"bottom": [
+0.31841,
+0.71948
+]
+},
+{
+"trial": 17,
+"commit": "2f933c3",
+"status": "keep",
+"utility": 0.89,
+"worst": -0.021,
+"label": "cube",
+"claim": "Cube the combined signal, power(a,3), instead of a*|a|; one node fewer. Mechanism as T16: the edge sits in the tails and gross is fixed at one, so more weight on the extremes raises return. Predict return up ~1%/yr, turnover toward 0.13, Sharpe flat to slightly down, median up; worst may fall. Inspection return …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    crash = (ts_sum(mk, 252) < 0) & (ts_std(mk, 21) > ts_std(mk, 252)),\n    vol   = volatility(252),\n    rr    = returns(1) - ts_beta(returns(1), mk, 252) * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom / vol, 'sector'),\n    a     = decay_linear(where(crash, -score, score), 10) - group_demean(returns(21) / vol, 'sector')\nin decay_linear(power(a, 3), 3)",
+"top": [
+0.33247,
+0.33135
+],
+"bottom": [
+0.33247,
+0.71822
+]
+},
+{
+"trial": 18,
+"commit": "bc9bf0c",
+"status": "reset",
+"utility": 0.832,
+"worst": -0.024,
+"label": "",
+"claim": "Re-demean the cubed signal within sector. Cubing breaks the sector demean (a skewed sector tails no longer net out), and sector tilts are factor bets carrying beta and crash risk (T5 cost 0.1). Predict worst up, high-dispersion Sharpe up, median flat to up; one more node.",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    crash = (ts_sum(mk, 252) < 0) & (ts_std(mk, 21) > ts_std(mk, 252)),\n    vol   = volatility(252),\n    rr    = returns(1) - ts_beta(returns(1), mk, 252) * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom / vol, 'sector'),\n    a     = decay_linear(where(crash, -score, score), 10) - group_demean(returns(21) / vol, 'sector')\nin decay_linear(group_demean(power(a, 3), 'sector'), 3)",
+"top": [
+0.34652,
+0.34262
+],
+"bottom": [
+0.34652,
+0.71876
+]
+},
+{
+"trial": 19,
+"commit": "d8850e1",
+"status": "reset",
+"utility": 0.893,
+"worst": -0.039,
+"label": "",
+"claim": "Lengthen the outer decay 3 to 5 days. The cubed book folds run at 0.13-0.14 turnover, above the 0.125 floor, as tail names drift in and out. Predict turnover ~0.10, return flat, Sharpe down slightly (as in T15), median up only if the turnover saving beats the lost freshness; worst flat.",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    crash = (ts_sum(mk, 252) < 0) & (ts_std(mk, 21) > ts_std(mk, 252)),\n    vol   = volatility(252),\n    rr    = returns(1) - ts_beta(returns(1), mk, 252) * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom / vol, 'sector'),\n    a     = decay_linear(where(crash, -score, score), 10) - group_demean(returns(21) / vol, 'sector')\nin decay_linear(power(a, 3), 5)",
+"top": [
+0.36058,
+0.33077
+],
+"bottom": [
+0.36058,
+0.72145
+]
+},
+{
+"trial": 20,
+"commit": "541efc6",
+"status": "reset",
+"utility": 0.563,
+"worst": -0.053,
+"label": "",
+"claim": "Blend closeness to the 52-week high (2*close/ts_max(close,252), sized so its spread matches mom/vol) into the momentum score before the sector demean and the crash flip. Mechanism: investors anchor on the high and are slow to buy through it (George-Hwang 2004). Inspection: rank IC up at every horizon but Sharpe …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    crash = (ts_sum(mk, 252) < 0) & (ts_std(mk, 21) > ts_std(mk, 252)),\n    vol   = volatility(252),\n    rr    = returns(1) - ts_beta(returns(1), mk, 252) * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom / vol + 2 * close() / ts_max(close(), 252), 'sector'),\n    a     = decay_linear(where(crash, -score, score), 10) - group_demean(returns(21) / vol, 'sector')\nin decay_linear(power(a, 3), 3)",
+"top": [
+0.37464,
+0.39492
+],
+"bottom": [
+0.37464,
+0.72396
+]
+},
+{
+"trial": 21,
+"commit": "d4bab52",
+"status": "reset",
+"utility": 0.824,
+"worst": -0.069,
+"label": "",
+"claim": "Inner momentum decay 10 to 21 days. Momentum horizon is months, so a month of smoothing is inside it and eases the crash-flip transitions. Predict turnover down ~0.01, Sharpe flat, median up a little, worst flat; breadth slightly lower.",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    crash = (ts_sum(mk, 252) < 0) & (ts_std(mk, 21) > ts_std(mk, 252)),\n    vol   = volatility(252),\n    rr    = returns(1) - ts_beta(returns(1), mk, 252) * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom / vol, 'sector'),\n    a     = decay_linear(where(crash, -score, score), 21) - group_demean(returns(21) / vol, 'sector')\nin decay_linear(power(a, 3), 3)",
+"top": [
+0.3887,
+0.34418
+],
+"bottom": [
+0.3887,
+0.72682
+]
+},
+{
+"trial": 22,
+"commit": "0db8226",
+"status": "keep",
+"utility": 1.0,
+"worst": 0.013,
+"label": "soft switch",
+"claim": "Soft switch: when 1m market vol is above 1y vol, the momentum weight is clip(10 * 1y market return, -1, 1) instead of a hard -1 on any 1y loss; +1 otherwise. Mechanism: shallow drawdowns get a small momentum book instead of a full reversal, deep ones a full reversal. Predict (per belief 7) worst slightly lower, …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * ts_sum(mk, 252), 1), -1), 1),\n    vol   = volatility(252),\n    rr    = returns(1) - ts_beta(returns(1), mk, 252) * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom / vol, 'sector'),\n    a     = decay_linear(w * score, 10) - group_demean(returns(21) / vol, 'sector')\nin decay_linear(power(a, 3), 3)",
+"top": [
+0.40275,
+0.30997
+],
+"bottom": [
+0.40275,
+0.71213
+]
+},
+{
+"trial": 23,
+"commit": "501254c",
+"status": "reset",
+"utility": 0.934,
+"worst": 0.029,
+"label": "",
+"claim": "Nagel retested under the soft switch: scale the reversal sleeve by the market 21d/252d vol ratio (shared with the switch). T9 moved the regimes the right way but not the median on the linear hard-switch book; now the switch shrinks momentum in high vol, so under the cube reversal should take over exactly then. …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    vr    = ts_std(mk, 21) / ts_std(mk, 252),\n    w     = where(vr > 1, max(min(10 * ts_sum(mk, 252), 1), -1), 1),\n    vol   = volatility(252),\n    rr    = returns(1) - ts_beta(returns(1), mk, 252) * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom / vol, 'sector'),\n    a     = decay_linear(w * score, 10) - vr * group_demean(returns(21) / vol, 'sector')\nin decay_linear(power(a, 3), 3)",
+"top": [
+0.41681,
+0.3228
+],
+"bottom": [
+0.41681,
+0.70927
+]
+},
+{
+"trial": 24,
+"commit": "7a689ab",
+"status": "keep",
+"utility": 1.101,
+"worst": 0.023,
+"label": "beta hedge",
+"claim": "Beta-neutral book: project the cubed signal off each name demeaned 252d market beta, cross-sectionally each day, so the dollar-neutral book is also beta-neutral. Mechanism: the cube and the reversal sleeve can tilt to high- or low-beta names, an unrewarded market bet that bites in 2008-09 (Grundy-Martin: hedging …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * ts_sum(mk, 252), 1), -1), 1),\n    vol   = volatility(252),\n    b     = ts_beta(returns(1), mk, 252),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom / vol, 'sector'),\n    a     = decay_linear(w * score, 10) - group_demean(returns(21) / vol, 'sector'),\n    s     = power(a, 3),\n    bd    = demean(b),\n    sb    = s * bd,\n    bb    = bd * bd\nin decay_linear(s - bd * (sb - demean(sb)) / (bb - demean(bb)), 3)",
+"top": [
+0.43087,
+0.29033
+],
+"bottom": [
+0.43087,
+0.71034
+]
+},
+{
+"trial": 25,
+"commit": "0ad3a5d",
+"status": "reset",
+"utility": 1.004,
+"worst": 0.005,
+"label": "",
+"claim": "After the beta projection, also project the signal off demeaned log market cap. Mechanism: the cubed tails lean to small names (larger residual moves), a size-factor bet the firm does not want; same logic that made T24 pay. Predict worst up, median flat to up after ~0.03 charge, return slightly down.",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * ts_sum(mk, 252), 1), -1), 1),\n    vol   = volatility(252),\n    b     = ts_beta(returns(1), mk, 252),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom / vol, 'sector'),\n    a     = decay_linear(w * score, 10) - group_demean(returns(21) / vol, 'sector'),\n    s     = power(a, 3),\n    bd    = demean(b),\n    sb    = s * bd,\n    bb    = bd * bd,\n    t     = s - bd * (sb - demean(sb)) / (bb - demean(bb)),\n    zd    = demean(log(field('mcap'))),\n    tz    = t * zd,\n    zz    = zd * zd\nin decay_linear(t - zd * (tz - demean(tz)) / (zz - demean(zz)), 3)",
+"top": [
+0.44493,
+0.30919
+],
+"bottom": [
+0.44493,
+0.71357
+]
+},
+{
+"trial": 26,
+"commit": "3ed5745",
+"status": "reset",
+"utility": 0.687,
+"worst": -0.03,
+"label": "",
+"claim": "Frog in the pan: scale residual momentum by information continuity, 1 + 5*sign(mom)*(2*share of up residual days - 1), over the same 12-1 window. Mechanism: gradual moves are underreacted to, jumps already priced (Da-Gurun-Warachka 2014). Inspection twice negative (-0.2 SR); predict median flat to down, calm Sharpe …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * ts_sum(mk, 252), 1), -1), 1),\n    vol   = volatility(252),\n    b     = ts_beta(returns(1), mk, 252),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    fp    = delay(ts_mean(rr > 0, 231), 21),\n    score = group_demean(mom / vol * (1 + 5 * sign(mom) * (2 * fp - 1)), 'sector'),\n    a     = decay_linear(w * score, 10) - group_demean(returns(21) / vol, 'sector'),\n    s     = power(a, 3),\n    bd    = demean(b),\n    sb    = s * bd,\n    bb    = bd * bd\nin decay_linear(s - bd * (sb - demean(sb)) / (bb - demean(bb)), 3)",
+"top": [
+0.45899,
+0.37081
+],
+"bottom": [
+0.45899,
+0.71984
+]
+},
+{
+"trial": 27,
+"commit": "2ff8f94",
+"status": "reset",
+"utility": 0.622,
+"worst": -0.51,
+"label": "",
+"claim": "Remove the crash switch (and the redundant member mask on s) now that the book is beta-hedged. Grundy-Martin: hedging factor exposure removes most momentum crash risk, and the crash is a beta event; a residual, beta-neutral book may not need belief 7. Predict crash-state Sharpe falls sharply, worst falls, median up …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    vol   = volatility(252),\n    b     = ts_beta(returns(1), mk, 252),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom / vol, 'sector'),\n    a     = decay_linear(score, 10) - group_demean(returns(21) / vol, 'sector'),\n    s     = power(a, 3),\n    bd    = demean(b),\n    sb    = s * bd,\n    bb    = bd * bd\nin decay_linear(s - bd * (sb - demean(sb)) / (bb - demean(bb)), 3)",
+"top": [
+0.47304,
+0.38345
+],
+"bottom": [
+0.47304,
+0.80582
+]
+},
+{
+"trial": 28,
+"commit": "8c59533",
+"status": "reset",
+"utility": 1.052,
+"worst": -0.076,
+"label": "",
+"claim": "Barroso-Santa-Clara: scale the momentum sleeve by min(1, 252d/21d realized vol of the residual-momentum factor own daily return), computed in-expression from yesterday score and today member returns (also drops the redundant member mask on s). Gross is fixed, so this shifts weight from momentum to reversal when …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * ts_sum(mk, 252), 1), -1), 1),\n    vol   = volatility(252),\n    b     = ts_beta(returns(1), mk, 252),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom / vol, 'sector'),\n    fp    = delay(score, 1) * mr,\n    fr    = fp - demean(fp),\n    bs    = min(ts_std(fr, 252) / ts_std(fr, 21), 1),\n    a     = decay_linear(w * bs * score, 10) - group_demean(returns(21) / vol, 'sector'),\n    s     = power(a, 3),\n    bd    = demean(b),\n    sb    = s * bd,\n    bb    = bd * bd\nin decay_linear(s - bd * (sb - demean(sb)) / (bb - demean(bb)), 3)",
+"top": [
+0.4871,
+0.29986
+],
+"bottom": [
+0.4871,
+0.72808
+]
+},
+{
+"trial": 29,
+"commit": "1f6ffc3",
+"status": "reset",
+"utility": 0.993,
+"worst": 0.04,
+"label": "",
+"claim": "Standardize residual momentum by residual (idiosyncratic) vol, 16*ts_std(rr,252), annualized so the sleeve mix is unchanged, as Blitz-Huij-Martens build it, not total vol. Mechanism: total vol includes beta*market vol, so high-beta names stock-specific momentum is under-weighted. Predict calm Sharpe up slightly, …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * ts_sum(mk, 252), 1), -1), 1),\n    vol   = volatility(252),\n    b     = ts_beta(returns(1), mk, 252),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom / (16 * ts_std(rr, 252)), 'sector'),\n    a     = decay_linear(w * score, 10) - group_demean(returns(21) / vol, 'sector'),\n    s     = power(a, 3),\n    bd    = demean(b),\n    sb    = s * bd,\n    bb    = bd * bd\nin decay_linear(s - bd * (sb - demean(sb)) / (bb - demean(bb)), 3)",
+"top": [
+0.50116,
+0.31133
+],
+"bottom": [
+0.50116,
+0.7073
+]
+},
+{
+"trial": 30,
+"commit": "cd00feb",
+"status": "reset",
+"utility": 1.018,
+"worst": 0.349,
+"label": "",
+"claim": "Switch without the vol condition: w = clip(10 * 1y market return + 1, -1, 1): full momentum when the market is up on the year, zero at -10%, full reversal below -20%. Mechanism: after a vol spike the 252d vol stays high, so 21d < 252d switches the old condition off during the rebound (Apr-Sep 2009), exactly when …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    w     = max(min(10 * ts_sum(mk, 252) + 1, 1), -1),\n    vol   = volatility(252),\n    b     = ts_beta(returns(1), mk, 252),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom / vol, 'sector'),\n    a     = decay_linear(w * score, 10) - group_demean(returns(21) / vol, 'sector'),\n    s     = power(a, 3),\n    bd    = demean(b),\n    sb    = s * bd,\n    bb    = bd * bd\nin decay_linear(s - bd * (sb - demean(sb)) / (bb - demean(bb)), 3)",
+"top": [
+0.51522,
+0.30647
+],
+"bottom": [
+0.51522,
+0.65195
+]
+},
+{
+"trial": 31,
+"commit": "9d624cb",
+"status": "keep",
+"utility": 1.269,
+"worst": 0.319,
+"label": "deep-bear rule",
+"claim": "Combine T24 and T30 switches: when 1m market vol > 1y vol, w = clip(10*m1y) as now; otherwise, instead of a flat +1, w = clip(10*m1y + 1), so a deep bear (below -10%) still shrinks or flips momentum after vol subsides. Mechanism: T30 showed the deep-bear rule saves the rebound fold (worst 0.35) while the vol rule …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    m1    = ts_sum(mk, 252),\n    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * m1, 1), -1), max(min(10 * m1 + 1, 1), -1)),\n    vol   = volatility(252),\n    b     = ts_beta(returns(1), mk, 252),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom / vol, 'sector'),\n    a     = decay_linear(w * score, 10) - group_demean(returns(21) / vol, 'sector'),\n    s     = power(a, 3),\n    bd    = demean(b),\n    sb    = s * bd,\n    bb    = bd * bd\nin decay_linear(s - bd * (sb - demean(sb)) / (bb - demean(bb)), 3)",
+"top": [
+0.52927,
+0.25767
+],
+"bottom": [
+0.52927,
+0.65732
+]
+},
+{
+"trial": 32,
+"commit": "2cc4acf",
+"status": "reset",
+"utility": 1.287,
+"worst": 0.244,
+"label": "",
+"claim": "Standardize both sleeves by sqrt(vol) instead of vol. Under the cube, full 1/vol scaling pushes the tails toward low-vol names that earn little per dollar; sqrt keeps volatile names from dominating while letting them carry more weight. Gross is fixed, so this trades Sharpe for return. Predict return up ~20%, Sharpe …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    m1    = ts_sum(mk, 252),\n    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * m1, 1), -1), max(min(10 * m1 + 1, 1), -1)),\n    vol   = sqrt(volatility(252)),\n    b     = ts_beta(returns(1), mk, 252),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom / vol, 'sector'),\n    a     = decay_linear(w * score, 10) - group_demean(returns(21) / vol, 'sector'),\n    s     = power(a, 3),\n    bd    = demean(b),\n    sb    = s * bd,\n    bb    = bd * bd\nin decay_linear(s - bd * (sb - demean(sb)) / (bb - demean(bb)), 3)",
+"top": [
+0.54333,
+0.25417
+],
+"bottom": [
+0.54333,
+0.67075
+]
+},
+{
+"trial": 33,
+"commit": "d466e9b",
+"status": "keep",
+"utility": 1.32,
+"worst": 0.369,
+"label": "no vol scaling",
+"claim": "No vol standardization in either sleeve (raw residual momentum, raw 1m reversal). T32 (sqrt vol) raised return 8.2% to 10.6% at the same Sharpe but only +0.018 utility; going all the way tests whether the volatile names belief 4 fears are where the return is. Predict return up ~30%, Sharpe down ~10%, median up …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    m1    = ts_sum(mk, 252),\n    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * m1, 1), -1), max(min(10 * m1 + 1, 1), -1)),\n    b     = ts_beta(returns(1), mk, 252),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom, 'sector'),\n    a     = decay_linear(w * score, 10) - group_demean(returns(21), 'sector'),\n    s     = power(a, 3),\n    bd    = demean(b),\n    sb    = s * bd,\n    bb    = bd * bd\nin decay_linear(s - bd * (sb - demean(sb)) / (bb - demean(bb)), 3)",
+"top": [
+0.55739,
+0.24776
+],
+"bottom": [
+0.55739,
+0.64836
+]
+},
+{
+"trial": 34,
+"commit": "cf557fc",
+"status": "reset",
+"utility": 1.166,
+"worst": 0.318,
+"label": "",
+"claim": "Signed square a*|a| instead of the cube (and drop the redundant member mask). Without vol scaling, raw-return signals already have fat tails in volatile names, so the cube may over-concentrate; inspection Sharpe 1.58 to 1.75. Predict Sharpe up, return down a little, median flat to up, worst up.",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    m1    = ts_sum(mk, 252),\n    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * m1, 1), -1), max(min(10 * m1 + 1, 1), -1)),\n    b     = ts_beta(returns(1), mk, 252),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom, 'sector'),\n    a     = decay_linear(w * score, 10) - group_demean(returns(21), 'sector'),\n    s     = a * abs(a),\n    bd    = demean(b),\n    sb    = s * bd,\n    bb    = bd * bd\nin decay_linear(s - bd * (sb - demean(sb)) / (bb - demean(bb)), 3)",
+"top": [
+0.57145,
+0.2777
+],
+"bottom": [
+0.57145,
+0.6575
+]
+},
+{
+"trial": 35,
+"commit": "326d478",
+"status": "reset",
+"utility": 1.055,
+"worst": 0.189,
+"label": "",
+"claim": "power(a,5) instead of the cube (redundant member mask dropped). Every return-raising change so far has paid on validation even when inspection disagreed (T14-T17, T32-T33); this tests where the tails stop paying. Inspection strongly against (Sharpe 1.58 to 1.24). Predict return up, Sharpe down, turnover toward …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    m1    = ts_sum(mk, 252),\n    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * m1, 1), -1), max(min(10 * m1 + 1, 1), -1)),\n    b     = ts_beta(returns(1), mk, 252),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom, 'sector'),\n    a     = decay_linear(w * score, 10) - group_demean(returns(21), 'sector'),\n    s     = power(a, 5),\n    bd    = demean(b),\n    sb    = s * bd,\n    bb    = bd * bd\nin decay_linear(s - bd * (sb - demean(sb)) / (bb - demean(bb)), 3)",
+"top": [
+0.58551,
+0.29927
+],
+"bottom": [
+0.58551,
+0.68061
+]
+},
+{
+"trial": 36,
+"commit": "cc9355d",
+"status": "reset",
+"utility": 0.928,
+"worst": 0.133,
+"label": "",
+"claim": "Sector-demean the final beta-hedged cubed signal. Since T33 dropped vol scaling, the cube tails sit in volatile names that cluster by sector, so the book may carry sector bets the inputs were demeaned to avoid (T18 found nothing when vol scaling kept the tails spread). Predict worst up, median up a little, return …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    m1    = ts_sum(mk, 252),\n    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * m1, 1), -1), max(min(10 * m1 + 1, 1), -1)),\n    b     = ts_beta(returns(1), mk, 252),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom, 'sector'),\n    a     = decay_linear(w * score, 10) - group_demean(returns(21), 'sector'),\n    s     = power(a, 3),\n    bd    = demean(b),\n    sb    = s * bd,\n    bb    = bd * bd\nin decay_linear(group_demean(s - bd * (sb - demean(sb)) / (bb - demean(bb)), 'sector'), 3)",
+"top": [
+0.59956,
+0.32396
+],
+"bottom": [
+0.59956,
+0.69064
+]
+},
+{
+"trial": 37,
+"commit": "6bde7c6",
+"status": "reset",
+"utility": 1.267,
+"worst": 0.172,
+"label": "",
+"claim": "Rank residual momentum market-wide (demean) instead of within sector, adding sector residual momentum back on purpose. T5 rejected this before the beta hedge and cube; T36 showed sector tilts in the cubed book earn money. Mechanism: residual sector momentum is Moskowitz-Grinblatt industry momentum without its beta. …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    m1    = ts_sum(mk, 252),\n    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * m1, 1), -1), max(min(10 * m1 + 1, 1), -1)),\n    b     = ts_beta(returns(1), mk, 252),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = demean(mom),\n    a     = decay_linear(w * score, 10) - group_demean(returns(21), 'sector'),\n    s     = power(a, 3),\n    bd    = demean(b),\n    sb    = s * bd,\n    bb    = bd * bd\nin decay_linear(s - bd * (sb - demean(sb)) / (bb - demean(bb)), 3)",
+"top": [
+0.61362,
+0.25806
+],
+"bottom": [
+0.61362,
+0.68365
+]
+},
+{
+"trial": 38,
+"commit": "0dea195",
+"status": "reset",
+"utility": 1.253,
+"worst": 0.436,
+"label": "",
+"claim": "Winsorize the combined signal at the 1st/99th cross-sectional percentiles before the cube. With raw (unscaled) returns, the extreme 1% are takeover jumps, bankruptcies and data spikes, which do not revert or continue like ordinary moves, and the cube gives them the most weight. Predict Sharpe up, return down …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    m1    = ts_sum(mk, 252),\n    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * m1, 1), -1), max(min(10 * m1 + 1, 1), -1)),\n    b     = ts_beta(returns(1), mk, 252),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom, 'sector'),\n    a     = winsorize(decay_linear(w * score, 10) - group_demean(returns(21), 'sector'), 0.01),\n    s     = power(a, 3),\n    bd    = demean(b),\n    sb    = s * bd,\n    bb    = bd * bd\nin decay_linear(s - bd * (sb - demean(sb)) / (bb - demean(bb)), 3)",
+"top": [
+0.62768,
+0.26078
+],
+"bottom": [
+0.62768,
+0.63636
+]
+},
+{
+"trial": 39,
+"commit": "398d02c",
+"status": "reset",
+"utility": 1.206,
+"worst": 0.38,
+"label": "",
+"claim": "Bounded concentration: winsorize the combined signal at 1%/99% and raise the power from 3 to 5. T38 showed winsorizing removes outlier noise but costs return under the cube; T35 showed power 5 fails on raw tails. With the tails capped, a stronger power should concentrate on strong-but-ordinary names. Predict return …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    m1    = ts_sum(mk, 252),\n    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * m1, 1), -1), max(min(10 * m1 + 1, 1), -1)),\n    b     = ts_beta(returns(1), mk, 252),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom, 'sector'),\n    a     = winsorize(decay_linear(w * score, 10) - group_demean(returns(21), 'sector'), 0.01),\n    s     = power(a, 5),\n    bd    = demean(b),\n    sb    = s * bd,\n    bb    = bd * bd\nin decay_linear(s - bd * (sb - demean(sb)) / (bb - demean(bb)), 3)",
+"top": [
+0.64174,
+0.26992
+],
+"bottom": [
+0.64174,
+0.64639
+]
+},
+{
+"trial": 40,
+"commit": "e4797e5",
+"status": "reset",
+"utility": 0.737,
+"worst": 0.009,
+"label": "",
+"claim": "Apply the switch weight only to past losers (score < 0); winners keep full momentum weight in every state. In a deep bear the losers flip to longs while winners stay long, so the book (after the evaluator demean) is long both extremes and short the middle: long the losers option-like rebound (Daniel-Moskowitz) …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    m1    = ts_sum(mk, 252),\n    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * m1, 1), -1), max(min(10 * m1 + 1, 1), -1)),\n    b     = ts_beta(returns(1), mk, 252),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom, 'sector'),\n    a     = decay_linear(where(score < 0, w * score, score), 10) - group_demean(returns(21), 'sector'),\n    s     = power(a, 3),\n    bd    = demean(b),\n    sb    = s * bd,\n    bb    = bd * bd\nin decay_linear(s - bd * (sb - demean(sb)) / (bb - demean(bb)), 3)",
+"top": [
+0.65579,
+0.36109
+],
+"bottom": [
+0.65579,
+0.71285
+]
+},
+{
+"trial": 41,
+"commit": "2d5026b",
+"status": "reset",
+"utility": 1.239,
+"worst": 0.366,
+"label": "",
+"claim": "Reverse last month market-wide (demean) instead of within sector (belief 3 on the reversal sleeve, never tested). Moskowitz-Grinblatt find industries continue at 1 month, so this should be worse; T36 found the cubed book sector tilts earn money, so it might not be. Predict median down, worst down; same node count.",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    m1    = ts_sum(mk, 252),\n    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * m1, 1), -1), max(min(10 * m1 + 1, 1), -1)),\n    b     = ts_beta(returns(1), mk, 252),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom, 'sector'),\n    a     = decay_linear(w * score, 10) - demean(returns(21)),\n    s     = power(a, 3),\n    bd    = demean(b),\n    sb    = s * bd,\n    bb    = bd * bd\nin decay_linear(s - bd * (sb - demean(sb)) / (bb - demean(bb)), 3)",
+"top": [
+0.66985,
+0.2635
+],
+"bottom": [
+0.66985,
+0.6489
+]
+},
+{
+"trial": 42,
+"commit": "dc75acd",
+"status": "reset",
+"utility": 1.192,
+"worst": 0.513,
+"label": "",
+"claim": "Winsorize only the momentum input (residual 12-1 return over members, 1%/99%) before the sector demean. T38 showed winsorizing the combined signal smooths the book but costs return; inspection says the profitable extremes are in the reversal sleeve and the noisy ones in momentum (extreme 12m residual movers are …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    m1    = ts_sum(mk, 252),\n    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * m1, 1), -1), max(min(10 * m1 + 1, 1), -1)),\n    b     = ts_beta(returns(1), mk, 252),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(winsorize(mom, 0.01), 'sector'),\n    a     = decay_linear(w * score, 10) - group_demean(returns(21), 'sector'),\n    s     = power(a, 3),\n    bd    = demean(b),\n    sb    = s * bd,\n    bb    = bd * bd\nin decay_linear(s - bd * (sb - demean(sb)) / (bb - demean(bb)), 3)",
+"top": [
+0.68391,
+0.27264
+],
+"bottom": [
+0.68391,
+0.62257
+]
+},
+{
+"trial": 43,
+"commit": "4691ea6",
+"status": "reset",
+"utility": 1.115,
+"worst": 0.39,
+"label": "",
+"claim": "Reversal at 1.5x relative to momentum. Since T33 the sleeves are raw returns, and the 1:1 mix was set in T6 under vol scaling; reversal has the stronger short-horizon edge, and under the cube a bigger reversal share moves the tails toward names where both agree. Predict return and Sharpe up, turnover 0.12 to ~0.15 …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    m1    = ts_sum(mk, 252),\n    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * m1, 1), -1), max(min(10 * m1 + 1, 1), -1)),\n    b     = ts_beta(returns(1), mk, 252),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom, 'sector'),\n    a     = decay_linear(w * score, 10) - 1.5 * group_demean(returns(21), 'sector'),\n    s     = power(a, 3),\n    bd    = demean(b),\n    sb    = s * bd,\n    bb    = bd * bd\nin decay_linear(s - bd * (sb - demean(sb)) / (bb - demean(bb)), 3)",
+"top": [
+0.69797,
+0.28761
+],
+"bottom": [
+0.69797,
+0.6446
+]
+},
+{
+"trial": 44,
+"commit": "964e2fb",
+"status": "reset",
+"utility": 1.242,
+"worst": 0.269,
+"label": "",
+"claim": "Reversal at 0.7x. T43 (1.5x) lowered Sharpe and return on validation; short-term reversal profits shrank after decimalization (Chordia-Roll-Subrahmanyam 2008), so 2004-2017 may want less of it than 1999-2003 suggests. Predict turnover 0.12 to ~0.11, Sharpe flat to up, median up a little, worst flat; 1 node.",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    m1    = ts_sum(mk, 252),\n    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * m1, 1), -1), max(min(10 * m1 + 1, 1), -1)),\n    b     = ts_beta(returns(1), mk, 252),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom, 'sector'),\n    a     = decay_linear(w * score, 10) - 0.7 * group_demean(returns(21), 'sector'),\n    s     = power(a, 3),\n    bd    = demean(b),\n    sb    = s * bd,\n    bb    = bd * bd\nin decay_linear(s - bd * (sb - demean(sb)) / (bb - demean(bb)), 3)",
+"top": [
+0.71203,
+0.26292
+],
+"bottom": [
+0.71203,
+0.66628
+]
+},
+{
+"trial": 45,
+"commit": "074c52f",
+"status": "reset",
+"utility": 1.212,
+"worst": 0.337,
+"label": "",
+"claim": "Apply the switch weight outside the momentum decay (w * decay_linear(score,10)) instead of inside, so a state change acts the next day rather than over ~5 days. Rebounds are sharpest in their first days (Daniel-Moskowitz), and the switch changes rarely, so the extra turnover is small. Predict crash Sharpe up, worst …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    m1    = ts_sum(mk, 252),\n    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * m1, 1), -1), max(min(10 * m1 + 1, 1), -1)),\n    b     = ts_beta(returns(1), mk, 252),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom, 'sector'),\n    a     = w * decay_linear(score, 10) - group_demean(returns(21), 'sector'),\n    s     = power(a, 3),\n    bd    = demean(b),\n    sb    = s * bd,\n    bb    = bd * bd\nin decay_linear(s - bd * (sb - demean(sb)) / (bb - demean(bb)), 3)",
+"top": [
+0.72608,
+0.26875
+],
+"bottom": [
+0.72608,
+0.65409
+]
+},
+{
+"trial": 46,
+"commit": "7007dcc",
+"status": "reset",
+"utility": 1.109,
+"worst": 0.302,
+"label": "",
+"claim": "Soft in both dimensions: replace the hard vol test with a graded offset, w = clip(10*m1y + clip(2.5 - 2*vr, 0, 1), -1, 1), vr = 21d/252d market vol. At vr <= 0.75 it is the T31 calm rule, at vr >= 1.25 the high-vol rule, linear between. T22 showed softening the drawdown dimension paid; the vol dimension is still a …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    m1    = ts_sum(mk, 252),\n    off   = max(min(2.5 - 2 * ts_std(mk, 21) / ts_std(mk, 252), 1), 0),\n    w     = max(min(10 * m1 + off, 1), -1),\n    b     = ts_beta(returns(1), mk, 252),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom, 'sector'),\n    a     = decay_linear(w * score, 10) - group_demean(returns(21), 'sector'),\n    s     = power(a, 3),\n    bd    = demean(b),\n    sb    = s * bd,\n    bb    = bd * bd\nin decay_linear(s - bd * (sb - demean(sb)) / (bb - demean(bb)), 3)",
+"top": [
+0.74014,
+0.28878
+],
+"bottom": [
+0.74014,
+0.66036
+]
+},
+{
+"trial": 47,
+"commit": "582dc6a",
+"status": "keep",
+"utility": 1.376,
+"worst": 0.378,
+"label": "504-day beta",
+"claim": "Estimate market beta over 504 days instead of 252, for both the residual and the hedge (Blitz-Huij-Martens use 36 months). Mechanism: a 1-year beta is noisy, so part of the residual is still market exposure and the hedge chases noise; a longer window gives a cleaner residual and a steadier hedge. Predict Sharpe up …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    m1    = ts_sum(mk, 252),\n    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * m1, 1), -1), max(min(10 * m1 + 1, 1), -1)),\n    b     = ts_beta(returns(1), mk, 504),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom, 'sector'),\n    a     = decay_linear(w * score, 10) - group_demean(returns(21), 'sector'),\n    s     = power(a, 3),\n    bd    = demean(b),\n    sb    = s * bd,\n    bb    = bd * bd\nin decay_linear(s - bd * (sb - demean(sb)) / (bb - demean(bb)), 3)",
+"top": [
+0.7542,
+0.23687
+],
+"bottom": [
+0.7542,
+0.64675
+]
+},
+{
+"trial": 48,
+"commit": "318e1b1",
+"status": "reset",
+"utility": 1.336,
+"worst": 0.262,
+"label": "",
+"claim": "Beta over 756 days (36 months, as Blitz-Huij-Martens). T47 showed 504d beats 252d; test whether the gain continues or the longer window starts to miss genuine beta drift. Predict small change either way (+-0.03), worst flat; same nodes.",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    m1    = ts_sum(mk, 252),\n    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * m1, 1), -1), max(min(10 * m1 + 1, 1), -1)),\n    b     = ts_beta(returns(1), mk, 756),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom, 'sector'),\n    a     = decay_linear(w * score, 10) - group_demean(returns(21), 'sector'),\n    s     = power(a, 3),\n    bd    = demean(b),\n    sb    = s * bd,\n    bb    = bd * bd\nin decay_linear(s - bd * (sb - demean(sb)) / (bb - demean(bb)), 3)",
+"top": [
+0.76826,
+0.24465
+],
+"bottom": [
+0.76826,
+0.66753
+]
+},
+{
+"trial": 49,
+"commit": "06608f1",
+"status": "reset",
+"utility": 1.305,
+"worst": 0.295,
+"label": "",
+"claim": "Split the beta roles: keep the 504d beta for the residual (stable ranking, T47) but hedge the book with a 252d beta. Mechanism: the residual wants a stable estimate of long-run exposure, the hedge wants current exposure, which drifts (losers beta rises in bear markets, Daniel-Moskowitz). Predict worst up, median …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    m1    = ts_sum(mk, 252),\n    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * m1, 1), -1), max(min(10 * m1 + 1, 1), -1)),\n    b     = ts_beta(returns(1), mk, 504),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom, 'sector'),\n    a     = decay_linear(w * score, 10) - group_demean(returns(21), 'sector'),\n    s     = power(a, 3),\n    bd    = demean(ts_beta(returns(1), mk, 252)),\n    sb    = s * bd,\n    bb    = bd * bd\nin decay_linear(s - bd * (sb - demean(sb)) / (bb - demean(bb)), 3)",
+"top": [
+0.78231,
+0.25067
+],
+"bottom": [
+0.78231,
+0.66162
+]
+},
+{
+"trial": 50,
+"commit": "259994b",
+"status": "reset",
+"utility": 1.318,
+"worst": 0.353,
+"label": "",
+"claim": "Write the switch in its equivalent short form, w = clip(10*m1y + (21d vol <= 252d vol), -1, 1) (identical except on days a vol is NaN), and drop the redundant member mask on s. Same book, fewer nodes. Predict utility up by the charge saved (~+0.025) within noise, worst unchanged.",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    w     = max(min(10 * ts_sum(mk, 252) + (ts_std(mk, 21) <= ts_std(mk, 252)), 1), -1),\n    b     = ts_beta(returns(1), mk, 504),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom, 'sector'),\n    a     = decay_linear(w * score, 10) - group_demean(returns(21), 'sector'),\n    s     = power(a, 3),\n    bd    = demean(b),\n    sb    = s * bd,\n    bb    = bd * bd\nin decay_linear(s - bd * (sb - demean(sb)) / (bb - demean(bb)), 3)",
+"top": [
+0.79637,
+0.24815
+],
+"bottom": [
+0.79637,
+0.65123
+]
+},
+{
+"trial": 51,
+"commit": "2ab86ca",
+"status": "reset",
+"utility": 1.366,
+"worst": 0.421,
+"label": "",
+"claim": "Milder outlier control: winsorize the combined signal at 0.2%/99.8% (~3-4 names a side) instead of T38 1%. T38 showed 1% makes the book safer but clips profitable extremes too; the few truly anomalous names (takeover jumps, data spikes, stale bankrupt names) sit in the outer 0.2%. Predict return nearly flat, Sharpe …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    m1    = ts_sum(mk, 252),\n    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * m1, 1), -1), max(min(10 * m1 + 1, 1), -1)),\n    b     = ts_beta(returns(1), mk, 504),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom, 'sector'),\n    a     = winsorize(decay_linear(w * score, 10) - group_demean(returns(21), 'sector'), 0.002),\n    s     = power(a, 3),\n    bd    = demean(b),\n    sb    = s * bd,\n    bb    = bd * bd\nin decay_linear(s - bd * (sb - demean(sb)) / (bb - demean(bb)), 3)",
+"top": [
+0.81043,
+0.23882
+],
+"bottom": [
+0.81043,
+0.63905
+]
+},
+{
+"trial": 52,
+"commit": "efecee3",
+"status": "reset",
+"utility": 0.926,
+"worst": 0.073,
+"label": "",
+"claim": "Removal: drop the 1-month reversal sleeve (added in T6 for +0.135 under a linear, vol-scaled, unhedged book). Measures what it is worth in the final structure; under the cube it also decides which names are concentrated. Predict a large fall (median -0.2 or more), turnover to ~0.08, worst down.",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    m1    = ts_sum(mk, 252),\n    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * m1, 1), -1), max(min(10 * m1 + 1, 1), -1)),\n    b     = ts_beta(returns(1), mk, 504),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom, 'sector'),\n    a     = decay_linear(w * score, 10),\n    s     = power(a, 3),\n    bd    = demean(b),\n    sb    = s * bd,\n    bb    = bd * bd\nin decay_linear(s - bd * (sb - demean(sb)) / (bb - demean(bb)), 3)",
+"top": [
+0.82449,
+0.32435
+],
+"bottom": [
+0.82449,
+0.70139
+]
+},
+{
+"trial": 53,
+"commit": "5813674",
+"status": "reset",
+"utility": 1.087,
+"worst": 0.269,
+"label": "",
+"claim": "Compute the crash switch from each name own sector (equal-weight sector return: 1y drawdown and 21d/252d vol) instead of the whole market. Mechanism: the momentum is sector-relative, so its losers are the high-beta-to-sector names, which rally when their sector rebounds from a bear (financials 2009, energy 2016) …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    sr    = mr - group_demean(mr, 'sector'),\n    m1    = ts_sum(sr, 252),\n    w     = where(ts_std(sr, 21) > ts_std(sr, 252), max(min(10 * m1, 1), -1), max(min(10 * m1 + 1, 1), -1)),\n    b     = ts_beta(returns(1), mk, 504),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom, 'sector'),\n    a     = decay_linear(w * score, 10) - group_demean(returns(21), 'sector'),\n    s     = power(a, 3),\n    bd    = demean(b),\n    sb    = s * bd,\n    bb    = bd * bd\nin decay_linear(s - bd * (sb - demean(sb)) / (bb - demean(bb)), 3)",
+"top": [
+0.83855,
+0.29305
+],
+"bottom": [
+0.83855,
+0.66628
+]
+},
+{
+"trial": 54,
+"commit": "b89945f",
+"status": "keep",
+"utility": 1.473,
+"worst": 0.4,
+"label": "drop the hedge",
+"claim": "Removal: drop the beta hedge (T24, +0.10 when the sleeves were vol-scaled). Since T33 the tails sit in volatile names, so the unhedged book should carry more beta; this measures what the hedge is worth now and frees 12 nodes. Predict median down 0.05-0.15, worst down, crash-state Sharpe down.",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    m1    = ts_sum(mk, 252),\n    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * m1, 1), -1), max(min(10 * m1 + 1, 1), -1)),\n    b     = ts_beta(returns(1), mk, 504),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom, 'sector'),\n    a     = decay_linear(w * score, 10) - group_demean(returns(21), 'sector')\nin decay_linear(power(a, 3), 3)",
+"top": [
+0.8526,
+0.21801
+],
+"bottom": [
+0.8526,
+0.64281
+]
+},
+{
+"trial": 55,
+"commit": "5596bb7",
+"status": "reset",
+"utility": 1.448,
+"worst": 0.481,
+"label": "",
+"claim": "T51 mild outlier control on the unhedged book: winsorize the combined signal at 0.2%/99.8% before the cube. Without the hedge (T54) the cube weight in the few most extreme names is no longer diluted, so takeover jumps, data spikes and stale bankrupt names carry more weight than in T51. Predict Sharpe up, worst up, …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    m1    = ts_sum(mk, 252),\n    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * m1, 1), -1), max(min(10 * m1 + 1, 1), -1)),\n    b     = ts_beta(returns(1), mk, 504),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom, 'sector'),\n    a     = winsorize(decay_linear(w * score, 10) - group_demean(returns(21), 'sector'), 0.002)\nin decay_linear(power(a, 3), 3)",
+"top": [
+0.86666,
+0.22287
+],
+"bottom": [
+0.86666,
+0.6283
+]
+},
+{
+"trial": 56,
+"commit": "a8f66ea",
+"status": "reset",
+"utility": 0.592,
+"worst": -0.075,
+"label": "",
+"claim": "Removal: raw 12-1 momentum instead of the 504d-beta residual, saving ~5 nodes. T8 found residual momentum worth +0.10 in a linear, vol-scaled book; with the cube, no vol scaling and no hedge, raw momentum carries the losers beta into the tails, so predict a clear fall (median -0.1 or more, worst down, …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    m1    = ts_sum(mk, 252),\n    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * m1, 1), -1), max(min(10 * m1 + 1, 1), -1)),\n    mom   = delay(returns(231), 21),\n    score = group_demean(mom, 'sector'),\n    a     = decay_linear(w * score, 10) - group_demean(returns(21), 'sector')\nin decay_linear(power(a, 3), 3)",
+"top": [
+0.88072,
+0.38928
+],
+"bottom": [
+0.88072,
+0.7279
+]
+},
+{
+"trial": 57,
+"commit": "fe929ee",
+"status": "reset",
+"utility": 1.327,
+"worst": 0.271,
+"label": "",
+"claim": "Removal: drop the outer 3-day decay (added in T16 to hold the cube turnover under the 0.125 floor). Measures whether the lunch is still free now that the hedge is gone. Predict turnover 0.12 to ~0.15, Sharpe up slightly (fresher reversal), median down by the turnover penalty, worst flat; 2 fewer nodes.",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    m1    = ts_sum(mk, 252),\n    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * m1, 1), -1), max(min(10 * m1 + 1, 1), -1)),\n    b     = ts_beta(returns(1), mk, 504),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom, 'sector'),\n    a     = decay_linear(w * score, 10) - group_demean(returns(21), 'sector')\nin power(a, 3)",
+"top": [
+0.89478,
+0.2464
+],
+"bottom": [
+0.89478,
+0.66592
+]
+},
+{
+"trial": 58,
+"commit": "2e0f86c",
+"status": "reset",
+"utility": 1.38,
+"worst": 0.419,
+"label": "",
+"claim": "Reverse last month 504d-beta residual return, ts_sum(rr,21), not the raw return, in the unhedged book. Since T54 removed the hedge, the raw reversal leg buys high-beta names after down months, a market bet; T12 (neutral) was run while vol scaling absorbed it. Predict worst up, Sharpe up slightly, median flat to up; …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    m1    = ts_sum(mk, 252),\n    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * m1, 1), -1), max(min(10 * m1 + 1, 1), -1)),\n    b     = ts_beta(returns(1), mk, 504),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom, 'sector'),\n    a     = decay_linear(w * score, 10) - group_demean(ts_sum(rr, 21), 'sector')\nin decay_linear(power(a, 3), 3)",
+"top": [
+0.90883,
+0.23609
+],
+"bottom": [
+0.90883,
+0.63941
+]
+},
+{
+"trial": 59,
+"commit": "cca84c1",
+"status": "reset",
+"utility": 1.409,
+"worst": 0.345,
+"label": "",
+"claim": "Combine the two tail-cleaning changes that each won every whole-period measure but not the median fold: residual reversal (T58, strips the market bet from the reversal leg) and a 0.2% winsorize (T55, drops anomalous extremes the cube overweights). They act on different noise, so effects should add. Predict whole …",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    m1    = ts_sum(mk, 252),\n    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * m1, 1), -1), max(min(10 * m1 + 1, 1), -1)),\n    b     = ts_beta(returns(1), mk, 504),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom, 'sector'),\n    a     = winsorize(decay_linear(w * score, 10) - group_demean(ts_sum(rr, 21), 'sector'), 0.002)\nin decay_linear(power(a, 3), 3)",
+"top": [
+0.92289,
+0.23046
+],
+"bottom": [
+0.92289,
+0.65266
+]
+},
+{
+"trial": 60,
+"commit": "7390fe3",
+"status": "reset",
+"utility": 1.234,
+"worst": 0.303,
+"label": "",
+"claim": "Inner momentum decay 10 to 5 days. T21 found 21 days too slow (staler flips); without the hedge, faster switch transitions may pay. Predict turnover 0.12 to ~0.13, Sharpe flat, median flat to down by the turnover penalty, worst flat; same nodes.",
+"qex": "let mr    = returns(1),\n    mk    = mr - demean(mr),\n    m1    = ts_sum(mk, 252),\n    w     = where(ts_std(mk, 21) > ts_std(mk, 252), max(min(10 * m1, 1), -1), max(min(10 * m1 + 1, 1), -1)),\n    b     = ts_beta(returns(1), mk, 504),\n    rr    = returns(1) - b * mk,\n    mom   = delay(ts_sum(rr, 231), 21),\n    score = group_demean(mom, 'sector'),\n    a     = decay_linear(w * score, 5) - group_demean(returns(21), 'sector')\nin decay_linear(power(a, 3), 3)",
+"top": [
+0.93695,
+0.26448
+],
+"bottom": [
+0.93695,
+0.66019
+]
+}
+]

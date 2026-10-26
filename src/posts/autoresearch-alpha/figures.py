@@ -8,7 +8,7 @@ Karpathy's chart: grey dots are discarded trials, green dots are kept, the stair
 is the best so far. Two panels: the score the agent climbs (median fold) and the
 number it must not break (worst fold). Palette matches src/assets/styles.css.
 """
-import csv
+import csv, json, os, re, subprocess
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
@@ -23,6 +23,8 @@ plt.rcParams.update({
     "xtick.color": MUTED, "ytick.color": MUTED, "font.size": 11, "svg.fonttype": "path",
 })
 LOG = "lab/results.tsv"
+LAB = os.environ.get("ALPHA_LAB", os.path.expanduser("~/dev/alpha_lab"))   # the lab repo, for each trial's alpha.qex
+SEED_COMMIT = "318c23d"
 
 LABELS = {   # short labels for the kept trials, by commit
     "1a88c40": "crash switch", "a1c6525": "drop 1/vol", "ba214ee": "1-year vol", "46518a0": "1-month reversal sleeve",
@@ -67,7 +69,31 @@ def fig_progress(trials):
     a1.set_xlim(-1.5, max(last + 3, 30)); a1.set_ylim(ylo1 - 0.05, u.max() + 0.95); a2.set_ylim(ylo2 - 0.05, max(w.max(), 0.05) + 0.2)
     a2.set_xlabel("trial")
     a1.legend(frameon=False, fontsize=10, labelcolor=INK2, loc="lower right")
+    export_hover(fig, a1, a2, trials)
     save(fig, "progress")
+
+def qex_of(tag):
+    """The trial's alpha.qex from the lab's git history, without the membership flag the evaluator now applies itself."""
+    e = subprocess.check_output(["git", "-C", LAB, "show", f"{SEED_COMMIT if tag == 'seed' else tag}:alpha.qex"], text=True)
+    return re.sub(r"\s*\*\s*field\('member'\)", "", e).strip()
+
+def export_hover(fig, a1, a2, trials):
+    """lab/progress-hover.json: each dot's position as a fraction of the saved image, with the trial's qex and claim,
+    for lab/progress-hover.js. Positions use the same tight bounding box savefig uses."""
+    fig.canvas.draw()
+    box = fig.get_tightbbox(fig.canvas.get_renderer()).padded(0.25)                   # inches, as bbox_inches="tight"
+    def frac(ax, x, y):
+        px, py = ax.transData.transform((x, y)) / fig.dpi
+        return [round((px - box.x0) / box.width, 5), round((box.y1 - py) / box.height, 5)]
+    rows = list(csv.DictReader(open(LOG), delimiter="\t"))
+    out = []
+    for (i, tag, u, w, st), r in zip(trials, rows):
+        claim = r["claim"].strip()
+        out.append(dict(trial=i, commit=tag, status=st, utility=u, worst=w, label=LABELS.get(tag, ""),
+                        claim=claim if len(claim) <= 320 else claim[:317].rsplit(" ", 1)[0] + " …",
+                        qex=qex_of(tag), top=frac(a1, i, u), bottom=frac(a2, i, w)))
+    json.dump(out, open("lab/progress-hover.json", "w"), ensure_ascii=False, indent=0)
+    print("wrote lab/progress-hover.json")
 
 if __name__ == "__main__":
     t = load(); print(len(t), "scored trials,", sum(1 for r in t if r[4] == "keep"), "kept")

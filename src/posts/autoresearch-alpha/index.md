@@ -54,11 +54,10 @@ trusted to do research, and what has to be true for it to be trusted.**
 
 In [autoresearch: sparks of an AI scientist](/posts/ai-scientist/) I broke down
 Andrej Karpathy's autoresearch loop, an agent that edits one file, scores
-it, keeps it if the score went up and tries again. I argued that, as released, if pointed
-at a backtest it would just find noise. Try enough variations on enough history
-and one of them will look brilliant by chance. I speculated on what would have to
-change in the loop for it to find alpha instead. This post is that list, built and run
-once. In plain terms:
+it, and keeps it if the score went up, and argued that pointed at a backtest
+it would just find noise: try enough variations and one will look brilliant
+by chance. I listed what would have to change. This post is that list,
+built and run once:
 
 1. **Say why before you test.** Every change starts with a written claim:
    which belief it tests, the economic mechanism, and what should improve.
@@ -167,8 +166,9 @@ lost 8 basis points on every dollar it traded, before costs.
 
 <figure class="wide" id="progress">
   <img src="progress.svg" alt="Two panels over sixty trials. Top: the score of each trial, grey dots discarded, green dots kept and labelled, with a green staircase for the best so far rising from minus 0.09 at the seed to 1.47. The kept labels are crash switch, drop 1/vol, 1-year vol, 1-month reversal sleeve, 1-year state, residual momentum, a·|a| with decay 3, cube, soft switch, beta hedge, deep-bear rule, no vol scaling, 504-day beta, and drop the hedge. Bottom: the worst slice of each trial, rising from minus 0.96 to plus 0.40, with one discarded trial at minus 0.51.">
-  <figcaption>Sixty trials. Grey dots were thrown away, green dots kept, and the staircase is the best so far. The top panel is the score the agent climbs; the bottom is the score on the worst slice of history, which it is not allowed to make worse.</figcaption>
+  <figcaption>Sixty trials. Grey dots were thrown away, green dots kept, and the staircase is the best so far. The top panel is the score the agent climbs; the bottom is the score on the worst slice of history, which it is not allowed to make worse. Hover or tap a dot for its claim and qex.</figcaption>
 </figure>
+<script src="lab/progress-hover.js" defer></script>
 
 Sixty trials, fourteen kept. Two numbers decide each one. The *score* is
 computed on six random slices of 2004 to 2017, each about two and a half
@@ -192,8 +192,7 @@ profit and loss. After each trial, the evaluator prints only summary
 numbers:
 
 - the score and the worst slice, each averaged over fifty random deals;
-- whether the strategy is eligible: trading inside the allowed range, and
-  enough profit per dollar traded to survive costs;
+- whether the strategy is eligible;
 - the whole period's Sharpe, return, turnover and profit per dollar traded;
 - the same numbers for each of the six slices of one deal, with the years
   each slice touches;
@@ -293,11 +292,9 @@ bottom fifths, and when expected return is convex the weights should be
 too. The cube is a blunt, emergent version of that idea, and the fifth
 power is where it runs into the cap.
 
-Along the way, the textbook alternatives mostly failed. Novy-Marx's version
-of momentum was worse; the 52-week high and the "frog in the pan" were
-worse; an outside idea from a 2012 paper on liquidity was reset twice. When
-the agent reached beyond the beliefs, it named the paper and its age before
-testing it, as the rules require.
+Along the way, the textbook alternatives mostly failed: Novy-Marx's
+momentum, the 52-week high, the "frog in the pan", and an outside idea from
+a 2012 paper, whose age the agent named first, as the rules require.
 
 ### Act 3: the crash argument
 
@@ -421,11 +418,10 @@ no net position and never more than 5% in one name.
 </div>
 
 Who is on the other side? In ordinary markets, the investor who sells
-winners too early and holds losers too long. In the crash state, the
-momentum investor who is short the losers when they rebound. The strategy is
-long momentum most of the time and short it in the specific conditions
-where momentum is known to crash, and it reads those conditions from three
-numbers about the market that anyone could have computed in 2004.
+winners too early and holds losers too long; in the crash state, the
+momentum investor short the losers as they rebound. The strategy reads
+which state it is in from three market numbers anyone could have computed
+in 2004.
 
 The final qex itself:
 
@@ -446,10 +442,8 @@ in decay_linear(power(a, 3), 3)
 
 ## Did it hold up?
 
-The sealed period, 2018 to August 2026, was loaded for the first time after
-trial sixty, by a script the agent never saw, run once on the final
-strategy and the seed. The [output](lab/test-2018-2026.txt) is in the
-post's folder.
+The sealed period was loaded once, after trial sixty, by a script the
+agent never saw ([output](lab/test-2018-2026.txt)).
 
 
 | | period | Sharpe | return / yr | net of 10 bps, / yr | max drawdown |
