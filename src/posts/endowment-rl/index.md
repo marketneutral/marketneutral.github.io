@@ -95,7 +95,7 @@ $$
 fund. This is the interesting one, because it behaves like nothing
 liquid:
 
-- At time zero you commit $\$x$mm. No cash moves.
+- At time zero you commit $\$x$ mm. No cash moves.
 - The fund has a known maximum life, here twelve years.
 - In each month after that, the fund may: (a) do nothing, (b) call
   capital from you and invest it, or (c) distribute cash back to you.
