@@ -9,7 +9,7 @@ Let's talk about qex.
 
 I have been building a small language for expressing quant alphas, the
 cross-sectional forecasts a systematic investor turns into a portfolio.
-It is called qex, and the
+It is called qex, which I pronounce as *kecks*, and the
 [source](https://github.com/marketneutral/alpha-parser) and
 [documentation](https://marketneutral.github.io/alpha-parser/) are
 public. A simple but mighty one-line `qex` expression is:
