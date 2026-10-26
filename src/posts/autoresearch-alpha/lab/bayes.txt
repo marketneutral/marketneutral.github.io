@@ -1,0 +1,11 @@
+weeks: validation 731, test 450; observed annualized Sharpe from weekly P&L: validation 0.97, test 0.74
+divergences: 0; max r_hat: 1.001
+posterior Sharpe, validation: mean 0.83, 90% HDI 0.46 to 1.19
+posterior Sharpe, test:       mean 0.53, 90% HDI 0.08 to 0.99
+ratio test / validation:      median 0.64, 90% HDI 0.01 to 1.38
+P(test Sharpe > 0) = 0.972
+P(test Sharpe > half of validation's) = 0.651
+P(test Sharpe < validation Sharpe) = 0.797
+tail parameter nu: median 3.7
+posterior predictive: share of test-length histories drawn from the validation posterior with a Sharpe at or below the observed test's 0.74: 0.413
+   predictive Sharpe for a test-length history: median 0.83, 90% interval 0.15 to 1.53

@@ -203,3 +203,54 @@ ax.set_xticks(x); ax.set_xticklabels(["Q1\nshorted", "Q2", "Q3", "Q4", "Q5\nowne
 h, l = ax.get_legend_handles_labels()
 fig.legend(h, l, loc="lower center", bbox_to_anchor=(0.5, -0.1), ncol=3, frameon=False, fontsize=10, handlelength=1.6)
 finish(fig, "quintiles.svg")
+
+# the cube: the final book with its power changed, everything else fixed
+POWERS = {"linear, a": "a", "signed square, a·|a|": "a * abs(a)", "cube, a³": "power(a, 3)", "fifth power, a⁵": "power(a, 5)"}
+PW = {}
+for lab, f in POWERS.items():
+    e = EXPR["final"].replace("power(a, 3)", f)
+    PW[lab] = cached("book:" + e, lambda e=e: ev.build_book(qex(e), data, ev.SETTINGS, start="1999-01-01"))
+rows = []
+for lab, w in PW.items():
+    p, t = (w * fwd.loc[w.index]).sum(axis=1), ev.turnover(w)
+    v = w["2004":"2017"]; v = v[v.abs().sum(axis=1) > 0]
+    srt = -np.sort(-v.abs().values, axis=1)                                  # each day's |weights|, largest first
+    rows.append(dict(power=lab, top100_share=srt[:, :100].sum(axis=1).mean(), effective_n=(1 / (v ** 2).sum(axis=1)).mean(),
+                     days_at_cap=(srt[:, 0] >= 0.0499).mean(),
+                     **{f"{per}_{m}": f(p[a:b], t[a:b]) for per, a, b in PERIODS[1:]
+                        for m, f in (("sharpe", lambda p, t: sr(p)), ("ret", lambda p, t: p.mean() * 252), ("turnover", lambda p, t: t.mean()),
+                                     ("sharpe10", lambda p, t: sr(p - 1e-3 * t)))}))
+cube = pd.DataFrame(rows)
+table("the final book with its power changed (concentration on validation)", cube)
+open("lab/stats.txt", "w").write("\n".join(out))
+
+fig, (a1, a2) = plt.subplots(1, 2, figsize=(9.4, 4.0), gridspec_kw=dict(width_ratios=[1, 1.15], wspace=0.32))
+rk = sig.shift(1)["2004":"2017"].where(member["2004":"2017"]).rank(axis=1, pct=True)  # rank on the signal the book traded (delay 1)
+ends = (rk <= 0.05) | (rk > 0.95)                                               # the 5% most extreme stocks on each side
+tails = [(w.loc["2004":"2017"].reindex(columns=rk.columns).abs().where(ends).sum(axis=1)
+          / w.loc["2004":"2017"].abs().sum(axis=1)).mean() for w in PW.values()]
+x = np.arange(len(PW))
+a1.bar(x, tails, width=0.6, color=[ACCENT if "cube" in k else MUTED for k in PW], zorder=3)
+for xi, t in zip(x, tails):
+    a1.text(xi, t + 0.015, f"{t:.0%}", ha="center", va="bottom", fontsize=10, color=INK2)
+a1.grid(axis="x", visible=False); a1.set_ylim(0, 1)
+a1.yaxis.set_major_formatter(PercentFormatter(1.0, decimals=0))
+a1.set_xticks(x); a1.set_xticklabels(["a", "a·|a|", "a³", "a⁵"]); a1.tick_params(labelsize=10)
+a1.set_title("share of the book in the 10% most\nextreme stocks, 5% each side", loc="left", fontsize=10.5, pad=8)
+x = np.arange(len(PW)); wd = 0.38
+for i, (per, c) in enumerate((("validation", ACCENT), ("test", INK2))):
+    a2.bar(x + (i - 0.5) * wd, cube[f"{per}_ret"].values, width=wd, color=c, zorder=3, label=per)
+    for xi, (r, s) in enumerate(zip(cube[f"{per}_ret"], cube[f"{per}_sharpe"])):
+        a2.text(xi + (i - 0.5) * wd, r + 0.004, f"{s:.2f}", ha="center", va="bottom", fontsize=8.5, color=INK2)
+a2.grid(axis="x", visible=False); a2.axhline(0, color=RULE, lw=1)
+a2.yaxis.set_major_formatter(PercentFormatter(1.0, decimals=0))
+a2.set_xticks(x); a2.set_xticklabels(["a", "a·|a|", "a³", "a⁵"]); a2.tick_params(labelsize=10)
+a2.set_title("return per year, Sharpe on each bar", loc="left", fontsize=10.5, pad=8)
+a2.legend(frameon=False, fontsize=9, loc="upper left", handlelength=1.2)
+finish(fig, "cube.svg")
+
+# weekly P&L of the final book and the seed, for bayes.py
+wk = P[["final", "seed"]].loc["2004":].resample("W-FRI").sum()
+wk = wk[wk.index <= pd.Timestamp(PERIODS[-1][2]) + pd.Timedelta(days=6)]
+wk.rename_axis("week").to_csv("lab/weekly_pnl.csv", float_format="%.6f")
+print("wrote lab/weekly_pnl.csv", len(wk), "weeks")
