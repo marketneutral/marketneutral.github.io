@@ -143,7 +143,7 @@ coming back.
 The starting strategy, the seed, is the textbook beliefs and nothing else,
 what any quant would write first. In qex it is four lines:
 
-```python
+```qex
 let mom   = delay(returns(231), 21),
     vol   = volatility(60),
     score = group_demean(mom / vol, 'sector')
@@ -164,16 +164,20 @@ lost 8 basis points on every dollar it traded, before costs.
 
 ## The run, in four acts
 
-<figure class="wide" id="progress">
-  <img src="progress.svg" alt="Two panels over sixty trials. Top: the score of each trial, grey dots discarded, green dots kept and labelled, with a green staircase for the best so far rising from minus 0.09 at the seed to 1.47. The kept labels are crash switch, drop 1/vol, 1-year vol, 1-month reversal sleeve, 1-year state, residual momentum, a·|a| with decay 3, cube, soft switch, beta hedge, deep-bear rule, no vol scaling, 504-day beta, and drop the hedge. Bottom: the worst slice of each trial, rising from minus 0.96 to plus 0.40, with one discarded trial at minus 0.51.">
-  <figcaption>Sixty trials. Grey dots were thrown away, green dots kept, and the staircase is the best so far. The top panel is the score the agent climbs; the bottom is the score on the worst slice of history, which it is not allowed to make worse. Hover or tap a dot for its claim and qex.</figcaption>
-</figure>
-<script src="lab/progress-hover.js" defer></script>
+Sixty trials, fourteen kept. Two numbers decide each one. The *score* comes
+from cutting 2004 to 2017 into six random slices of about two and a half
+years and taking the middle slice's score, repeated over fifty different
+random cuts and averaged. The *worst slice* is the unluckiest slice's score,
+averaged the same way.
 
-Sixty trials, fourteen kept. Two numbers decide each one. The *score* is
-computed on six random slices of 2004 to 2017, each about two and a half
-years, and the agent climbs the middle one. The *worst slice* is the score
-on the unluckiest of the six. Then the **keep rule**: a change is kept only
+Each piece has a job. The middle slice means no single great or terrible
+stretch can carry the score. The worst slice is the crash guard: a change
+that wins on average but blows up somewhere shows up there. Fresh random
+cuts on every call mean there is no fixed hold-out the agent could learn to
+please. And averaging fifty cuts keeps a good score from being the luck of
+one cut.
+
+Then the **keep rule**: a change is kept only
 if
 
 1. it raises the score by more than 0.03, the noise in the score measured
@@ -191,7 +195,7 @@ The agent never sees a price from 2004 to 2017, or a day of its strategy's
 profit and loss. After each trial, the evaluator prints only summary
 numbers:
 
-- the score and the worst slice, each averaged over fifty random deals;
+- the score and the worst slice;
 - whether the strategy is eligible;
 - the whole period's Sharpe, return, turnover and profit per dollar traded;
 - the same numbers for each of the six slices of one deal, with the years
@@ -204,11 +208,22 @@ numbers:
 That is enough to test a claim about where a change should help, and not
 enough to fit the validation years day by day.
 
+Here is the whole run. **Hover over any dot (or tap it on a phone).** A dot
+in the top panel shows that trial before the test: the agent's claim and its
+qex. The dot below it shows the trial after: the evaluator's numbers, the
+six slices, and the agent's own verdict.
+
+<figure class="wide" id="progress">
+  <img src="progress.svg" alt="Two panels over sixty trials. Top: the score of each trial, grey dots discarded, green dots kept and labelled, with a green staircase for the best so far rising from minus 0.09 at the seed to 1.47. The kept labels are crash switch, drop 1/vol, 1-year vol, 1-month reversal sleeve, 1-year state, residual momentum, a·|a| with decay 3, cube, soft switch, beta hedge, deep-bear rule, no vol scaling, 504-day beta, and drop the hedge. Bottom: the worst slice of each trial, rising from minus 0.96 to plus 0.40, with one discarded trial at minus 0.51.">
+  <figcaption>Sixty trials. Grey dots were thrown away, green dots kept, and the staircase is the best so far. The top panel is the score the agent climbs; the bottom is the score on the worst slice of history, which it is not allowed to make worse. Top dots: the claim and qex. Bottom dots: the evaluator's verdict.</figcaption>
+</figure>
+<script src="lab/progress-hover.js" defer></script>
+
 What follows is the [notebook](lab/results.tsv), condensed. The figures in
 this section are the ones the agent saw during the run. It started from the
 seed:
 
-```python
+```qex
 let mom   = delay(returns(231), 21),
     vol   = volatility(60),
     score = group_demean(mom / vol, 'sector')
@@ -361,7 +376,7 @@ At the end of Act 3 the expression had grown to this, with the soft switch
 and the deep-bear rule in `w`, residual momentum, the reversal sleeve, the
 cube, and the beta hedge in the last five lines:
 
-```python
+```qex
 let r     = returns(1),
     mk    = r - demean(r),
     m1    = ts_sum(mk, 252),
@@ -425,7 +440,7 @@ in 2004.
 
 The final qex itself:
 
-```python
+```qex
 let r     = returns(1),
     mk    = r - demean(r),
     m1    = ts_sum(mk, 252),
@@ -638,12 +653,9 @@ on cost-free P&L, where nodes counts every operator, constant and field in
 the expression. A fold scores minus infinity if the book holds fewer than
 fifty names or trades outside 1% to 70% a day, and the whole validation book
 must be *eligible*: turnover in that band and at least 5 basis points of
-profit per dollar traded. The validation period is cut into twelve blocks of
-about fourteen months, dealt at random into six folds of two, with a 21-day
-embargo at every block edge; each call repeats fifty deals and reports the
-median and worst fold, averaged. Scored eight times, the seed stayed within
-0.02 on the median and 0.13 on the worst ([noise.txt](lab/noise.txt)), which
-set the keep thresholds at 0.03 and 0.13.
+profit per dollar traded. Each slice is two of twelve fourteen-month
+blocks, with 21 days trimmed at every block edge so no rolling window
+straddles two slices. The seed's noise is in [noise.txt](lab/noise.txt).
 
 Of the twelve beliefs, four held, one held only for the inputs, three
 failed, and two were removed. The agent reached outside them twice, for

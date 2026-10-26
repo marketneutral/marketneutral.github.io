@@ -1,0 +1,2942 @@
+{
+"1a88c40": {
+"utility": 0.009,
+"worst": -0.374,
+"eligible": false,
+"margin": 4.2,
+"sharpe": 0.154,
+"ret": 0.006999999999999999,
+"turnover": 0.06,
+"crash": 3.32,
+"deflated": 0.511,
+"folds": [
+{
+"utility": 0.191,
+"sharpe": 0.64,
+"ret": 0.02,
+"years": "2004-2015"
+},
+{
+"utility": -0.063,
+"sharpe": -0.01,
+"ret": -0.0,
+"years": "2012-2014"
+},
+{
+"utility": -0.523,
+"sharpe": -0.8,
+"ret": -0.042,
+"years": "2007-2009"
+},
+{
+"utility": 0.622,
+"sharpe": 1.1,
+"ret": 0.049,
+"years": "2005-2016"
+},
+{
+"utility": -0.019,
+"sharpe": 0.17,
+"ret": 0.008,
+"years": "2010-2011"
+},
+{
+"utility": 0.009,
+"sharpe": 0.24,
+"ret": 0.011000000000000001,
+"years": "2007-2017"
+}
+]
+},
+"a1c6525": {
+"utility": 0.32,
+"worst": -0.191,
+"eligible": true,
+"margin": 14.3,
+"sharpe": 0.467,
+"ret": 0.02,
+"turnover": 0.06,
+"crash": 2.71,
+"deflated": 0.728,
+"folds": [
+{
+"utility": 0.42,
+"sharpe": 0.86,
+"ret": 0.039,
+"years": "2004-2016"
+},
+{
+"utility": 0.784,
+"sharpe": 1.37,
+"ret": 0.047,
+"years": "2005-2012"
+},
+{
+"utility": -0.017,
+"sharpe": 0.15,
+"ret": 0.01,
+"years": "2007-2009"
+},
+{
+"utility": -0.164,
+"sharpe": -0.36,
+"ret": -0.011000000000000001,
+"years": "2007-2014"
+},
+{
+"utility": 0.199,
+"sharpe": 0.58,
+"ret": 0.025,
+"years": "2011-2017"
+},
+{
+"utility": 0.75,
+"sharpe": 1.33,
+"ret": 0.046,
+"years": "2009-2015"
+}
+]
+},
+"3a9c144": {
+"utility": 0.191,
+"worst": -0.226,
+"eligible": false,
+"margin": 4.9,
+"sharpe": 0.261,
+"ret": 0.008,
+"turnover": 0.07,
+"crash": 1.3,
+"deflated": 0.421,
+"folds": [
+{
+"utility": 0.203,
+"sharpe": 0.66,
+"ret": 0.02,
+"years": "2014-2016"
+},
+{
+"utility": 0.004,
+"sharpe": 0.26,
+"ret": 0.006999999999999999,
+"years": "2006-2012"
+},
+{
+"utility": 0.225,
+"sharpe": 0.66,
+"ret": 0.023,
+"years": "2007-2011"
+},
+{
+"utility": 0.83,
+"sharpe": 1.6,
+"ret": 0.039,
+"years": "2005-2010"
+},
+{
+"utility": 0.284,
+"sharpe": 0.82,
+"ret": 0.022000000000000002,
+"years": "2014-2017"
+},
+{
+"utility": -0.316,
+"sharpe": -0.59,
+"ret": -0.024,
+"years": "2004-2009"
+}
+]
+},
+"ba214ee": {
+"utility": 0.429,
+"worst": -0.074,
+"eligible": true,
+"margin": 20.6,
+"sharpe": 0.59,
+"ret": 0.027000000000000003,
+"turnover": 0.05,
+"crash": 2.71,
+"deflated": 0.777,
+"folds": [
+{
+"utility": 0.412,
+"sharpe": 0.88,
+"ret": 0.036000000000000004,
+"years": "2004-2012"
+},
+{
+"utility": 0.759,
+"sharpe": 1.41,
+"ret": 0.042,
+"years": "2005-2010"
+},
+{
+"utility": 0.58,
+"sharpe": 1.03,
+"ret": 0.049,
+"years": "2016-2017"
+},
+{
+"utility": -0.062,
+"sharpe": -0.02,
+"ret": -0.001,
+"years": "2009-2011"
+},
+{
+"utility": 1.249,
+"sharpe": 1.59,
+"ret": 0.085,
+"years": "2007-2015"
+},
+{
+"utility": -0.098,
+"sharpe": -0.17,
+"ret": -0.006,
+"years": "2006-2014"
+}
+]
+},
+"18aecee": {
+"utility": 0.333,
+"worst": -0.202,
+"eligible": true,
+"margin": 18.5,
+"sharpe": 0.413,
+"ret": 0.024,
+"turnover": 0.05,
+"crash": 2.76,
+"deflated": 0.54,
+"folds": [
+{
+"utility": -0.128,
+"sharpe": -0.2,
+"ret": -0.013999999999999999,
+"years": "2008-2017"
+},
+{
+"utility": 0.214,
+"sharpe": 0.58,
+"ret": 0.027999999999999997,
+"years": "2010-2011"
+},
+{
+"utility": 0.407,
+"sharpe": 0.82,
+"ret": 0.04,
+"years": "2004-2012"
+},
+{
+"utility": 0.663,
+"sharpe": 0.96,
+"ret": 0.071,
+"years": "2005-2008"
+},
+{
+"utility": 0.816,
+"sharpe": 1.25,
+"ret": 0.062,
+"years": "2014-2015"
+},
+{
+"utility": 0.069,
+"sharpe": 0.33,
+"ret": 0.019,
+"years": "2007-2016"
+}
+]
+},
+"46518a0": {
+"utility": 0.564,
+"worst": -0.01,
+"eligible": true,
+"margin": 12.5,
+"sharpe": 0.746,
+"ret": 0.033,
+"turnover": 0.1,
+"crash": 2.73,
+"deflated": 0.864,
+"folds": [
+{
+"utility": 0.561,
+"sharpe": 1.01,
+"ret": 0.049,
+"years": "2007-2014"
+},
+{
+"utility": 1.047,
+"sharpe": 1.63,
+"ret": 0.059000000000000004,
+"years": "2004-2015"
+},
+{
+"utility": 0.842,
+"sharpe": 1.31,
+"ret": 0.061,
+"years": "2011-2016"
+},
+{
+"utility": 0.94,
+"sharpe": 1.65,
+"ret": 0.047,
+"years": "2005-2010"
+},
+{
+"utility": 0.133,
+"sharpe": 0.53,
+"ret": 0.019,
+"years": "2007-2013"
+},
+{
+"utility": -0.04,
+"sharpe": 0.13,
+"ret": 0.008,
+"years": "2009-2017"
+}
+]
+},
+"4a19234": {
+"utility": 0.636,
+"worst": -0.074,
+"eligible": true,
+"margin": 14.4,
+"sharpe": 0.896,
+"ret": 0.04,
+"turnover": 0.11,
+"crash": 1.81,
+"deflated": 0.917,
+"folds": [
+{
+"utility": 0.305,
+"sharpe": 0.79,
+"ret": 0.028999999999999998,
+"years": "2012-2014"
+},
+{
+"utility": 2.052,
+"sharpe": 2.25,
+"ret": 0.111,
+"years": "2007-2010"
+},
+{
+"utility": 0.491,
+"sharpe": 1.06,
+"ret": 0.035,
+"years": "2006-2015"
+},
+{
+"utility": 0.938,
+"sharpe": 1.54,
+"ret": 0.054000000000000006,
+"years": "2005-2011"
+},
+{
+"utility": 0.654,
+"sharpe": 1.13,
+"ret": 0.052000000000000005,
+"years": "2015-2017"
+},
+{
+"utility": -0.079,
+"sharpe": -0.05,
+"ret": -0.003,
+"years": "2004-2009"
+}
+]
+},
+"8bace00": {
+"utility": 0.736,
+"worst": 0.062,
+"eligible": true,
+"margin": 15.7,
+"sharpe": 1.078,
+"ret": 0.047,
+"turnover": 0.12,
+"crash": 2.45,
+"deflated": 0.959,
+"folds": [
+{
+"utility": 1.665,
+"sharpe": 1.94,
+"ret": 0.11800000000000001,
+"years": "2007-2016"
+},
+{
+"utility": 0.162,
+"sharpe": 0.66,
+"ret": 0.017,
+"years": "2006-2010"
+},
+{
+"utility": 0.837,
+"sharpe": 1.51,
+"ret": 0.046,
+"years": "2013-2015"
+},
+{
+"utility": 0.841,
+"sharpe": 1.53,
+"ret": 0.045,
+"years": "2004-2017"
+},
+{
+"utility": 0.858,
+"sharpe": 1.54,
+"ret": 0.046,
+"years": "2005-2012"
+},
+{
+"utility": 0.177,
+"sharpe": 0.51,
+"ret": 0.034,
+"years": "2008-2011"
+}
+]
+},
+"aa6ed6f": {
+"utility": 0.701,
+"worst": 0.084,
+"eligible": true,
+"margin": 17.0,
+"sharpe": 1.098,
+"ret": 0.049,
+"turnover": 0.11,
+"crash": 2.76,
+"deflated": 0.945,
+"folds": [
+{
+"utility": 0.221,
+"sharpe": 0.57,
+"ret": 0.039,
+"years": "2004-2009"
+},
+{
+"utility": 1.376,
+"sharpe": 1.95,
+"ret": 0.071,
+"years": "2012-2015"
+},
+{
+"utility": 1.105,
+"sharpe": 1.79,
+"ret": 0.055999999999999994,
+"years": "2005-2011"
+},
+{
+"utility": 1.383,
+"sharpe": 1.79,
+"ret": 0.09,
+"years": "2006-2008"
+},
+{
+"utility": 0.475,
+"sharpe": 1.11,
+"ret": 0.033,
+"years": "2010-2017"
+},
+{
+"utility": 0.335,
+"sharpe": 0.79,
+"ret": 0.037000000000000005,
+"years": "2013-2016"
+}
+]
+},
+"c4cde00": {
+"utility": 0.582,
+"worst": 0.033,
+"eligible": true,
+"margin": 16.3,
+"sharpe": 0.973,
+"ret": 0.045,
+"turnover": 0.11,
+"crash": 2.43,
+"deflated": 0.856,
+"folds": [
+{
+"utility": 0.076,
+"sharpe": 0.44,
+"ret": 0.015,
+"years": "2007-2013"
+},
+{
+"utility": 1.116,
+"sharpe": 1.52,
+"ret": 0.078,
+"years": "2014-2016"
+},
+{
+"utility": 0.183,
+"sharpe": 0.68,
+"ret": 0.018000000000000002,
+"years": "2010-2014"
+},
+{
+"utility": 0.061,
+"sharpe": 0.33,
+"ret": 0.022000000000000002,
+"years": "2005-2009"
+},
+{
+"utility": 0.678,
+"sharpe": 1.3,
+"ret": 0.042,
+"years": "2004-2017"
+},
+{
+"utility": 2.009,
+"sharpe": 2.13,
+"ret": 0.12,
+"years": "2007-2011"
+}
+]
+},
+"1b4a4bf": {
+"utility": 0.709,
+"worst": -0.021,
+"eligible": true,
+"margin": 14.7,
+"sharpe": 1.061,
+"ret": 0.044000000000000004,
+"turnover": 0.12,
+"crash": 1.8,
+"deflated": 0.904,
+"folds": [
+{
+"utility": 0.86,
+"sharpe": 1.46,
+"ret": 0.053,
+"years": "2011-2012"
+},
+{
+"utility": 0.026,
+"sharpe": 0.32,
+"ret": 0.019,
+"years": "2004-2009"
+},
+{
+"utility": 0.783,
+"sharpe": 1.33,
+"ret": 0.055999999999999994,
+"years": "2005-2016"
+},
+{
+"utility": 2.482,
+"sharpe": 2.56,
+"ret": 0.126,
+"years": "2007-2015"
+},
+{
+"utility": 0.141,
+"sharpe": 0.61,
+"ret": 0.018000000000000002,
+"years": "2013-2017"
+},
+{
+"utility": 0.159,
+"sharpe": 0.68,
+"ret": 0.017,
+"years": "2006-2010"
+}
+]
+},
+"5ea9a95": {
+"utility": 0.685,
+"worst": 0.078,
+"eligible": true,
+"margin": 16.5,
+"sharpe": 1.088,
+"ret": 0.048,
+"turnover": 0.12,
+"crash": 2.61,
+"deflated": 0.91,
+"folds": [
+{
+"utility": 0.146,
+"sharpe": 0.58,
+"ret": 0.019,
+"years": "2007-2013"
+},
+{
+"utility": 0.483,
+"sharpe": 1.06,
+"ret": 0.036000000000000004,
+"years": "2011-2014"
+},
+{
+"utility": 2.262,
+"sharpe": 2.4,
+"ret": 0.11900000000000001,
+"years": "2004-2008"
+},
+{
+"utility": 0.711,
+"sharpe": 1.41,
+"ret": 0.04,
+"years": "2005-2017"
+},
+{
+"utility": 0.583,
+"sharpe": 1.07,
+"ret": 0.048,
+"years": "2010-2016"
+},
+{
+"utility": 0.426,
+"sharpe": 0.79,
+"ret": 0.053,
+"years": "2009-2015"
+}
+]
+},
+"3aa42cd": {
+"utility": 0.723,
+"worst": 0.083,
+"eligible": true,
+"margin": 13.7,
+"sharpe": 1.094,
+"ret": 0.043,
+"turnover": 0.12,
+"crash": 2.53,
+"deflated": 0.905,
+"folds": [
+{
+"utility": 0.141,
+"sharpe": 0.49,
+"ret": 0.034,
+"years": "2008-2016"
+},
+{
+"utility": 0.151,
+"sharpe": 0.66,
+"ret": 0.017,
+"years": "2013-2017"
+},
+{
+"utility": 0.189,
+"sharpe": 0.75,
+"ret": 0.018000000000000002,
+"years": "2007-2010"
+},
+{
+"utility": 1.181,
+"sharpe": 1.95,
+"ret": 0.053,
+"years": "2005-2011"
+},
+{
+"utility": 1.748,
+"sharpe": 2.54,
+"ret": 0.066,
+"years": "2004-2015"
+},
+{
+"utility": 1.744,
+"sharpe": 2.13,
+"ret": 0.09699999999999999,
+"years": "2008-2013"
+}
+]
+},
+"ab65776": {
+"utility": 0.766,
+"worst": 0.003,
+"eligible": true,
+"margin": 16.1,
+"sharpe": 1.049,
+"ret": 0.06,
+"turnover": 0.15,
+"crash": 2.39,
+"deflated": 0.866,
+"folds": [
+{
+"utility": 0.031,
+"sharpe": 0.3,
+"ret": 0.028999999999999998,
+"years": "2009-2016"
+},
+{
+"utility": 1.634,
+"sharpe": 2.03,
+"ret": 0.095,
+"years": "2012-2015"
+},
+{
+"utility": 0.493,
+"sharpe": 1.1,
+"ret": 0.037000000000000005,
+"years": "2005-2014"
+},
+{
+"utility": 0.919,
+"sharpe": 1.48,
+"ret": 0.063,
+"years": "2009-2011"
+},
+{
+"utility": 0.054,
+"sharpe": 0.4,
+"ret": 0.016,
+"years": "2007-2017"
+},
+{
+"utility": 2.249,
+"sharpe": 2.37,
+"ret": 0.15,
+"years": "2004-2008"
+}
+]
+},
+"31637d5": {
+"utility": 0.701,
+"worst": 0.066,
+"eligible": true,
+"margin": 20.7,
+"sharpe": 1.034,
+"ret": 0.045,
+"turnover": 0.09,
+"crash": 2.3,
+"deflated": 0.856,
+"folds": [
+{
+"utility": 0.624,
+"sharpe": 1.31,
+"ret": 0.036000000000000004,
+"years": "2005-2017"
+},
+{
+"utility": 1.94,
+"sharpe": 2.21,
+"ret": 0.105,
+"years": "2007-2010"
+},
+{
+"utility": 0.416,
+"sharpe": 1.05,
+"ret": 0.028999999999999998,
+"years": "2004-2007"
+},
+{
+"utility": 0.29,
+"sharpe": 0.81,
+"ret": 0.026000000000000002,
+"years": "2012-2014"
+},
+{
+"utility": 0.806,
+"sharpe": 1.26,
+"ret": 0.062,
+"years": "2011-2016"
+},
+{
+"utility": 0.248,
+"sharpe": 0.59,
+"ret": 0.039,
+"years": "2008-2015"
+}
+]
+},
+"92c93dd": {
+"utility": 0.784,
+"worst": -0.028,
+"eligible": true,
+"margin": 21.7,
+"sharpe": 1.025,
+"ret": 0.057999999999999996,
+"turnover": 0.11,
+"crash": 2.24,
+"deflated": 0.847,
+"folds": [
+{
+"utility": 0.847,
+"sharpe": 1.21,
+"ret": 0.075,
+"years": "2012-2016"
+},
+{
+"utility": -0.02,
+"sharpe": 0.19,
+"ret": 0.017,
+"years": "2005-2009"
+},
+{
+"utility": 0.369,
+"sharpe": 0.84,
+"ret": 0.037000000000000005,
+"years": "2007-2011"
+},
+{
+"utility": 0.614,
+"sharpe": 1.2,
+"ret": 0.043,
+"years": "2004-2014"
+},
+{
+"utility": 1.262,
+"sharpe": 1.73,
+"ret": 0.076,
+"years": "2014-2017"
+},
+{
+"utility": 2.234,
+"sharpe": 2.23,
+"ret": 0.136,
+"years": "2008-2010"
+}
+]
+},
+"2f933c3": {
+"utility": 0.89,
+"worst": -0.021,
+"eligible": true,
+"margin": 22.3,
+"sharpe": 1.004,
+"ret": 0.069,
+"turnover": 0.12,
+"crash": 2.05,
+"deflated": 0.832,
+"folds": [
+{
+"utility": 1.842,
+"sharpe": 1.83,
+"ret": 0.145,
+"years": "2007-2017"
+},
+{
+"utility": 0.263,
+"sharpe": 0.63,
+"ret": 0.040999999999999995,
+"years": "2007-2016"
+},
+{
+"utility": 2.429,
+"sharpe": 2.53,
+"ret": 0.12300000000000001,
+"years": "2004-2015"
+},
+{
+"utility": 1.504,
+"sharpe": 1.81,
+"ret": 0.09699999999999999,
+"years": "2005-2013"
+},
+{
+"utility": 1.029,
+"sharpe": 1.43,
+"ret": 0.076,
+"years": "2009-2011"
+},
+{
+"utility": -0.152,
+"sharpe": -0.18,
+"ret": -0.018000000000000002,
+"years": "2008-2014"
+}
+]
+},
+"bc9bf0c": {
+"utility": 0.832,
+"worst": -0.024,
+"eligible": true,
+"margin": 21.3,
+"sharpe": 1.007,
+"ret": 0.067,
+"turnover": 0.12,
+"crash": 1.99,
+"deflated": 0.837,
+"folds": [
+{
+"utility": 0.4,
+"sharpe": 0.85,
+"ret": 0.040999999999999995,
+"years": "2010-2017"
+},
+{
+"utility": 0.251,
+"sharpe": 0.62,
+"ret": 0.04,
+"years": "2006-2016"
+},
+{
+"utility": 1.744,
+"sharpe": 2.18,
+"ret": 0.08800000000000001,
+"years": "2004-2005"
+},
+{
+"utility": 1.2,
+"sharpe": 1.5,
+"ret": 0.092,
+"years": "2011-2013"
+},
+{
+"utility": 0.655,
+"sharpe": 0.92,
+"ret": 0.10400000000000001,
+"years": "2007-2009"
+},
+{
+"utility": 1.117,
+"sharpe": 1.56,
+"ret": 0.07400000000000001,
+"years": "2013-2015"
+}
+]
+},
+"d8850e1": {
+"utility": 0.893,
+"worst": -0.039,
+"eligible": true,
+"margin": 24.3,
+"sharpe": 0.942,
+"ret": 0.065,
+"turnover": 0.11,
+"crash": 1.98,
+"deflated": 0.781,
+"folds": [
+{
+"utility": -0.013,
+"sharpe": 0.19,
+"ret": 0.02,
+"years": "2004-2009"
+},
+{
+"utility": 0.33,
+"sharpe": 0.74,
+"ret": 0.04,
+"years": "2006-2011"
+},
+{
+"utility": 1.721,
+"sharpe": 1.73,
+"ret": 0.136,
+"years": "2008-2017"
+},
+{
+"utility": 2.414,
+"sharpe": 2.59,
+"ret": 0.11599999999999999,
+"years": "2005-2015"
+},
+{
+"utility": 0.321,
+"sharpe": 0.68,
+"ret": 0.045,
+"years": "2014-2016"
+},
+{
+"utility": 1.184,
+"sharpe": 1.54,
+"ret": 0.085,
+"years": "2010-2013"
+}
+]
+},
+"541efc6": {
+"utility": 0.563,
+"worst": -0.053,
+"eligible": true,
+"margin": 27.1,
+"sharpe": 0.815,
+"ret": 0.069,
+"turnover": 0.1,
+"crash": 2.1,
+"deflated": 0.636,
+"folds": [
+{
+"utility": 1.09,
+"sharpe": 1.36,
+"ret": 0.096,
+"years": "2004-2012"
+},
+{
+"utility": 0.024,
+"sharpe": 0.35,
+"ret": 0.017,
+"years": "2006-2010"
+},
+{
+"utility": 0.31,
+"sharpe": 0.71,
+"ret": 0.043,
+"years": "2005-2017"
+},
+{
+"utility": 0.265,
+"sharpe": 0.5,
+"ret": 0.067,
+"years": "2008-2015"
+},
+{
+"utility": 1.56,
+"sharpe": 1.52,
+"ret": 0.158,
+"years": "2007-2016"
+},
+{
+"utility": 0.61,
+"sharpe": 0.98,
+"ret": 0.066,
+"years": "2011-2014"
+}
+]
+},
+"d4bab52": {
+"utility": 0.824,
+"worst": -0.069,
+"eligible": true,
+"margin": 21.7,
+"sharpe": 0.887,
+"ret": 0.061,
+"turnover": 0.11,
+"crash": 1.98,
+"deflated": 0.741,
+"folds": [
+{
+"utility": 0.314,
+"sharpe": 0.71,
+"ret": 0.039,
+"years": "2006-2011"
+},
+{
+"utility": 1.755,
+"sharpe": 1.8,
+"ret": 0.131,
+"years": "2008-2010"
+},
+{
+"utility": 0.657,
+"sharpe": 1.19,
+"ret": 0.049,
+"years": "2005-2014"
+},
+{
+"utility": -0.084,
+"sharpe": 0.02,
+"ret": 0.003,
+"years": "2009-2016"
+},
+{
+"utility": 1.452,
+"sharpe": 1.73,
+"ret": 0.099,
+"years": "2004-2012"
+},
+{
+"utility": 1.188,
+"sharpe": 1.54,
+"ret": 0.085,
+"years": "2015-2017"
+}
+]
+},
+"0db8226": {
+"utility": 1.0,
+"worst": 0.013,
+"eligible": true,
+"margin": 22.7,
+"sharpe": 1.056,
+"ret": 0.073,
+"turnover": 0.13,
+"crash": 2.08,
+"deflated": 0.897,
+"folds": [
+{
+"utility": 2.798,
+"sharpe": 2.54,
+"ret": 0.183,
+"years": "2004-2008"
+},
+{
+"utility": 0.033,
+"sharpe": 0.34,
+"ret": 0.018000000000000002,
+"years": "2007-2017"
+},
+{
+"utility": 2.394,
+"sharpe": 2.58,
+"ret": 0.11699999999999999,
+"years": "2005-2015"
+},
+{
+"utility": 1.008,
+"sharpe": 1.38,
+"ret": 0.08800000000000001,
+"years": "2010-2016"
+},
+{
+"utility": -0.165,
+"sharpe": -0.18,
+"ret": -0.019,
+"years": "2008-2014"
+},
+{
+"utility": 1.627,
+"sharpe": 1.8,
+"ret": 0.115,
+"years": "2011-2013"
+}
+]
+},
+"501254c": {
+"utility": 0.934,
+"worst": 0.029,
+"eligible": true,
+"margin": 24.1,
+"sharpe": 1.058,
+"ret": 0.076,
+"turnover": 0.12,
+"crash": 2.74,
+"deflated": 0.899,
+"folds": [
+{
+"utility": 1.364,
+"sharpe": 1.55,
+"ret": 0.11699999999999999,
+"years": "2012-2016"
+},
+{
+"utility": 1.406,
+"sharpe": 1.71,
+"ret": 0.09699999999999999,
+"years": "2015-2017"
+},
+{
+"utility": 0.091,
+"sharpe": 0.37,
+"ret": 0.042,
+"years": "2009-2011"
+},
+{
+"utility": 2.39,
+"sharpe": 2.3,
+"ret": 0.172,
+"years": "2007-2010"
+},
+{
+"utility": 1.752,
+"sharpe": 2.17,
+"ret": 0.092,
+"years": "2004-2005"
+},
+{
+"utility": -0.094,
+"sharpe": 0.06,
+"ret": 0.003,
+"years": "2007-2014"
+}
+]
+},
+"7a689ab": {
+"utility": 1.101,
+"worst": 0.023,
+"eligible": true,
+"margin": 21.9,
+"sharpe": 1.133,
+"ret": 0.069,
+"turnover": 0.13,
+"crash": 2.16,
+"deflated": 0.937,
+"folds": [
+{
+"utility": 0.978,
+"sharpe": 1.51,
+"ret": 0.07400000000000001,
+"years": "2006-2016"
+},
+{
+"utility": 1.292,
+"sharpe": 1.84,
+"ret": 0.075,
+"years": "2004-2010"
+},
+{
+"utility": -0.026,
+"sharpe": 0.25,
+"ret": 0.024,
+"years": "2008-2012"
+},
+{
+"utility": 2.28,
+"sharpe": 2.59,
+"ret": 0.109,
+"years": "2005-2015"
+},
+{
+"utility": 2.596,
+"sharpe": 2.49,
+"ret": 0.183,
+"years": "2008-2011"
+},
+{
+"utility": 0.07,
+"sharpe": 0.47,
+"ret": 0.023,
+"years": "2014-2017"
+}
+]
+},
+"0ad3a5d": {
+"utility": 1.004,
+"worst": 0.005,
+"eligible": true,
+"margin": 20.5,
+"sharpe": 1.101,
+"ret": 0.063,
+"turnover": 0.12,
+"crash": 2.32,
+"deflated": 0.923,
+"folds": [
+{
+"utility": 1.107,
+"sharpe": 1.75,
+"ret": 0.066,
+"years": "2006-2015"
+},
+{
+"utility": 0.596,
+"sharpe": 1.12,
+"ret": 0.057999999999999996,
+"years": "2012-2017"
+},
+{
+"utility": 1.973,
+"sharpe": 2.34,
+"ret": 0.111,
+"years": "2004-2016"
+},
+{
+"utility": -0.099,
+"sharpe": 0.19,
+"ret": 0.017,
+"years": "2009-2010"
+},
+{
+"utility": 1.343,
+"sharpe": 1.71,
+"ret": 0.107,
+"years": "2008-2014"
+},
+{
+"utility": 1.709,
+"sharpe": 2.14,
+"ret": 0.096,
+"years": "2005-2011"
+}
+]
+},
+"3ed5745": {
+"utility": 0.687,
+"worst": -0.03,
+"eligible": true,
+"margin": 25.5,
+"sharpe": 1.014,
+"ret": 0.07,
+"turnover": 0.11,
+"crash": 2.6,
+"deflated": 0.869,
+"folds": [
+{
+"utility": 0.834,
+"sharpe": 1.11,
+"ret": 0.102,
+"years": "2009-2015"
+},
+{
+"utility": 2.317,
+"sharpe": 2.14,
+"ret": 0.16899999999999998,
+"years": "2007-2008"
+},
+{
+"utility": 0.39,
+"sharpe": 0.95,
+"ret": 0.044000000000000004,
+"years": "2005-2014"
+},
+{
+"utility": 0.366,
+"sharpe": 0.82,
+"ret": 0.054000000000000006,
+"years": "2015-2017"
+},
+{
+"utility": 0.771,
+"sharpe": 1.25,
+"ret": 0.071,
+"years": "2010-2011"
+},
+{
+"utility": 0.533,
+"sharpe": 0.97,
+"ret": 0.066,
+"years": "2004-2012"
+}
+]
+},
+"2ff8f94": {
+"utility": 0.622,
+"worst": -0.51,
+"eligible": true,
+"margin": 12.8,
+"sharpe": 0.616,
+"ret": 0.036000000000000004,
+"turnover": 0.11,
+"crash": -1.53,
+"deflated": 0.372,
+"folds": [
+{
+"utility": -0.349,
+"sharpe": -0.48,
+"ret": -0.036000000000000004,
+"years": "2009-2011"
+},
+{
+"utility": 1.304,
+"sharpe": 1.81,
+"ret": 0.075,
+"years": "2006-2015"
+},
+{
+"utility": 0.318,
+"sharpe": 0.64,
+"ret": 0.051,
+"years": "2007-2016"
+},
+{
+"utility": 1.104,
+"sharpe": 1.69,
+"ret": 0.063,
+"years": "2005-2010"
+},
+{
+"utility": 0.477,
+"sharpe": 0.94,
+"ret": 0.046,
+"years": "2012-2014"
+},
+{
+"utility": 0.951,
+"sharpe": 1.39,
+"ret": 0.07,
+"years": "2004-2017"
+}
+]
+},
+"8c59533": {
+"utility": 1.052,
+"worst": -0.076,
+"eligible": true,
+"margin": 21.0,
+"sharpe": 1.129,
+"ret": 0.069,
+"turnover": 0.13,
+"crash": 2.65,
+"deflated": 0.935,
+"folds": [
+{
+"utility": -0.088,
+"sharpe": 0.2,
+"ret": 0.019,
+"years": "2009-2011"
+},
+{
+"utility": 2.645,
+"sharpe": 2.68,
+"ret": 0.20199999999999999,
+"years": "2008-2016"
+},
+{
+"utility": -0.099,
+"sharpe": 0.22,
+"ret": 0.008,
+"years": "2007-2014"
+},
+{
+"utility": 1.843,
+"sharpe": 2.15,
+"ret": 0.10800000000000001,
+"years": "2012-2015"
+},
+{
+"utility": 1.181,
+"sharpe": 1.75,
+"ret": 0.073,
+"years": "2004-2010"
+},
+{
+"utility": 0.707,
+"sharpe": 1.25,
+"ret": 0.06,
+"years": "2005-2017"
+}
+]
+},
+"1f6ffc3": {
+"utility": 0.993,
+"worst": 0.04,
+"eligible": true,
+"margin": 22.6,
+"sharpe": 1.112,
+"ret": 0.066,
+"turnover": 0.12,
+"crash": 2.48,
+"deflated": 0.931,
+"folds": [
+{
+"utility": 1.593,
+"sharpe": 2.06,
+"ret": 0.08900000000000001,
+"years": "2005-2011"
+},
+{
+"utility": -0.036,
+"sharpe": 0.33,
+"ret": 0.012,
+"years": "2006-2014"
+},
+{
+"utility": -0.124,
+"sharpe": 0.07,
+"ret": 0.006999999999999999,
+"years": "2008-2017"
+},
+{
+"utility": 1.38,
+"sharpe": 1.85,
+"ret": 0.085,
+"years": "2004-2013"
+},
+{
+"utility": 1.856,
+"sharpe": 1.96,
+"ret": 0.135,
+"years": "2007-2010"
+},
+{
+"utility": 2.334,
+"sharpe": 2.47,
+"ret": 0.131,
+"years": "2014-2016"
+}
+]
+},
+"cd00feb": {
+"utility": 1.018,
+"worst": 0.349,
+"eligible": true,
+"margin": 22.9,
+"sharpe": 1.109,
+"ret": 0.068,
+"turnover": 0.12,
+"crash": 2.87,
+"deflated": 0.932,
+"folds": [
+{
+"utility": 0.844,
+"sharpe": 1.07,
+"ret": 0.102,
+"years": "2008-2012"
+},
+{
+"utility": 1.466,
+"sharpe": 1.74,
+"ret": 0.11599999999999999,
+"years": "2005-2008"
+},
+{
+"utility": 0.373,
+"sharpe": 0.86,
+"ret": 0.042,
+"years": "2010-2017"
+},
+{
+"utility": 1.439,
+"sharpe": 1.78,
+"ret": 0.1,
+"years": "2011-2016"
+},
+{
+"utility": 1.27,
+"sharpe": 1.8,
+"ret": 0.075,
+"years": "2006-2015"
+},
+{
+"utility": 0.747,
+"sharpe": 1.3,
+"ret": 0.055999999999999994,
+"years": "2004-2014"
+}
+]
+},
+"9d624cb": {
+"utility": 1.269,
+"worst": 0.319,
+"eligible": true,
+"margin": 26.2,
+"sharpe": 1.328,
+"ret": 0.08199999999999999,
+"turnover": 0.12,
+"crash": 2.76,
+"deflated": 0.988,
+"folds": [
+{
+"utility": 0.917,
+"sharpe": 1.45,
+"ret": 0.066,
+"years": "2007-2011"
+},
+{
+"utility": 0.817,
+"sharpe": 1.07,
+"ret": 0.10099999999999999,
+"years": "2008-2012"
+},
+{
+"utility": 1.529,
+"sharpe": 1.72,
+"ret": 0.134,
+"years": "2008-2017"
+},
+{
+"utility": 1.768,
+"sharpe": 2.19,
+"ret": 0.106,
+"years": "2009-2016"
+},
+{
+"utility": 1.841,
+"sharpe": 2.31,
+"ret": 0.092,
+"years": "2004-2005"
+},
+{
+"utility": 1.114,
+"sharpe": 1.64,
+"ret": 0.073,
+"years": "2014-2015"
+}
+]
+},
+"2cc4acf": {
+"utility": 1.287,
+"worst": 0.244,
+"eligible": true,
+"margin": 34.4,
+"sharpe": 1.319,
+"ret": 0.106,
+"turnover": 0.12,
+"crash": 2.95,
+"deflated": 0.986,
+"folds": [
+{
+"utility": 2.545,
+"sharpe": 2.37,
+"ret": 0.174,
+"years": "2004-2016"
+},
+{
+"utility": 2.229,
+"sharpe": 2.15,
+"ret": 0.152,
+"years": "2011-2015"
+},
+{
+"utility": 1.863,
+"sharpe": 1.69,
+"ret": 0.22,
+"years": "2008-2009"
+},
+{
+"utility": 1.231,
+"sharpe": 1.72,
+"ret": 0.08,
+"years": "2005-2010"
+},
+{
+"utility": -0.058,
+"sharpe": 0.25,
+"ret": 0.013999999999999999,
+"years": "2006-2014"
+},
+{
+"utility": 0.496,
+"sharpe": 0.87,
+"ret": 0.068,
+"years": "2012-2017"
+}
+]
+},
+"d466e9b": {
+"utility": 1.32,
+"worst": 0.369,
+"eligible": true,
+"margin": 42.5,
+"sharpe": 1.277,
+"ret": 0.13,
+"turnover": 0.12,
+"crash": 3.16,
+"deflated": 0.979,
+"folds": [
+{
+"utility": 2.498,
+"sharpe": 2.17,
+"ret": 0.22,
+"years": "2011-2016"
+},
+{
+"utility": 1.559,
+"sharpe": 1.64,
+"ret": 0.133,
+"years": "2005-2015"
+},
+{
+"utility": 1.474,
+"sharpe": 1.34,
+"ret": 0.17800000000000002,
+"years": "2008-2012"
+},
+{
+"utility": 0.67,
+"sharpe": 0.97,
+"ret": 0.086,
+"years": "2004-2014"
+},
+{
+"utility": 0.217,
+"sharpe": 0.58,
+"ret": 0.046,
+"years": "2010-2017"
+},
+{
+"utility": 1.678,
+"sharpe": 1.61,
+"ret": 0.183,
+"years": "2006-2008"
+}
+]
+},
+"cf557fc": {
+"utility": 1.166,
+"worst": 0.318,
+"eligible": true,
+"margin": 35.9,
+"sharpe": 1.289,
+"ret": 0.096,
+"turnover": 0.11,
+"crash": 2.87,
+"deflated": 0.98,
+"folds": [
+{
+"utility": 1.212,
+"sharpe": 1.57,
+"ret": 0.092,
+"years": "2005-2015"
+},
+{
+"utility": 1.427,
+"sharpe": 1.6,
+"ret": 0.11900000000000001,
+"years": "2014-2016"
+},
+{
+"utility": 0.623,
+"sharpe": 1.01,
+"ret": 0.07,
+"years": "2012-2017"
+},
+{
+"utility": 0.855,
+"sharpe": 1.32,
+"ret": 0.07,
+"years": "2007-2011"
+},
+{
+"utility": 2.031,
+"sharpe": 1.74,
+"ret": 0.209,
+"years": "2008-2009"
+},
+{
+"utility": 0.885,
+"sharpe": 1.36,
+"ret": 0.07,
+"years": "2004-2010"
+}
+]
+},
+"326d478": {
+"utility": 1.055,
+"worst": 0.189,
+"eligible": true,
+"margin": 38.7,
+"sharpe": 1.104,
+"ret": 0.138,
+"turnover": 0.14,
+"crash": 3.51,
+"deflated": 0.914,
+"folds": [
+{
+"utility": 3.012,
+"sharpe": 2.31,
+"ret": 0.381,
+"years": "2007-2016"
+},
+{
+"utility": 0.365,
+"sharpe": 0.74,
+"ret": 0.06,
+"years": "2005-2007"
+},
+{
+"utility": 0.907,
+"sharpe": 0.95,
+"ret": 0.149,
+"years": "2009-2010"
+},
+{
+"utility": 0.722,
+"sharpe": 0.93,
+"ret": 0.106,
+"years": "2004-2012"
+},
+{
+"utility": 0.579,
+"sharpe": 0.86,
+"ret": 0.086,
+"years": "2014-2015"
+},
+{
+"utility": 1.054,
+"sharpe": 1.23,
+"ret": 0.142,
+"years": "2011-2017"
+}
+]
+},
+"cc9355d": {
+"utility": 0.928,
+"worst": 0.133,
+"eligible": true,
+"margin": 35.4,
+"sharpe": 1.163,
+"ret": 0.10800000000000001,
+"turnover": 0.12,
+"crash": 3.06,
+"deflated": 0.945,
+"folds": [
+{
+"utility": 0.568,
+"sharpe": 0.81,
+"ret": 0.099,
+"years": "2009-2017"
+},
+{
+"utility": 2.833,
+"sharpe": 2.29,
+"ret": 0.24100000000000002,
+"years": "2005-2008"
+},
+{
+"utility": 1.146,
+"sharpe": 1.36,
+"ret": 0.111,
+"years": "2011-2014"
+},
+{
+"utility": 1.902,
+"sharpe": 1.82,
+"ret": 0.171,
+"years": "2012-2016"
+},
+{
+"utility": 0.698,
+"sharpe": 1.09,
+"ret": 0.073,
+"years": "2004-2010"
+},
+{
+"utility": -0.139,
+"sharpe": -0.03,
+"ret": -0.002,
+"years": "2006-2015"
+}
+]
+},
+"6bde7c6": {
+"utility": 1.267,
+"worst": 0.172,
+"eligible": true,
+"margin": 45.2,
+"sharpe": 1.225,
+"ret": 0.134,
+"turnover": 0.12,
+"crash": 2.83,
+"deflated": 0.967,
+"folds": [
+{
+"utility": 2.307,
+"sharpe": 1.93,
+"ret": 0.21100000000000002,
+"years": "2013-2016"
+},
+{
+"utility": 2.872,
+"sharpe": 2.15,
+"ret": 0.276,
+"years": "2005-2008"
+},
+{
+"utility": 1.561,
+"sharpe": 1.57,
+"ret": 0.145,
+"years": "2004-2012"
+},
+{
+"utility": 0.366,
+"sharpe": 0.67,
+"ret": 0.068,
+"years": "2011-2017"
+},
+{
+"utility": 1.035,
+"sharpe": 1.2,
+"ret": 0.11900000000000001,
+"years": "2010-2015"
+},
+{
+"utility": 0.243,
+"sharpe": 0.53,
+"ret": 0.063,
+"years": "2007-2009"
+}
+]
+},
+"0dea195": {
+"utility": 1.253,
+"worst": 0.436,
+"eligible": true,
+"margin": 34.4,
+"sharpe": 1.444,
+"ret": 0.102,
+"turnover": 0.12,
+"crash": 2.7,
+"deflated": 0.995,
+"folds": [
+{
+"utility": 0.806,
+"sharpe": 1.33,
+"ret": 0.062,
+"years": "2004-2007"
+},
+{
+"utility": 1.394,
+"sharpe": 1.44,
+"ret": 0.14,
+"years": "2009-2013"
+},
+{
+"utility": 1.347,
+"sharpe": 1.73,
+"ret": 0.092,
+"years": "2010-2015"
+},
+{
+"utility": 1.823,
+"sharpe": 2.01,
+"ret": 0.138,
+"years": "2011-2016"
+},
+{
+"utility": 0.369,
+"sharpe": 0.79,
+"ret": 0.051,
+"years": "2013-2017"
+},
+{
+"utility": 2.293,
+"sharpe": 2.1,
+"ret": 0.18,
+"years": "2005-2008"
+}
+]
+},
+"398d02c": {
+"utility": 1.206,
+"worst": 0.38,
+"eligible": true,
+"margin": 32.9,
+"sharpe": 1.348,
+"ret": 0.11199999999999999,
+"turnover": 0.14,
+"crash": 2.62,
+"deflated": 0.987,
+"folds": [
+{
+"utility": 1.136,
+"sharpe": 1.54,
+"ret": 0.10300000000000001,
+"years": "2007-2016"
+},
+{
+"utility": 0.972,
+"sharpe": 1.31,
+"ret": 0.094,
+"years": "2004-2011"
+},
+{
+"utility": 3.069,
+"sharpe": 2.47,
+"ret": 0.264,
+"years": "2007-2015"
+},
+{
+"utility": 1.092,
+"sharpe": 1.34,
+"ret": 0.105,
+"years": "2012-2017"
+},
+{
+"utility": 0.829,
+"sharpe": 1.04,
+"ret": 0.11599999999999999,
+"years": "2009-2014"
+},
+{
+"utility": 0.54,
+"sharpe": 1.06,
+"ret": 0.05,
+"years": "2005-2010"
+}
+]
+},
+"e4797e5": {
+"utility": 0.737,
+"worst": 0.009,
+"eligible": true,
+"margin": 27.2,
+"sharpe": 0.796,
+"ret": 0.075,
+"turnover": 0.11,
+"crash": 2.12,
+"deflated": 0.56,
+"folds": [
+{
+"utility": 1.182,
+"sharpe": 1.39,
+"ret": 0.114,
+"years": "2005-2016"
+},
+{
+"utility": 0.175,
+"sharpe": 0.55,
+"ret": 0.040999999999999995,
+"years": "2004-2007"
+},
+{
+"utility": 1.056,
+"sharpe": 1.23,
+"ret": 0.11900000000000001,
+"years": "2011-2015"
+},
+{
+"utility": 0.858,
+"sharpe": 1.1,
+"ret": 0.10400000000000001,
+"years": "2012-2014"
+},
+{
+"utility": 1.21,
+"sharpe": 1.24,
+"ret": 0.14800000000000002,
+"years": "2008-2009"
+},
+{
+"utility": 0.207,
+"sharpe": 0.58,
+"ret": 0.046,
+"years": "2010-2017"
+}
+]
+},
+"2d5026b": {
+"utility": 1.239,
+"worst": 0.366,
+"eligible": true,
+"margin": 41.4,
+"sharpe": 1.283,
+"ret": 0.13,
+"turnover": 0.12,
+"crash": 3.01,
+"deflated": 0.976,
+"folds": [
+{
+"utility": 1.121,
+"sharpe": 1.18,
+"ret": 0.142,
+"years": "2009-2010"
+},
+{
+"utility": 0.002,
+"sharpe": 0.31,
+"ret": 0.024,
+"years": "2006-2014"
+},
+{
+"utility": 2.204,
+"sharpe": 2.06,
+"ret": 0.184,
+"years": "2005-2016"
+},
+{
+"utility": 1.565,
+"sharpe": 1.58,
+"ret": 0.14400000000000002,
+"years": "2004-2011"
+},
+{
+"utility": 0.645,
+"sharpe": 0.93,
+"ret": 0.087,
+"years": "2014-2017"
+},
+{
+"utility": 2.537,
+"sharpe": 2.01,
+"ret": 0.254,
+"years": "2008-2013"
+}
+]
+},
+"dc75acd": {
+"utility": 1.192,
+"worst": 0.513,
+"eligible": true,
+"margin": 33.1,
+"sharpe": 1.337,
+"ret": 0.111,
+"turnover": 0.13,
+"crash": 3.01,
+"deflated": 0.985,
+"folds": [
+{
+"utility": 2.059,
+"sharpe": 1.91,
+"ret": 0.196,
+"years": "2004-2008"
+},
+{
+"utility": 1.0,
+"sharpe": 1.16,
+"ret": 0.135,
+"years": "2008-2015"
+},
+{
+"utility": 2.499,
+"sharpe": 2.35,
+"ret": 0.182,
+"years": "2012-2016"
+},
+{
+"utility": 0.333,
+"sharpe": 0.79,
+"ret": 0.044000000000000004,
+"years": "2010-2014"
+},
+{
+"utility": 1.638,
+"sharpe": 1.91,
+"ret": 0.11199999999999999,
+"years": "2005-2011"
+},
+{
+"utility": 0.361,
+"sharpe": 0.8,
+"ret": 0.048,
+"years": "2006-2017"
+}
+]
+},
+"4691ea6": {
+"utility": 1.115,
+"worst": 0.39,
+"eligible": true,
+"margin": 32.9,
+"sharpe": 1.231,
+"ret": 0.125,
+"turnover": 0.15,
+"crash": 2.9,
+"deflated": 0.961,
+"folds": [
+{
+"utility": 1.991,
+"sharpe": 1.96,
+"ret": 0.18600000000000003,
+"years": "2004-2016"
+},
+{
+"utility": 0.666,
+"sharpe": 0.89,
+"ret": 0.115,
+"years": "2009-2010"
+},
+{
+"utility": 1.186,
+"sharpe": 1.48,
+"ret": 0.11,
+"years": "2005-2015"
+},
+{
+"utility": 2.327,
+"sharpe": 2.03,
+"ret": 0.253,
+"years": "2007-2012"
+},
+{
+"utility": 0.332,
+"sharpe": 0.71,
+"ret": 0.062,
+"years": "2013-2017"
+},
+{
+"utility": 0.84,
+"sharpe": 1.25,
+"ret": 0.094,
+"years": "2006-2011"
+}
+]
+},
+"964e2fb": {
+"utility": 1.242,
+"worst": 0.269,
+"eligible": true,
+"margin": 49.6,
+"sharpe": 1.242,
+"ret": 0.126,
+"turnover": 0.1,
+"crash": 3.06,
+"deflated": 0.964,
+"folds": [
+{
+"utility": 0.767,
+"sharpe": 1.02,
+"ret": 0.099,
+"years": "2013-2015"
+},
+{
+"utility": -0.085,
+"sharpe": 0.16,
+"ret": 0.013000000000000001,
+"years": "2006-2017"
+},
+{
+"utility": 3.122,
+"sharpe": 2.27,
+"ret": 0.257,
+"years": "2005-2008"
+},
+{
+"utility": 1.359,
+"sharpe": 1.31,
+"ret": 0.16399999999999998,
+"years": "2004-2009"
+},
+{
+"utility": 1.37,
+"sharpe": 1.48,
+"ret": 0.13,
+"years": "2010-2016"
+},
+{
+"utility": 1.698,
+"sharpe": 1.61,
+"ret": 0.162,
+"years": "2011-2012"
+}
+]
+},
+"074c52f": {
+"utility": 1.212,
+"worst": 0.337,
+"eligible": true,
+"margin": 38.9,
+"sharpe": 1.253,
+"ret": 0.127,
+"turnover": 0.13,
+"crash": 3.11,
+"deflated": 0.967,
+"folds": [
+{
+"utility": 2.104,
+"sharpe": 1.85,
+"ret": 0.23399999999999999,
+"years": "2008-2015"
+},
+{
+"utility": 0.824,
+"sharpe": 1.15,
+"ret": 0.09,
+"years": "2007-2011"
+},
+{
+"utility": 1.346,
+"sharpe": 1.5,
+"ret": 0.151,
+"years": "2015-2017"
+},
+{
+"utility": 0.854,
+"sharpe": 1.14,
+"ret": 0.09300000000000001,
+"years": "2010-2013"
+},
+{
+"utility": 1.04,
+"sharpe": 1.3,
+"ret": 0.10099999999999999,
+"years": "2005-2014"
+},
+{
+"utility": 1.285,
+"sharpe": 1.26,
+"ret": 0.162,
+"years": "2004-2009"
+}
+]
+},
+"7007dcc": {
+"utility": 1.109,
+"worst": 0.302,
+"eligible": true,
+"margin": 43.1,
+"sharpe": 1.234,
+"ret": 0.127,
+"turnover": 0.12,
+"crash": 3.27,
+"deflated": 0.963,
+"folds": [
+{
+"utility": 1.073,
+"sharpe": 1.45,
+"ret": 0.08900000000000001,
+"years": "2005-2010"
+},
+{
+"utility": 0.978,
+"sharpe": 1.19,
+"ret": 0.11199999999999999,
+"years": "2004-2013"
+},
+{
+"utility": 1.079,
+"sharpe": 1.25,
+"ret": 0.12,
+"years": "2011-2015"
+},
+{
+"utility": 1.959,
+"sharpe": 1.72,
+"ret": 0.228,
+"years": "2009-2016"
+},
+{
+"utility": 0.09,
+"sharpe": 0.44,
+"ret": 0.035,
+"years": "2006-2017"
+},
+{
+"utility": 1.947,
+"sharpe": 1.69,
+"ret": 0.21600000000000003,
+"years": "2008-2014"
+}
+]
+},
+"582dc6a": {
+"utility": 1.376,
+"worst": 0.378,
+"eligible": true,
+"margin": 44.8,
+"sharpe": 1.302,
+"ret": 0.136,
+"turnover": 0.12,
+"crash": 3.1,
+"deflated": 0.979,
+"folds": [
+{
+"utility": 0.319,
+"sharpe": 0.68,
+"ret": 0.054000000000000006,
+"years": "2006-2015"
+},
+{
+"utility": 2.025,
+"sharpe": 1.73,
+"ret": 0.23,
+"years": "2007-2017"
+},
+{
+"utility": 2.172,
+"sharpe": 1.97,
+"ret": 0.175,
+"years": "2010-2016"
+},
+{
+"utility": 1.072,
+"sharpe": 1.11,
+"ret": 0.147,
+"years": "2004-2009"
+},
+{
+"utility": 1.82,
+"sharpe": 1.7,
+"ret": 0.165,
+"years": "2011-2012"
+},
+{
+"utility": 1.287,
+"sharpe": 1.47,
+"ret": 0.11699999999999999,
+"years": "2005-2014"
+}
+]
+},
+"318e1b1": {
+"utility": 1.336,
+"worst": 0.262,
+"eligible": true,
+"margin": 44.6,
+"sharpe": 1.268,
+"ret": 0.135,
+"turnover": 0.12,
+"crash": 2.97,
+"deflated": 0.972,
+"folds": [
+{
+"utility": 1.309,
+"sharpe": 1.42,
+"ret": 0.129,
+"years": "2004-2011"
+},
+{
+"utility": 1.285,
+"sharpe": 1.38,
+"ret": 0.132,
+"years": "2012-2015"
+},
+{
+"utility": 3.236,
+"sharpe": 2.33,
+"ret": 0.294,
+"years": "2005-2008"
+},
+{
+"utility": 1.068,
+"sharpe": 1.13,
+"ret": 0.142,
+"years": "2008-2010"
+},
+{
+"utility": 0.334,
+"sharpe": 0.66,
+"ret": 0.062,
+"years": "2014-2017"
+},
+{
+"utility": 1.147,
+"sharpe": 1.36,
+"ret": 0.128,
+"years": "2006-2016"
+}
+]
+},
+"06608f1": {
+"utility": 1.305,
+"worst": 0.295,
+"eligible": true,
+"margin": 42.7,
+"sharpe": 1.289,
+"ret": 0.131,
+"turnover": 0.12,
+"crash": 3.12,
+"deflated": 0.976,
+"folds": [
+{
+"utility": 1.183,
+"sharpe": 1.54,
+"ret": 0.092,
+"years": "2005-2010"
+},
+{
+"utility": 1.122,
+"sharpe": 1.29,
+"ret": 0.11800000000000001,
+"years": "2004-2015"
+},
+{
+"utility": 1.345,
+"sharpe": 1.44,
+"ret": 0.133,
+"years": "2011-2014"
+},
+{
+"utility": 0.583,
+"sharpe": 0.82,
+"ret": 0.099,
+"years": "2006-2009"
+},
+{
+"utility": 0.695,
+"sharpe": 0.97,
+"ret": 0.092,
+"years": "2012-2017"
+},
+{
+"utility": 3.099,
+"sharpe": 2.41,
+"ret": 0.313,
+"years": "2007-2016"
+}
+]
+},
+"259994b": {
+"utility": 1.318,
+"worst": 0.353,
+"eligible": true,
+"margin": 44.0,
+"sharpe": 1.283,
+"ret": 0.134,
+"turnover": 0.12,
+"crash": 3.11,
+"deflated": 0.975,
+"folds": [
+{
+"utility": 1.306,
+"sharpe": 1.23,
+"ret": 0.16699999999999998,
+"years": "2009-2015"
+},
+{
+"utility": 1.151,
+"sharpe": 1.37,
+"ret": 0.10800000000000001,
+"years": "2009-2012"
+},
+{
+"utility": 0.1,
+"sharpe": 0.43,
+"ret": 0.032,
+"years": "2004-2007"
+},
+{
+"utility": 0.348,
+"sharpe": 0.66,
+"ret": 0.063,
+"years": "2014-2017"
+},
+{
+"utility": 2.913,
+"sharpe": 2.42,
+"ret": 0.222,
+"years": "2005-2016"
+},
+{
+"utility": 3.01,
+"sharpe": 2.23,
+"ret": 0.297,
+"years": "2008-2011"
+}
+]
+},
+"2ab86ca": {
+"utility": 1.366,
+"worst": 0.421,
+"eligible": true,
+"margin": 41.4,
+"sharpe": 1.396,
+"ret": 0.128,
+"turnover": 0.12,
+"crash": 2.89,
+"deflated": 0.992,
+"folds": [
+{
+"utility": 1.447,
+"sharpe": 1.56,
+"ret": 0.129,
+"years": "2011-2012"
+},
+{
+"utility": 3.347,
+"sharpe": 2.56,
+"ret": 0.32,
+"years": "2008-2016"
+},
+{
+"utility": 1.559,
+"sharpe": 1.62,
+"ret": 0.13699999999999998,
+"years": "2014-2015"
+},
+{
+"utility": 0.205,
+"sharpe": 0.62,
+"ret": 0.038,
+"years": "2004-2007"
+},
+{
+"utility": 1.075,
+"sharpe": 1.52,
+"ret": 0.079,
+"years": "2005-2010"
+},
+{
+"utility": 1.047,
+"sharpe": 1.14,
+"ret": 0.13699999999999998,
+"years": "2009-2017"
+}
+]
+},
+"efecee3": {
+"utility": 0.926,
+"worst": 0.073,
+"eligible": true,
+"margin": 68.0,
+"sharpe": 1.049,
+"ret": 0.109,
+"turnover": 0.06,
+"crash": 2.29,
+"deflated": 0.859,
+"folds": [
+{
+"utility": 1.006,
+"sharpe": 1.22,
+"ret": 0.106,
+"years": "2005-2014"
+},
+{
+"utility": 1.373,
+"sharpe": 1.31,
+"ret": 0.163,
+"years": "2008-2011"
+},
+{
+"utility": -0.004,
+"sharpe": 0.26,
+"ret": 0.026000000000000002,
+"years": "2007-2016"
+},
+{
+"utility": 2.965,
+"sharpe": 2.09,
+"ret": 0.273,
+"years": "2007-2015"
+},
+{
+"utility": 0.298,
+"sharpe": 0.62,
+"ret": 0.057999999999999996,
+"years": "2004-2017"
+},
+{
+"utility": 0.787,
+"sharpe": 1.06,
+"ret": 0.092,
+"years": "2010-2013"
+}
+]
+},
+"5813674": {
+"utility": 1.087,
+"worst": 0.269,
+"eligible": true,
+"margin": 35.2,
+"sharpe": 0.967,
+"ret": 0.102,
+"turnover": 0.12,
+"crash": 3.09,
+"deflated": 0.783,
+"folds": [
+{
+"utility": 0.7,
+"sharpe": 1.05,
+"ret": 0.08,
+"years": "2009-2014"
+},
+{
+"utility": 0.938,
+"sharpe": 1.04,
+"ret": 0.142,
+"years": "2009-2017"
+},
+{
+"utility": 2.68,
+"sharpe": 2.02,
+"ret": 0.27,
+"years": "2007-2016"
+},
+{
+"utility": 0.538,
+"sharpe": 0.86,
+"ret": 0.078,
+"years": "2011-2015"
+},
+{
+"utility": 0.38,
+"sharpe": 0.74,
+"ret": 0.061,
+"years": "2006-2012"
+},
+{
+"utility": 1.451,
+"sharpe": 1.6,
+"ret": 0.12300000000000001,
+"years": "2004-2006"
+}
+]
+},
+"b89945f": {
+"utility": 1.473,
+"worst": 0.4,
+"eligible": true,
+"margin": 48.7,
+"sharpe": 1.269,
+"ret": 0.149,
+"turnover": 0.12,
+"crash": 2.92,
+"deflated": 0.974,
+"folds": [
+{
+"utility": 0.782,
+"sharpe": 0.87,
+"ret": 0.128,
+"years": "2009-2017"
+},
+{
+"utility": 3.15,
+"sharpe": 2.23,
+"ret": 0.324,
+"years": "2007-2011"
+},
+{
+"utility": 0.197,
+"sharpe": 0.5,
+"ret": 0.042,
+"years": "2004-2007"
+},
+{
+"utility": 2.045,
+"sharpe": 1.8,
+"ret": 0.185,
+"years": "2009-2016"
+},
+{
+"utility": 2.144,
+"sharpe": 1.93,
+"ret": 0.16899999999999998,
+"years": "2005-2015"
+},
+{
+"utility": 1.044,
+"sharpe": 1.15,
+"ret": 0.12300000000000001,
+"years": "2012-2014"
+}
+]
+},
+"5596bb7": {
+"utility": 1.448,
+"worst": 0.481,
+"eligible": true,
+"margin": 45.8,
+"sharpe": 1.382,
+"ret": 0.142,
+"turnover": 0.12,
+"crash": 2.69,
+"deflated": 0.991,
+"folds": [
+{
+"utility": 0.239,
+"sharpe": 0.6,
+"ret": 0.04,
+"years": "2006-2010"
+},
+{
+"utility": 3.204,
+"sharpe": 2.25,
+"ret": 0.299,
+"years": "2007-2012"
+},
+{
+"utility": 1.845,
+"sharpe": 1.78,
+"ret": 0.15,
+"years": "2004-2015"
+},
+{
+"utility": 1.991,
+"sharpe": 1.7,
+"ret": 0.23600000000000002,
+"years": "2009-2016"
+},
+{
+"utility": 0.49,
+"sharpe": 0.78,
+"ret": 0.07200000000000001,
+"years": "2013-2017"
+},
+{
+"utility": 1.614,
+"sharpe": 1.7,
+"ret": 0.127,
+"years": "2005-2011"
+}
+]
+},
+"a8f66ea": {
+"utility": 0.592,
+"worst": -0.075,
+"eligible": true,
+"margin": 36.7,
+"sharpe": 0.623,
+"ret": 0.077,
+"turnover": 0.08,
+"crash": 2.02,
+"deflated": 0.297,
+"folds": [
+{
+"utility": 0.395,
+"sharpe": 0.67,
+"ret": 0.064,
+"years": "2005-2017"
+},
+{
+"utility": 0.865,
+"sharpe": 1.02,
+"ret": 0.109,
+"years": "2009-2015"
+},
+{
+"utility": 1.574,
+"sharpe": 1.37,
+"ret": 0.183,
+"years": "2007-2012"
+},
+{
+"utility": 0.053,
+"sharpe": 0.27,
+"ret": 0.033,
+"years": "2004-2011"
+},
+{
+"utility": 0.291,
+"sharpe": 0.48,
+"ret": 0.079,
+"years": "2009-2014"
+},
+{
+"utility": 0.902,
+"sharpe": 1.05,
+"ret": 0.111,
+"years": "2007-2016"
+}
+]
+},
+"fe929ee": {
+"utility": 1.327,
+"worst": 0.271,
+"eligible": true,
+"margin": 35.1,
+"sharpe": 1.25,
+"ret": 0.149,
+"turnover": 0.17,
+"crash": 3.09,
+"deflated": 0.967,
+"folds": [
+{
+"utility": 1.176,
+"sharpe": 1.3,
+"ret": 0.128,
+"years": "2004-2012"
+},
+{
+"utility": 2.155,
+"sharpe": 2.13,
+"ret": 0.21100000000000002,
+"years": "2005-2016"
+},
+{
+"utility": 0.265,
+"sharpe": 0.56,
+"ret": 0.06,
+"years": "2014-2017"
+},
+{
+"utility": 0.496,
+"sharpe": 0.76,
+"ret": 0.107,
+"years": "2006-2009"
+},
+{
+"utility": 2.492,
+"sharpe": 2.08,
+"ret": 0.28600000000000003,
+"years": "2008-2010"
+},
+{
+"utility": 1.687,
+"sharpe": 1.72,
+"ret": 0.183,
+"years": "2011-2015"
+}
+]
+},
+"2e0f86c": {
+"utility": 1.38,
+"worst": 0.419,
+"eligible": true,
+"margin": 52.8,
+"sharpe": 1.322,
+"ret": 0.156,
+"turnover": 0.12,
+"crash": 3.35,
+"deflated": 0.984,
+"folds": [
+{
+"utility": 2.362,
+"sharpe": 1.9,
+"ret": 0.22,
+"years": "2012-2016"
+},
+{
+"utility": 3.183,
+"sharpe": 2.19,
+"ret": 0.337,
+"years": "2007-2011"
+},
+{
+"utility": 1.321,
+"sharpe": 1.21,
+"ret": 0.171,
+"years": "2008-2017"
+},
+{
+"utility": 0.829,
+"sharpe": 1.09,
+"ret": 0.091,
+"years": "2004-2010"
+},
+{
+"utility": -0.028,
+"sharpe": 0.18,
+"ret": 0.018000000000000002,
+"years": "2007-2014"
+},
+{
+"utility": 1.906,
+"sharpe": 1.78,
+"ret": 0.158,
+"years": "2005-2015"
+}
+]
+},
+"cca84c1": {
+"utility": 1.409,
+"worst": 0.345,
+"eligible": true,
+"margin": 47.2,
+"sharpe": 1.393,
+"ret": 0.141,
+"turnover": 0.12,
+"crash": 3.04,
+"deflated": 0.991,
+"folds": [
+{
+"utility": 1.394,
+"sharpe": 1.32,
+"ret": 0.159,
+"years": "2008-2010"
+},
+{
+"utility": 0.519,
+"sharpe": 0.82,
+"ret": 0.071,
+"years": "2004-2014"
+},
+{
+"utility": 3.22,
+"sharpe": 2.25,
+"ret": 0.29600000000000004,
+"years": "2008-2013"
+},
+{
+"utility": 1.353,
+"sharpe": 1.51,
+"ret": 0.115,
+"years": "2005-2011"
+},
+{
+"utility": 1.93,
+"sharpe": 1.77,
+"ret": 0.18,
+"years": "2016-2017"
+},
+{
+"utility": 0.757,
+"sharpe": 1.05,
+"ret": 0.083,
+"years": "2007-2015"
+}
+]
+},
+"7390fe3": {
+"utility": 1.234,
+"worst": 0.303,
+"eligible": true,
+"margin": 40.4,
+"sharpe": 1.137,
+"ret": 0.135,
+"turnover": 0.13,
+"crash": 2.8,
+"deflated": 0.92,
+"folds": [
+{
+"utility": 2.733,
+"sharpe": 2.12,
+"ret": 0.305,
+"years": "2007-2011"
+},
+{
+"utility": 0.971,
+"sharpe": 1.2,
+"ret": 0.122,
+"years": "2006-2016"
+},
+{
+"utility": 0.532,
+"sharpe": 0.81,
+"ret": 0.076,
+"years": "2010-2014"
+},
+{
+"utility": 1.001,
+"sharpe": 1.0,
+"ret": 0.149,
+"years": "2004-2009"
+},
+{
+"utility": 1.649,
+"sharpe": 1.53,
+"ret": 0.163,
+"years": "2012-2015"
+},
+{
+"utility": 0.695,
+"sharpe": 0.97,
+"ret": 0.08199999999999999,
+"years": "2005-2017"
+}
+]
+}
+}

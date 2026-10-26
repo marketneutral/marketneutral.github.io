@@ -6,7 +6,7 @@ Reads the lab notebook (results.tsv, copied here from the lab at the end of the 
 and draws the progress chart in the style of the ai-scientist post's redraw of
 Karpathy's chart: grey dots are discarded trials, green dots are kept, the staircase
 is the best so far. Two panels: the score the agent climbs (median fold) and the
-number it must not break (worst fold). Palette matches src/assets/styles.css.
+number it must not break (worst slice). Palette matches src/assets/styles.css.
 """
 import csv, json, os, re, subprocess
 import numpy as np
@@ -47,7 +47,7 @@ def fig_progress(trials):
     fig, (a1, a2) = plt.subplots(2, 1, figsize=(12.2, 7.4), sharex=True, gridspec_kw=dict(height_ratios=[1.6, 1], hspace=0.08))
     fig.subplots_adjust(left=0.08, right=0.97, top=0.97, bottom=0.08)
     last = x[-1]
-    for ax, y, name in ((a1, u, "utility, median fold (higher is better)"), (a2, w, "worst fold")):
+    for ax, y, name in ((a1, u, "score on the median slice"), (a2, w, "score on the worst slice")):
         ax.scatter(x[~kept], y[~kept], s=16, color=MUTED, alpha=0.55, lw=0, zorder=2, label="discarded")
         ax.step(np.append(x[kept], last), np.append(y[kept], y[kept][-1]), where="post", color=ACC, lw=1.8, zorder=3, label="best so far")
         ax.scatter(x[kept], y[kept], s=46, color=ACC, edgecolor=BG, lw=1.2, zorder=4, label="kept")
@@ -72,10 +72,79 @@ def fig_progress(trials):
     export_hover(fig, a1, a2, trials)
     save(fig, "progress")
 
+WIDTH = 64                                                                        # longest line a tooltip shows
+
+def _top_level(s, seps):
+    """Positions in s of any of seps outside brackets."""
+    out, depth, i = [], 0, 0
+    while i < len(s):
+        ch = s[i]
+        depth += ch in "([" ; depth -= ch in ")]"
+        hit = next((x for x in seps if depth == 0 and s.startswith(x, i)), None)
+        if hit:
+            out.append((i, hit)); i += len(hit); continue
+        i += 1
+    return out
+
+def fmt(expr, col):
+    """Lay out a qex expression starting at column col, within WIDTH: break before top-level + - &, else put each
+    argument of the outermost call on its own line aligned after the open paren. Continuation lines carry their
+    indentation; the first line does not."""
+    expr = expr.strip()
+    if col + len(expr) <= WIDTH:
+        return [expr]
+    ops = _top_level(expr, [" - ", " + ", " & "])
+    if ops:
+        cuts = [i for i, _ in ops]
+        parts = [expr[x + (x > 0):y] for x, y in zip([0] + cuts, cuts + [len(expr)])]
+        out = []
+        for k, part in enumerate(parts):
+            lines = fmt(part, col)
+            out += lines if k == 0 else [" " * col + lines[0]] + lines[1:]
+        return out
+    call = re.match(r"(-?\w+\()(.*)\)$", expr)
+    if call and _balanced(call.group(2)):
+        args = _split_args(call.group(2))
+        if len(args) > 1:
+            head, acol, out = call.group(1), col + len(call.group(1)), []
+            for k, arg in enumerate(args):
+                lines = fmt(arg, acol)
+                lines[-1] += ")" if k == len(args) - 1 else ","
+                out += [head + lines[0]] + lines[1:] if k == 0 else [" " * acol + lines[0]] + lines[1:]
+            return out
+    return [expr]
+
+def _balanced(s):
+    depth = 0
+    for ch in s:
+        depth += ch in "([" ; depth -= ch in ")]"
+        if depth < 0:
+            return False
+    return depth == 0
+
+def wrap_line(line):
+    """One line of an alpha.qex ('    name  = expr,' or 'in expr'), laid out within WIDTH."""
+    if len(line) <= WIDTH:
+        return [line]
+    m = re.match(r"(\s*(?:let\s+)?\w+\s*=\s*|\s*in\s+)(.*?)(,?)$", line)
+    if not m:
+        return [line]
+    lead, body, comma = m.groups()
+    out = fmt(body, len(lead))
+    out = [lead + out[0]] + out[1:]
+    out[-1] += comma
+    return out
+
+def _split_args(s):
+    cuts = [i for i, _ in _top_level(s, [","])]
+    return [s[a + (a > 0):b] for a, b in zip([0] + cuts, cuts + [len(s)])]
+
 def qex_of(tag):
-    """The trial's alpha.qex from the lab's git history, without the membership flag the evaluator now applies itself."""
+    """The trial's alpha.qex from the lab's git history, without the membership flag the evaluator now applies
+    itself, with long lines broken for the tooltip."""
     e = subprocess.check_output(["git", "-C", LAB, "show", f"{SEED_COMMIT if tag == 'seed' else tag}:alpha.qex"], text=True)
-    return re.sub(r"\s*\*\s*field\('member'\)", "", e).strip()
+    e = re.sub(r"\s*\*\s*field\('member'\)", "", e).strip()
+    return "\n".join(l for line in e.splitlines() for l in wrap_line(line.rstrip()))
 
 def export_hover(fig, a1, a2, trials):
     """lab/progress-hover.json: each dot's position as a fraction of the saved image, with the trial's qex and claim,
@@ -86,12 +155,15 @@ def export_hover(fig, a1, a2, trials):
         px, py = ax.transData.transform((x, y)) / fig.dpi
         return [round((px - box.x0) / box.width, 5), round((box.y1 - py) / box.height, 5)]
     rows = list(csv.DictReader(open(LOG), delimiter="\t"))
-    out = []
+    evals = json.load(open("lab/trial-outputs.json"))                                # from extract_eval.py
+    clip = lambda t, n: t if len(t) <= n else t[:n - 3].rsplit(" ", 1)[0] + " …"
+    out, best = [], None
     for (i, tag, u, w, st), r in zip(trials, rows):
-        claim = r["claim"].strip()
         out.append(dict(trial=i, commit=tag, status=st, utility=u, worst=w, label=LABELS.get(tag, ""),
-                        claim=claim if len(claim) <= 320 else claim[:317].rsplit(" ", 1)[0] + " …",
-                        qex=qex_of(tag), top=frac(a1, i, u), bottom=frac(a2, i, w)))
+                        claim=clip(r["claim"].strip(), 320), outcome=clip(r["outcome"].strip(), 360),
+                        best=best, eval=evals.get(tag), qex=qex_of(tag), top=frac(a1, i, u), bottom=frac(a2, i, w)))
+        if st in ("keep", "seed"):
+            best = [u, w]                                                              # the bar the next trial must clear
     json.dump(out, open("lab/progress-hover.json", "w"), ensure_ascii=False, indent=0)
     print("wrote lab/progress-hover.json")
 
