@@ -69,34 +69,23 @@ once. In plain terms:
 3. **Make complexity cost something.** Every extra piece of the alpha formula is
    charged against the score: a regularizer on complexity.
 4. **Count the tries.** A good result after sixty attempts is worth less
-   than after one. Every trial, the evaluator counts the rows in the
-   notebook and prints the deflated Sharpe ratio of Bailey and López de
-   Prado: the probability that the Sharpe is real, given how many
-   strategies were tried. It informs the agent; it does not decide what is
-   kept. The final strategy's was 0.974 after 61 tries.
+   than after one. Every trial prints the deflated Sharpe ratio of Bailey
+   and López de Prado, the probability the Sharpe is real given how many
+   strategies were tried. It informs; it does not decide keeps. The final
+   strategy's was 0.974.
 5. **Start from a view, not a blank slate.** The title is a nod to the
    zeitgeist: ask an AI to "find alpha, make no mistakes" and hope. Here the
    agent starts from a page of beliefs grounded in published research, each
    with the paper behind it (published prior to the test period).
-6. **Keep one period sealed.** The last eight and a half years are never
-   loaded until the run is over, and then once. Nothing the agent could run
-   loads them: the evaluator stops at 2017, the exploration helper at 2003,
-   and the agent's tool permissions block the test script. Its transcript
-   bears this out: in all 559 of its tool calls, every one that touched
-   data went through the evaluator or the exploration helper.
+6. **Keep one period sealed.** The last eight and a half years are loaded
+   once, after the run. The evaluator stops at 2017, the exploration helper
+   at 2003, and the agent's permissions block the test script; its
+   transcript confirms that every data access went through those two.
 
 <figure class="wide" id="loop">
   <img src="augmented-loop.svg" alt="The autoresearch loop with the finance changes. Top row: you write the beliefs with mechanism, counterparty, paper and prediction; the agent reads the expression and 1999 to 2003, proposes a change, writes the claim naming the belief and what should move, edits alpha.qex and commits. Middle row: deal 50 random purged partitions of 2004 to 2017, score each fold as fitness minus a charge per node, then a decision: median up by more than the noise, worst fold not down, and still eligible? Yes keeps it, no undoes it, both return to reading. Bottom row: every attempt is logged with its claim, outcome, regime split and trial count; you read the notebook; and after the last trial, 2018 to 2026 is run once.">
   <figcaption>The loop. Green is the step handed to the model; orange is what the rules added. Every orange box is a few lines of the evaluator or the problem definition.</figcaption>
 </figure>
-
-The three periods:
-
-| period | dates | who sees it |
-|---|---|---|
-| inspection | 1999 to 2003 | the agent, freely: the dot-com top, the bear market, the 2003 junk rally |
-| validation | 2004 to 2017 | the scoring only; the agent sees a number, never the prices |
-| test | 2018 to Aug 2026 | never seen; I run the test myself at the end |
 
 Two more things matter for reading the numbers. The universe is rebuilt
 every day from that day's facts: every US common stock trading above $2,
@@ -184,9 +173,18 @@ lost 8 basis points on every dollar it traded, before costs.
 Sixty trials, fourteen kept. Two numbers decide each one. The *score* is
 computed on six random slices of 2004 to 2017, each about two and a half
 years, and the agent climbs the middle one. The *worst slice* is the score
-on the unluckiest of the six. A change is kept only if it raises the
-score by more than the measured noise and does not make the worst slice
-worse. The seed's worst slice scored −0.96; by the end, even the worst slice
+on the unluckiest of the six. Then the **keep rule**: a change is kept only
+if
+
+1. it raises the score by more than 0.03, the noise in the score measured
+   before the run;
+2. it does not lower the worst slice by more than 0.13, that number's own
+   noise; and
+3. it keeps the strategy eligible: trading within the allowed range, and
+   making at least 5 basis points per dollar traded.
+
+Otherwise the agent restores the best strategy so far and tries something
+else. The seed's worst slice scored −0.96; by the end, even the worst slice
 was comfortably positive, at +0.40.
 
 The agent never sees a price from 2004 to 2017, or a day of its strategy's
@@ -331,29 +329,17 @@ the run:
 > crash-state Sharpe falls sharply, worst falls, median up only by the ~0.04
 > node saving; if worst falls >0.13, belief 7 still earns its keep.
 
-Then everything the evaluator showed it:
+Then the lines of the evaluator's output that mattered:
 
 ```
 utility: 0.622
 worst:   -0.510
-eligible: yes  (whole validation: margin 12.8 bps, needs >= 5; turnover 0.11, needs 0.01-0.70)
-sharpe:  0.616  (whole validation, cost-free)   fitness 0.33  return/yr +3.6%  turnover 0.11  margin 12.8 bps  at 2 bps: Sharpe 0.52 net/yr +3.0%  nodes 31  charge 0.093  seconds 6
-  first of 50 random partitions:
-  fold 0: utility -0.349  fitness -0.26  Sharpe -0.48  return/yr  -3.6%  turnover 0.12  margin -11.7 bps  breadth 1614  years 2009-2011 (2 touched)
-  fold 1: utility  1.304  fitness  1.40  Sharpe  1.81  return/yr  +7.5%  turnover 0.11  margin  27.2 bps  breadth 1886  years 2006-2015 (3 touched)
-  fold 2: utility  0.318  fitness  0.41  Sharpe  0.64  return/yr  +5.1%  turnover 0.12  margin  17.4 bps  breadth 1869  years 2007-2016 (3 touched)
-  fold 3: utility  1.104  fitness  1.20  Sharpe  1.69  return/yr  +6.3%  turnover 0.11  margin  23.0 bps  breadth 1632  years 2005-2010 (3 touched)
-  fold 4: utility  0.477  fitness  0.57  Sharpe  0.94  return/yr  +4.6%  turnover 0.11  margin  17.1 bps  breadth 1700  years 2012-2014 (3 touched)
-  fold 5: utility  0.951  fitness  1.04  Sharpe  1.39  return/yr  +7.0%  turnover 0.11  margin  25.8 bps  breadth 1634  years 2004-2017 (3 touched)
-by regime: dispersion high  Sharpe  0.25 return/yr  +1.7% (1700 days);  low  Sharpe  1.10 return/yr  +5.4% (1824 days)
-           crash state      Sharpe -1.53 return/yr -15.1% (137 days);  calm Sharpe  0.78 return/yr  +4.3% (3387 days)   (market down over 2y and 1m vol above 1y vol)
-           first half       Sharpe  0.33 return/yr  +2.1% (1762 days);  second half Sharpe  0.96 return/yr  +5.1% (1762 days)
-trials: 28  deflated Sharpe probability of this expression: 0.372
+  fold 0: utility -0.349  fitness -0.26  Sharpe -0.48  return/yr  -3.6%  ...  years 2009-2011
+           crash state      Sharpe -1.53 return/yr -15.1% (137 days);  calm Sharpe  0.78 return/yr  +4.3%
 ```
 
-The one losing slice is the one that covers 2009 to 2011, and the crash
-state has gone from a profit to a loss of 15% a year. And the outcome the
-agent wrote in the notebook after reading it:
+The one losing slice covers 2009 to 2011, and the crash state has flipped
+to a loss of 15% a year. The outcome the agent wrote after reading it:
 
 > utility 1.101 to 0.622, worst 0.023 to -0.510. Crash-state Sharpe 2.16 to
 > -1.53 (-15%/yr), high-dispersion 1.11 to 0.25. Belief 7 strongly
@@ -458,23 +444,6 @@ let r     = returns(1),
 in decay_linear(power(a, 3), 3)
 ```
 
-| In the string | In English |
-|:---|:---|
-| `mk = r - demean(r)` | The average stock's return that day, the market, copied to every stock: `demean(x)` is `x` minus its average, so `x - demean(x)` is the average |
-| `m1 = ts_sum(mk, 252)` | The market's past-year return |
-| `ts_std(mk, 21) > ts_std(mk, 252)` | The market is turbulent: this month's volatility above the year's |
-| `max(min(10 * m1, 1), -1)` | Turbulent: momentum scaled by the market's year, full reversal at −10% |
-| `max(min(10 * m1 + 1, 1), -1)` | Calm: full momentum unless the market is down, reversal at −20% |
-| `b = ts_beta(returns(1), mk, 504)` | Each stock's two-year beta to the market |
-| `rr = returns(1) - b * mk` | The part of its return the market did not explain |
-| `delay(ts_sum(rr, 231), 21)` | Eleven months of that, skipping the last month |
-| `group_demean(…, 'sector')` | Relative to its sector |
-| `decay_linear(w * score, 10)` | The switched momentum view, smoothed over two weeks |
-| `- group_demean(returns(21), 'sector')` | Plus last month's sector-relative losers, which bounce |
-| `power(a, 3)` | Cubed: most weight where the two views agree |
-| `decay_linear(…, 3)` | Smoothed over three days, to hold trading down |
-| from the evaluator | Universe members only; delay 1; demeaned so the weights sum to zero; scaled so Σ\|w\| = 1; 5% cap |
-
 ## Did it hold up?
 
 The sealed period, 2018 to August 2026, was loaded for the first time after
@@ -495,12 +464,8 @@ post's folder.
 
 The return held completely. What changed is the volatility around it, 18% a
 year out of sample against 12% in sample, which is why the Sharpe fell by a
-third. That is ordinary shrinkage for a strategy chosen on history, and far
-better than the record for backtests chosen without discipline, where the
-out-of-sample Sharpe is close to unrelated to the in-sample one. The seed
-earned nothing over the same years, so the improvement over the seed is
-real: the strategy beats its starting point on every line, in a period
-neither the loop nor I had looked at.
+third: ordinary shrinkage for a strategy chosen on history. The seed earned
+nothing over the same years, so the improvement over it is real.
 
 <figure class="wide" id="by-year">
   <img src="by-year.svg" alt="Bar chart of the final book's cost-free return by calendar year from 1999 to 2026, with the inspection and test periods shaded. Twenty-six of twenty-eight years are positive. The largest are 1999 and 2000 at about 57 percent; 2008 is plus 35 percent. The two negative years are 2006 and 2018, each under one percent.">
@@ -529,13 +494,11 @@ validation period's process, and the drop is well within what that much
 history produces by luck. The model puts the probability that the test
 period's true Sharpe is above zero at 97%.
 
-Two cautions come with it. The model's Sharpe estimates are lower than the
-raw ones, 0.83 and 0.53 against 0.97 and 0.74 measured weekly, because a
-fat-tailed model leans less on a handful of very good weeks. And it is
-honest about how little 8.6 years can say: the 90% interval for the test
-period's Sharpe runs from 0.08 to 0.99. A period that short cannot pin a
-Sharpe down to much better than plus or minus half a point, which is one
-more reason the only clean test is the live one.
+Two cautions. The model's estimates, 0.83 and 0.53, sit below the raw
+weekly Sharpes, 0.97 and 0.74, because a fat-tailed model leans less on a
+few very good weeks. And the 90% interval for the test Sharpe runs from 0.08
+to 0.99: 8.6 years cannot pin a Sharpe down to better than about half a
+point.
 
 ### Did the crash switch work out of sample?
 
@@ -559,34 +522,25 @@ and, out of sample, late 2018, 2020 and 2022. The episodes:
 | COVID, mid-Feb to May 2020 | +2.7% | +10.5% |
 | 2022 bear market | +4.5% | +6.3% |
 
-The 2009 line is the one the whole exercise was written for: the junk rally
-that wrecked momentum strategies cost the seed 14% in four months and earned
-the final strategy 15%. Out of sample the episodes are less dramatic, and
-in two of them the seed did better, because its momentum bets happened to
-be positioned well. Across all the days the switch held the book in
-reverse, it turned what was a loss of 12% a year for the seed into a gain
-of 10% out of sample, about a quarter of what it did in sample. The switch
-exists to keep the book from being short the losers when they rebound, and
-none of the sealed period's bear markets cost the strategy more than 6%.
+The 2009 line is the one the exercise was written for: the junk rally cost
+the seed 14% in four months and earned the final strategy 15%. Out of sample
+the switch did about a quarter as well as in sample, but on its reversal
+days it still turned the seed's 12% annual loss into a 10% gain, and none of
+the sealed period's bear markets cost the strategy more than 6%.
 
 ### The drawdown it did not see
 
 The worst stretch of the sealed period came at its very end, and it is not
 the crash the beliefs were about. From mid-June to late July 2026 the
 strategy lost 27% in six weeks, and it had not recovered by August 11,
-where the data I bought for this test ends. The
-switch sat at full momentum the whole time, because the market was calm and
-up on the year. The loss was on the long side: last year's winners giving
-back their gains, 20% of the book lost on the longs against 5% on the
-shorts, and a single stock at the 5% cap cost 5% by itself.
-
-Momentum's textbook crash is the losers rebounding after a fall, and the
-switch is built to see it. A winners' unwind in a calm market is a
-different event, and nothing in this strategy sees it coming. The
-concentration makes it worse. The book holds 1,200 to 2,000 stocks a day
-but behaves like about a hundred, because the cube puts most of the weight
-in the extremes and dozens of positions sit at the cap. When a handful of
-them turn, the losses are large.
+where the data I bought for this test ends. The switch sat at full momentum
+the whole time, because the market was calm and up on the year. The loss
+was on the long side, last year's winners giving back their gains: 20% of
+the book on the longs against 5% on the shorts, and 5% from a single stock
+at the cap. The switch is built for losers rebounding after a fall; a
+winners' unwind in a calm market is a different event. And the cube makes
+it worse: the book holds 1,200 to 2,000 stocks but behaves like about a
+hundred, so when a handful turn, the losses are large.
 
 
 No institutional quant would trade a single signal like this on its own; a
@@ -595,141 +549,86 @@ That was never the point. As a test of the method, it is a clean result. The
 loop improved my starting view by a wide margin on the period it could see,
 most of that improvement survived the period it could not, and the central
 belief, the one about the crash, held up both in the notebook and out of
-sample. The sealed period is now spent for these
-strategies.
+sample.
 
 
 ## What I learned
 
-
-**Measure the noise at the top, not just at the start.** Recall the keep
-rule: a change is kept only if it raises the score by more than the score's
-own noise, because the score is computed on random slices and moves a little
-from one call to the next even when nothing changes. I measured that noise
-before the run by scoring the seed eight times. The score moved by about
-0.02, so I set the bar for a keep at 0.03. Late in the run the agent scored
-the same strategy, written two ways, and got results 0.058 apart.
-The noise grows as the score does, so a bar set at the seed lets lucky draws
-through and then makes them hard to beat: the agent itself wrote that two of
-its best scores were "likely favorable draws, which made the 0.03 bar hard
-to clear afterward". The fix is cheap: re-measure the noise on the current
-best every ten trials.
-
-**The keep rule cannot accept a change that only makes the worst case
-better.** That is a strange blind spot for a problem about crashes. Trial
-30, the deep-bear rule on its own, lifted the worst slice from 0.02 to 0.35
-and was thrown away; the agent got it in at trial 31 only by pairing it
-with something that raised the score. Three later changes, trials 51, 55 and
-58, improved the whole-period Sharpe and the worst slice and lost a little
-on the score, and were reset. The agent flagged all three for me, and I
-included one of them, trial 55, in the single run on the sealed period. It
-did slightly worse than the final strategy, a Sharpe of 0.69 against 0.76,
-so this time the rule chose well. But
-a rule for this problem should accept a change that improves the worst case
-by more than its noise and leaves the score alone.
-
-
-**The loop finds a local optimum, and which one depends on its path.** It
-climbs one change at a time and keeps only what beats the current best, so
-a decision made early is judged against the strategy as it was then, not as
-it ends up. The run shows this twice. The beta hedge paid when it was added
-at trial 24, and paid again when it was removed at trial 54, because
-everything around it had changed in between. The fifth power lost clearly at
-trial 35; on the final strategy it raises the score and is kept out only by
-the worst-slice rule, narrowly, and the agent never went back to it. A
-broader search would find more, but every extra try is another draw against
-the same fourteen years of history, which is exactly what the trial count
-and the sealed period exist to guard against; in a backtest, the global
-optimum is the likeliest place for noise to hide. The cheap fix is a
-scheduled re-test: every ten trials, re-run the near misses and the
-removals against the current best, counted as trials like any other.
-Running a few independent loops from the same seed would also say how much
-the destination depends on the path. Further out, the search itself could be
-smarter than one greedy line: a beam search that carries the best few
-strategies forward instead of one, or a Monte Carlo tree search that spends
-trials on the most promising branches. Both buy breadth with trials, so both
-would need the trial count to keep them honest.
-
-**The period the agent could look at was right about structure and wrong
-about risk.** Five years of bubble and bear market were good for catching
-broken formulas and excess trading. For anything that reshaped risk they
-pointed the wrong way. The worst case was trial 40, a clever variant that
-kept the winners long while flipping only the losers: it added 0.3 of Sharpe
-on 1999 to 2003 and cut the score on 2004 to 2017 by almost half. The agent
-noticed, and stopped trusting the early period for those changes.
-
-**Removing things was some of the best research.** Three deletions, a
-redundant volatility division, the volatility adjustment, and the agent's
-own hedge, were together worth about a third of the final score.
-
 **The written claims were the most valuable output.** The agent predicted
-most of its own failures, which is what a claim before the test is for. And
+most of its own failures, which is what a claim before the test is for, and
 when it was wrong it wrote down why: the soft switch beat the hard one
 because it also trimmed momentum in turbulent markets that were only
 slightly up; the hedge stopped paying because the residual measure had
-already removed the market. Read in order, the notebook doubles as a short
-course in why this strategy works.
+already removed the market. Read in order, the notebook is a short course in
+why this strategy works.
+
+**Measure the noise at the top, not just at the start.** The score is
+computed on random slices, so it moves a little from call to call even when
+nothing changes, and a change must beat the best by more than that noise. I
+measured it on the seed, about 0.02, and set the bar at 0.03. Late in the
+run the same strategy, written two ways, scored 0.058 apart. Noise grows
+with the score, so a bar set at the seed lets lucky draws through and then
+makes them hard to beat; the agent said as much about two of its own best
+scores. The fix is to re-measure the noise on the current best every ten
+trials.
+
+**The keep rule cannot accept a change that only makes the worst case
+better,** a strange blind spot for a problem about crashes. The deep-bear
+rule on its own, trial 30, lifted the worst slice from 0.02 to 0.35 and was
+thrown away; the agent got it in only by pairing it with something that
+raised the score. Three later changes improved the worst slice and the
+whole-period Sharpe and were reset too. I put one of them, trial 55, in the
+sealed run, and it did slightly worse than the final strategy, so this time
+the rule chose well. It should still accept a worst-case improvement larger
+than its noise.
+
+**The loop finds a local optimum, and which one depends on its path.** Each
+decision is judged against the strategy as it was at the time. The hedge
+paid when added at trial 24 and paid again when removed at trial 54; the
+fifth power lost at trial 35 but on the final strategy is kept out only
+narrowly, and was never retried. Removals found some of this: three
+deletions, including the agent's own hedge, were worth about a third of the
+final score. A wider search would find more, but every extra try is another
+draw against the same fourteen years, and in a backtest the global optimum
+is the likeliest place for noise to hide. The cheap fix is to re-test the
+near misses and removals against the current best every ten trials, counted
+as trials. Further out, a beam search that carries several strategies
+forward, or a Monte Carlo tree search that spends trials on the most
+promising branches, would buy breadth with trials, and would need the trial
+count to keep it honest.
+
+**The period the agent could look at was right about structure and wrong
+about risk.** Trial 40, which kept the winners long while flipping only the
+losers, added 0.3 of Sharpe on 1999 to 2003 and nearly halved the score on
+2004 to 2017. The agent noticed, and stopped trusting the early years for
+changes that reshape risk.
 
 ## For the technical reader
 
-The rest of this post goes deeper into the machinery, for anyone who wants
-to check the work or build their own. If you read one file, read
-[`program.md`](lab/program.md).
-
-### The lab
-
-| file | role | the agent may |
-|---|---|---|
-| [`program.md`](lab/program.md) | the problem definition and the twelve beliefs | read |
-| [`alpha.qex`](lab/alpha.qex) | one qex expression, the active hypothesis | **edit** |
-| [`eval.py`](lab/eval.py) | the frozen evaluator | run, through `trial.sh` |
-| [`explore.py`](lab/explore.py) | helpers over the inspection period, 1999 to 2003 | run |
-| [`results.tsv`](lab/results.tsv) | the lab notebook, one line per trial | append |
-| [`summary.md`](lab/summary.md) | the agent's own account, written at the end | write |
-| `data/` | daily prices, universe membership, market cap, sectors | read through `explore.py` |
+The machinery, for anyone who wants to check the work or build their own.
+If you read one file, read [`program.md`](lab/program.md): the problem
+definition and the twelve beliefs. The agent edited
+[`alpha.qex`](lab/alpha.qex), ran the frozen [`eval.py`](lab/eval.py) through
+`trial.sh`, explored 1999 to 2003 with [`explore.py`](lab/explore.py), and
+logged every trial to [`results.tsv`](lab/results.tsv); its own
+[`summary.md`](lab/summary.md) is worth reading in full. It was Claude Code
+on Claude Opus 5.5, run headless in one session of 560 turns.
 
 ### The data
 
-The data is point-in-time and free of survivorship bias, which matters more
-for momentum than for almost any other signal, because the stocks a momentum
+Point-in-time and free of survivorship bias, which matters more for
+momentum than for almost any other signal, because the stocks a momentum
 book shorts are the ones most likely to disappear. The source covers every
-US common stock that traded over the period, not just the ones listed today:
-about 8,600 names, including every company that was later delisted, went
-bankrupt or was acquired, each with its prices up to its last trade. Prices
-are adjusted for splits and dividends so returns are total returns, and the
-strategy can only compare stocks by returns and ratios, never by price
-levels, which an adjustment made later would distort.
+US common stock that traded over the period, about 8,600 names, including
+every one later delisted, bankrupt or acquired, priced to its last trade.
+Membership is decided each day from that day's facts alone, including a
+market cap built from the share count known that day. After the run, an
+audit found an error in those market caps that had moved about 3% of the
+universe; every number here is re-computed on the corrected data, so they
+differ a little from the notebook's, which are what the agent saw (final
+validation Sharpe 1.08 here against 1.27 there; test 0.76 against 0.77).
 
-The universe is decided each day from that day's facts alone: a US common
-stock is in it if its as-traded close is at least $2, its 20-day average
-dollar volume is at least $5M, and its market cap, from that day's price and
-the share count known on that day, is at least $300M. Names enter and leave
-as they cross those lines, about 1,350 on an average day in 1999 and 2,000
-by 2017. A stock that falls through the floor on the way to bankruptcy is in
-the book until the day it falls out, and its losses count.
-
-One note on the numbers. After the run, an audit of the data found an error
-in its market caps, which had moved about 3% of the universe. Every number
-in this post is re-computed on the corrected data, so they differ a little
-from the ones in the notebook, which are what the agent saw: the final
-strategy's validation Sharpe is 1.08 here against 1.27 there, and its test
-Sharpe 0.76 against 0.77.
-
-### The run
-
-The agent was Claude Code on Claude Opus 5.5, started headless with
-`START.md` and told to begin; the run was one session of 560 turns. The agent's [summary](lab/summary.md) is worth reading in full.
-
-### The book and the score
-
-The evaluator turns any expression into a book the same way every time:
-universe members only, delay 1 (the weight held from close *t* to *t+1* uses
-data up to close *t−1*), and each day demeaned so the weights sum to zero,
-scaled so Σ\|w\| = 1, and clipped at 5% per name, repeated until all three
-hold. The expression's magnitude is relative weight within a day and
-nothing else. The first version of this lab let gross vary, and the book it
-found ran twice its average size in calm years, a volatility target that
-flattered its Sharpe; now that lever does not exist.
+### The score
 
 Each fold is scored
 
@@ -742,122 +641,50 @@ $$
 $$
 
 on cost-free P&L, where nodes counts every operator, constant and field in
-the parsed expression. Fitness rewards a Sharpe that comes with real return
-and little trading: a Sharpe of 1.5 at
-10% a year and 20% daily turnover has fitness 1.06, the same Sharpe at 70%
-turnover 0.57. A fold scores minus infinity if the book holds fewer than
-fifty names or trades outside 1% to 70% a day. The whole validation book
-must also be *eligible*: turnover in that band and a margin, cost-free P&L
-per dollar traded, of at least 5 basis points. Once the best book is
-eligible, nothing that breaks eligibility can be kept.
+the expression. A fold scores minus infinity if the book holds fewer than
+fifty names or trades outside 1% to 70% a day, and the whole validation book
+must be *eligible*: turnover in that band and at least 5 basis points of
+profit per dollar traded. The validation period is cut into twelve blocks of
+about fourteen months, dealt at random into six folds of two, with a 21-day
+embargo at every block edge; each call repeats fifty deals and reports the
+median and worst fold, averaged. Scored eight times, the seed stayed within
+0.02 on the median and 0.13 on the worst ([noise.txt](lab/noise.txt)), which
+set the keep thresholds at 0.03 and 0.13.
 
-The validation period is cut into twelve contiguous blocks of about fourteen
-months. Each call deals them at random into six folds of two blocks, purges
-a 21-day embargo at every block edge, repeats for fifty deals, and reports
-the median fold and the worst fold, each averaged over the deals. The seed,
-scored eight times, stayed within −0.10 to −0.08 on the median and −1.03 to
-−0.90 on the worst ([noise.txt](lab/noise.txt)), so a keep must beat the best
-median by more than 0.03 and not lower the worst fold by more than 0.13.
-
-### The rules, built
-
-| the essay said | what was built | what it did |
-|:---|:---|:---|
-| **Require the claim before the test.** | A rule in `program.md`: every trial begins with a written claim naming the belief and which regime split should move. `eval.py` prints the splits, by dispersion, by the crash state and by half. | Sixty claims, each committed before its run. The most useful outcomes are the wrong predictions: the soft switch, and the hedge that stopped paying. |
-| **Make the evaluator move.** | Purged, randomized cross-validation as above, a fresh deal every call. | No single hold-out to climb. The cost is noise, and the noise at the top was larger than at the seed. |
-| **Charge for complexity.** | 0.003 of utility per node. | The final book has 32 nodes and pays 0.096. Dropping the hedge saved twelve nodes, 0.036 of that trial's 0.10 gain. |
-| **Count the trials.** | `eval.py` counts the notebook's rows and prints Bailey and López de Prado's deflated Sharpe. | Every row has its numbers. The final book's deflated-Sharpe probability was 0.974 after 61 rows. |
-| **Seed the search.** | Twelve beliefs, each with mechanism, counterparty, paper and prediction. | Four held (2, 5, 7, 10), one held only for the inputs (3), three failed (6 as volatility scaling, 8, 9), and two were removed (4, 11). |
-| **Measure the consensus.** | Before testing an idea not on the list, say where and when it was published. | Two outside papers: Nagel (2012), "known about 12 years, probably mostly priced", reset twice; and Chordia, Roll and Subrahmanyam (2008), cited to argue the reversal sleeve should be smaller after decimalization, also reset. |
-| **Keep one period the loop never touches.** | 2018 to 2026-08-11 is not loaded by `eval.py`. A separate script ran it once, after trial sixty. | The table above. |
+Of the twelve beliefs, four held, one held only for the inputs, three
+failed, and two were removed. The agent reached outside them twice, for
+Nagel (2012) on liquidity and Chordia, Roll and Subrahmanyam (2008) on
+reversal after decimalization, and named each paper's age first; both were
+reset.
 
 ### What the loop could have known
 
-Nothing in the loop's inputs postdates the validation period.
-
-- Every paper cited in the program was published by 2016. The most recent,
-  Daniel and Moskowitz (2016), uses a sample ending in 2013. The two papers
-  the agent reached for on its own are from 2008 and 2012.
-- No year from 2018 on appears in the beliefs, in the agent's sixty claims
-  or outcomes, or in its summary, except the period table and one line
-  saying the near misses were "untested on 2018+, like everything else".
-- The evaluator never loads a price after 2017-12-31, and even within
-  2004 to 2017 the agent never sees a price. What `trial.sh` prints is
-  summary statistics: the score and the worst slice, whether the strategy is
-  eligible, its whole-period Sharpe, return, turnover and margin, the same
-  numbers for one deal's six slices with the years each covers, Sharpe and
-  return by regime, and the deflated Sharpe.
-
-What cannot be audited away is the agent itself. It is a language model,
-and its training data includes 2018 on: it has read about March 2020. The
-data it could touch was blind to the test period; its memory was not. I see
-no sign in the notebook that it used that memory, every claim is argued from
-the beliefs and the folds, but it is a form of leakage no held-out period can
-close, and it will be true of every loop built on a model that has read the
-news. The only test that is clean of all of it is the one that starts
-today, live.
-
-### The full table
-
-Every number on gross one, rebalanced daily, cost-free unless marked, on the
-corrected data.
-
-| | period | Sharpe | return / yr | turnover / day | margin | Sharpe at 10 bps | max drawdown |
-|---|---|---:|---:|---:|---:|---:|---:|
-| seed | inspection, 1999-2003 | 0.50 | +3.3% | 5% | 24 bps | 0.29 | −20% |
-| seed | validation, 2004-2017 | −0.23 | −1.0% | 5% | −8 bps | −0.52 | −27% |
-| seed | test, 2018-2026 | 0.12 | +0.9% | 5% | 7 bps | −0.05 | −19% |
-| **final** | inspection, 1999-2003 | 1.93 | +34.2% | 15% | 94 bps | 1.72 | −20% |
-| **final** | validation, 2004-2017 | 1.08 | +12.9% | 12% | 43 bps | 0.83 | −24% |
-| **final** | test, 2018-2026 | 0.76 | +13.5% | 12% | 45 bps | 0.59 | −27% |
-| T55 | test, 2018-2026 | 0.69 | +11.0% | 12% | 37 bps | 0.50 | −24% |
-
-By switch state, Sharpe and annualized return within the state:
-
-| state, share of days | validation, final | validation, seed | test, final | test, seed |
-|---|---:|---:|---:|---:|
-| momentum, w = 1, about 80% | 0.85 / +8.1% | 0.18 / +0.6% | 0.88 / +15.5% | 0.12 / +0.8% |
-| shrunk, 0 < w < 1, about 10% | 2.16 / +27.3% | −0.10 / −0.6% | 0.12 / +1.5% | 1.69 / +16.1% |
-| reversal, w ≤ 0, about 10% | 1.66 / +38.6% | −1.86 / −14.9% | 0.46 / +10.1% | −0.98 / −11.8% |
-
-### Does the signal sort returns?
-
-The [qex post](/posts/qex/)'s first check was whether an alpha sorts returns
-at all. Here is the final book's signal before the cube, by quintile,
-against the next day's return relative to the average member.
-
-<figure class="wide" id="quintiles">
-  <img src="quintiles.svg" alt="Grouped bar chart of next-day return by quintile of the final book's signal, relative to members, annualized, for inspection, validation and test. Monotonic in every period: the shorted quintile lags by 14.5, 7.3 and 5.1 percent, the middle is near zero, and the owned quintile leads by 17.5, 6.7 and 8.4 percent.">
-  <figcaption>Quintiles of the signal before the cube, next-day return relative to members, annualized. A line in every period, and the test period's spread is as wide as validation's.</figcaption>
-</figure>
-
-It sorts monotonically in all three periods, and the spread between the top
-and bottom quintile out of sample, 13.5% a year, is as wide as in
-validation, 14.0%.
+Every paper in the program predates 2017, and no year from 2018 on appears
+in the agent's claims, outcomes or summary. What cannot be audited away is
+the agent itself: its training data includes 2018 on, and it has read about
+March 2020. I see no sign it used that memory, but no held-out period can
+close that leak. The only test clean of it is the one that starts today,
+live.
 
 ### What the book holds
 
-| | inspection | validation | test |
-|---|---:|---:|---:|
-| names long, on an average day | 545 | 768 | 627 |
-| names short, on an average day | 674 | 924 | 1,429 |
-| effective number of names, 1 / Σw² | 98 | 101 | 98 |
-| share of gross in the ten largest positions | 26% | 26% | 26% |
-| days with a name at the 5% cap | 61% | 69% | 85% |
-| holding period, days, from turnover | 7 | 8 | 8 |
-| beta to SPY | 0.01 | 0.04 | −0.03 |
-| return on days the market rose, per year | +39% | +14% | +2% |
-| return on days the market fell, per year | +29% | +11% | +27% |
+| | validation | test |
+|---|---:|---:|
+| effective number of names, 1 / Σw² | 101 | 98 |
+| days with a name at the 5% cap | 69% | 85% |
+| beta to SPY | 0.04 | −0.03 |
+| return on days the market fell, per year | +11% | +27% |
 
-The cap binds on most days, which is the fitness score at work: gross is
-fixed, so return comes from concentration, and the cap is what stops it.
-The beta is zero without any hedge in the expression. Out of sample, almost
-all of the return came on days the market fell.
+### Does the signal sort returns?
+
+<figure class="wide" id="quintiles">
+  <img src="quintiles.svg" alt="Grouped bar chart of next-day return by quintile of the final book's signal, relative to members, annualized, for inspection, validation and test. Monotonic in every period: the shorted quintile lags by 14.5, 7.3 and 5.1 percent, the middle is near zero, and the owned quintile leads by 17.5, 6.7 and 8.4 percent.">
+  <figcaption>Quintiles of the final book's signal before the cube, next-day return relative to members, annualized. Monotonic in every period, and the test period's top-to-bottom spread, 13.5% a year, is as wide as validation's.</figcaption>
+</figure>
 
 ## References
 
 - Almgren, R. and Chriss, N. "Optimal Portfolios from Ordering Information." *Journal of Risk* 9(1), 2006. Circulated as "Portfolios from Sorts."
-- Asness, C. S., Moskowitz, T. J. and Pedersen, L. H. "Value and Momentum Everywhere." *Journal of Finance* 68(3), 2013.
 - Bailey, D. H. and López de Prado, M. "The Deflated Sharpe Ratio." *Journal of Portfolio Management* 40(5), 2014.
 - Barroso, P. and Santa-Clara, P. "Momentum Has Its Moments." *Journal of Financial Economics* 116(1), 2015.
 - Blitz, D., Huij, J. and Martens, M. "Residual Momentum." *Journal of Empirical Finance* 18(3), 2011.
@@ -865,13 +692,9 @@ all of the return came on days the market fell.
 - Da, Z., Gurun, U. G. and Warachka, M. "Frog in the Pan: Continuous Information and Momentum." *Review of Financial Studies* 27(7), 2014.
 - Daniel, K. and Moskowitz, T. J. "Momentum Crashes." *Journal of Financial Economics* 122(2), 2016.
 - George, T. J. and Hwang, C.-Y. "The 52-Week High and Momentum Investing." *Journal of Finance* 59(5), 2004.
-- Grinblatt, M. and Han, B. "Prospect Theory, Mental Accounting, and Momentum." *Journal of Financial Economics* 78(2), 2005.
 - Grundy, B. D. and Martin, J. S. "Understanding the Nature of the Risks and the Source of the Rewards to Momentum Investing." *Review of Financial Studies* 14(1), 2001.
-- Hong, H. and Stein, J. C. "A Unified Theory of Underreaction, Momentum Trading, and Overreaction in Asset Markets." *Journal of Finance* 54(6), 1999.
-- Jegadeesh, N. "Evidence of Predictable Behavior of Security Returns." *Journal of Finance* 45(3), 1990.
 - Jegadeesh, N. and Titman, S. "Returns to Buying Winners and Selling Losers." *Journal of Finance* 48(1), 1993.
 - Kruschke, J. K. "Bayesian Estimation Supersedes the t Test." *Journal of Experimental Psychology: General* 142(2), 2013.
-- Moskowitz, T. J. and Grinblatt, M. "Do Industries Explain Momentum?" *Journal of Finance* 54(4), 1999.
 - Nagel, S. "Evaporating Liquidity." *Review of Financial Studies* 25(7), 2012.
 - Novy-Marx, R. "Is Momentum Really Momentum?" *Journal of Financial Economics* 103(3), 2012.
 - [karpathy/autoresearch](https://github.com/karpathy/autoresearch).
