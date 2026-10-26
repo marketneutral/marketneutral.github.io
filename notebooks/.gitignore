@@ -3,3 +3,5 @@ _freeze/
 *_files/
 *.md
 !README.md
+
+/.quarto/

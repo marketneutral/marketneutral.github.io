@@ -3,9 +3,9 @@ title: Endowment asset allocation as a reinforcement learning problem
 date: 2023-12-12T00:00:00.000Z
 tag: PROJECT
 description: >-
-  An exploration from my AA228 final project. Can a Q-learning agent learn to
-  run an endowment portfolio of stocks, bonds, and illiquid private fund
-  commitments, and beat a simple rules-based baseline?
+  Can a Q-learning agent learn to run an endowment portfolio of stocks, bonds,
+  and illiquid private fund commitments, and beat a simple rules-based baseline?
+  TL;DR: yes.
 engine: julia
 execute:
   echo: true
@@ -22,55 +22,61 @@ fig-dpi: 140
 
 In the fall of 2023 I took Stanford’s [AA228, *Decision Making Under
 Uncertainty*](https://aa228.stanford.edu/), as a non-degree graduate
-student. The course works through probabilistic reasoning, sequential
-decision problems, model and state uncertainty, and multiagent systems,
-following the excellent textbook by Kochenderfer, Wheeler, and Wray,
-[*Algorithms for Decision Making*](https://algorithmsbook.com/), which
-is free to read online. “Decision making under uncertainty” is about as
-good a four-word description of investing as I have come across, so the
-fit was natural.
+student. The course, taught by the inimitable Mykel Kochenderfer, works
+through probabilistic reasoning, sequential decision problems, model and
+state uncertainty, and multiagent systems, following the textbook by
+Kochenderfer, Wheeler, and Wray, [*Algorithms for Decision
+Making*](https://algorithmsbook.com/), which is free to read online.
+“Decision making under uncertainty” is about as good a four-word
+description of investing as I have come across, so the fit was natural.
 
-The class is taught in Julia, and every algorithm in the book is given
-as a few lines of readable Julia. I love Julia for this kind of work. It
-reads like pseudocode and runs like compiled code, so you never have to
-leave it to make something fast. Everything in this post is executed
-from the notebook you are reading: the simulation, the learner, every
-number in the tables, and every chart.
+The class is taught in the Julia language, and every algorithm in the
+book is given as a few lines of readable code. I love Julia for this
+kind of work. It reads like pseudocode and runs like compiled code, so
+you never have to leave it to make something fast. Everything in this
+post is executed from the notebook you are reading: the simulation, the
+learner, every number in the tables, and every chart.
 
 This is the written version of my final project, and it is an
 exploration rather than a finished system. The question I set myself was
 whether a reinforcement learning agent could learn to allocate an
 endowment’s capital across liquid and illiquid investments, and whether
-it could do that better than a simple rules-based baseline.
+it could do that *better than a simple rules-based baseline*.
 
 ▸ **[Source on
 GitHub](https://github.com/marketneutral/aa228-final-project)**
 
-The short answer is yes, on average wealth and in simulation. The longer
-answer is that most of the work was in building the environment, shaping
-the reward, and constraining the actions so that the one outcome an
-endowment cannot survive is off the table.
+The short answer is **yes**, on average wealth and in simulation. The
+longer answer is that most of the work was in building the environment,
+shaping the reward, and constraining the actions so that the one outcome
+an endowment cannot survive is off the table. The result is bound to the
+environment I built. The agent learned to exploit a world with fixed
+return parameters, a deterministic call schedule, and a liquidity rule
+that does its risk management for it. Change any of those and the policy
+has to be relearned, and nothing here says it would transfer to real
+markets.
 
 ## The problem
 
 Endowments and foundations manage large pools of capital for
-institutions with effectively infinite horizons. The “endowment model”
-pushes them into a diversified mix of liquid assets and illiquid ones:
-venture, buyouts, real assets. There is a large literature on asset
-allocation among liquid instruments. There is much less on what to do
-when some of your assets have lock-ups, capital calls you cannot refuse,
-and distributions you cannot time.
+institutions with decades-long horizons. The “endowment model” leads to
+portfolios that have a diversified mix of liquid assets and illiquid
+ones: e.g., venture, buyouts, real assets. There is a large literature
+of primary research on asset allocation among liquid instruments. There
+is much less on what to do when some of your assets have lock-ups,
+capital calls you cannot refuse, and distributions you cannot time.
 
-So the setup is an investment pool holding three instruments, with a
-spending obligation, simulated monthly over twenty years. The agent’s
-job is to end with as much wealth as possible without ever being unable
-to pay a bill.
+The setup here is a simplified version of the opportunity set endowments
+face: an investment pool holding three instruments, with a spending
+obligation, simulated monthly over twenty years. The agent’s job is to
+end with as much wealth as possible without ever being unable to pay a
+bill.
 
 ## The instruments
 
-**Bonds.** Think of a short-term Treasury bill: risk-free, growing at a
-constant rate, and doubling as the cash account that spending and
-capital calls are paid from.
+**Bonds.** A short-term Treasury bill: risk-free, growing at a constant
+rate, and serving as the cash account that spending and capital calls
+are paid from.
 
 $$
 V_t = V_{t-1}\left(1 + \frac{r_{bond}}{12}\right)
@@ -89,15 +95,17 @@ $$
 fund. This is the interesting one, because it behaves like nothing
 liquid:
 
-- At time zero you commit $x$. No cash moves.
+- At time zero you commit $\$x$mm. No cash moves.
 - The fund has a known maximum life, here twelve years.
-- In each month after that the fund may do nothing, call capital from
-  you and invest it, or distribute cash back to you.
+- In each month after that, the fund may: (a) do nothing, (b) call
+  capital from you and invest it, or (c) distribute cash back to you.
 - Called capital, the fund’s net asset value or NAV, earns a risky
-  return: the stock return plus an alpha plus idiosyncratic noise.
-- Calls and distributions arrive in an expected pattern over the fund’s
-  life. The industry standard shape is from Takahashi and Alexander
-  (2002).
+  return: the stock return plus an excess return plus idiosyncratic
+  noise.
+- Calls arrive *deterministically* over the fund’s life. The timing of
+  distributions is also *deterministic*, but the amount is a function of
+  the fund’s return-to-date. The industry standard shape is from
+  Takahashi and Alexander (2002).
 
 $$
 r_{stock} = S_t / S_{t-1} - 1
@@ -273,7 +281,8 @@ end
 To see what one fund looks like over its life, commit to it and let the
 world run with no further actions. Capital is called in steps, NAV
 builds and then bleeds out as distributions, and the fund ends up
-returning more than was committed. That is the alpha.
+returning more than was committed as a function of its excess return
+(subject to idiosyncratic noise).
 
 ``` julia
 Random.seed!(1)
@@ -291,10 +300,12 @@ plot_private_investment(pi_path, 1)
 src="2023-12-12-endowment-rl_files/figure-commonmark/cell-8-output-1.svg"
 data-fig-alt="A single private fund over twelve years: committed capital is a flat dashed line, called capital steps up in chunks, NAV rises then decays to zero, and cumulative distributions follow an S-curve that ends above the committed amount." />
 
-The uncalled capital is the problem. It is a liability that will be
-called at a time of the fund’s choosing, and it has to be paid out of
-bonds. Commit too much and a cluster of calls arrives when the bond
-balance is thin. That is what bankruptcy looks like for an endowment.
+The uncalled capital (so called “unfunded”) is the risk to the
+endowment. It is a liability that will be called at a time of the fund’s
+choosing, and it has to be paid out of bonds. Commit too much and a
+cluster of calls arrives when the bond balance is thin. In this
+simulation, that leads to “bankruptcy” (though in the real world, it’s
+less severe).
 
 ## The problem as an MDP
 
@@ -327,9 +338,9 @@ The discount factor trades off reward now against reward later. It also
 keeps the sum finite over an infinite horizon, though here the horizon
 is a fixed 240 months.
 
-The object we are after is the optimal policy $\pi^*$, the one whose
+The object we are after is the **optimal policy** $\pi^*$, the one whose
 value is at least as large as any other policy’s in every state. Its
-value function $U^*$ satisfies the Bellman optimality equation,
+value function $U^*$ satisfies the **Bellman optimality equation**,
 
 $$
 U^*(s) = \max_{a} \left[ R(s, a) + \gamma \sum_{s'} T(s' \mid s, a)\, U^*(s') \right]
@@ -338,9 +349,9 @@ $$
 which says that acting optimally means picking the action that is best
 when you account for the immediate reward and the optimal value of
 wherever you end up. It is often more convenient to work with the
-action-value function $Q^*(s, a)$, the value of taking $a$ in $s$ and
-acting optimally afterwards, because the optimal policy then falls out
-directly:
+**action-value function** $Q^*(s, a)$, the value of taking $a$ in $s$
+and acting optimally afterwards, because the optimal policy then falls
+out directly:
 
 $$
 Q^*(s, a) = R(s, a) + \gamma \sum_{s'} T(s' \mid s, a) \max_{a'} Q^*(s', a')
@@ -354,10 +365,12 @@ When the state and action spaces are small and the transition model is
 known, you can solve these equations exactly by dynamic programming.
 That is the first half of the book. Our problem fails both conditions.
 The state is continuous, and nobody can write down $T$ for a portfolio
-of private funds, but it is easy to sample from: given a state and an
+of private funds, but it is easy to *sample* from: given a state and an
 action, run the simulation forward one month. The book calls this a
-generative model, and learning a policy from samples drawn from it, with
-no access to $T$ itself, is reinforcement learning.
+generative model (this is “generative” in the language of
+“good-old-fashioned-AI”, not in the sense of LLMs/generative AI).
+**Learning a policy from samples drawn from it, with no access to $T$
+itself, is reinforcement learning.**
 
 The endowment problem fits this frame neatly. The world is stochastic,
 the consequences of today’s action arrive years later, and the state
@@ -433,8 +446,8 @@ and late, after a long sequence of actions that each looked fine at the
 time. That makes it very hard to learn from.
 
 Bankruptcy happens when a capital call or a spending draw cannot be paid
-out of bonds, so the fix was a penalty that grows quadratically as bonds
-fall below 20% of total wealth.
+out of bonds, so the fix was **a penalty** that grows quadratically as
+bonds fall below 20% of total wealth.
 
 ``` julia
 bond_penalty(bonds_pct) = -1_000 * (100 * (0.20 - bonds_pct))^2
@@ -455,7 +468,7 @@ pointing away from the edge long before it gets there. The commit
 history on the project is honest about how much this mattered: “learns
 to not become bankrupt” came several commits before “works! works!”.
 
-The generative model puts it all together. Step the world, check for
+The generative model puts it all together: step the world, check for
 bankruptcy or the end of the horizon, apply the action, and compute the
 reward.
 
@@ -571,9 +584,9 @@ end
 ```
 
 With a 70% equity target, a 5% band, a 25% cap on privates, and a 25%
-cap on uncalled commitments, one twenty-year path looks like this. The
-private book is paced in, distributions eventually cover spending, and
-bonds never get close to zero.
+cap on uncalled commitments, one sampled twenty-year path looks like
+this. The private book is paced in, distributions eventually cover
+spending, and bonds never get close to zero.
 
 ``` julia
 heuristic_pi = Heuristics(
@@ -593,7 +606,7 @@ plot_one_path(path; title = "Heuristic agent, one path")
 
 <img
 src="2023-12-12-endowment-rl_files/figure-commonmark/cell-15-output-1.svg"
-data-fig-alt="One twenty-year path of the heuristic agent showing total wealth, stocks, bonds, private NAV, uncalled capital, cumulative spending, and cumulative distributions." />
+data-fig-alt="One sampled twenty-year path of the heuristic agent showing total wealth, stocks, bonds, private NAV, uncalled capital, cumulative spending, and cumulative distributions." />
 
 To measure it, I ran two versions over 500 paths each: one with private
 investments switched off, one with them allowed.
@@ -630,10 +643,10 @@ still zero bankruptcies.
 ## Q-learning with function approximation
 
 The state space is continuous, so a tabular Q-function is out. Instead I
-used a linear action-value approximation,
+used a **linear action-value approximation**,
 $Q_\theta(s, a) = \theta^\top \phi(s, a)$, and learned $\theta$ by
-gradient Q-learning. This is Algorithm 17.4 in the book, with an L2
-regularization term added.
+**gradient Q-learning**. This is Algorithm 17.4 in the book, but I added
+an L2 regularization term.
 
 The loss to minimize is
 
@@ -709,7 +722,9 @@ end
 ```
 
 **Features.** The basis function maps a state and an action into 152
-features:
+features. It’s beyond the scope of this blog post, but every old-school
+Kaggler and machine learning practitioner who has taken Andrew Ng’s
+*Machine Learning* Coursera course knows these ideas:
 
 - *Periodicity.* Sine and cosine of the time step with a twelve-month
   period. Capital calls arrive on a roughly annual cadence, and this
@@ -867,7 +882,7 @@ println("Trained $n_sims episodes in $(round(t_train; digits = 1)) s")
 println("Bankruptcies during training: $n_bankrupt")
 ```
 
-    Trained 1000 episodes in 61.5 s
+    Trained 1000 episodes in 41.9 s
     Bankruptcies during training: 0
 
 With the constraint in place the explorer never goes bankrupt, even with
@@ -931,22 +946,21 @@ the right tail: the 90th percentile moves from 214.5 to 264.5, while the
 42.9% against 38.1%. The agent is paid for taking more equity risk, and
 it takes it.
 
-The liquidity constraint is doing real work here, and I want to be
-honest about how I arrived at it. My first version had no constraint and
-relied on the shaped reward alone. That policy earned slightly more on
-average and went bankrupt in a few percent of test paths, and every one
-of those failures was on a path where things had gone very well: wealth
-several times its starting level, almost all of it in stocks, bonds at
-zero, and a small capital call tipping the account negative with
-hundreds of dollars of stock sitting right there. Far outside the range
-of states it was trained on, the linear Q-function with polynomial
-features extrapolated badly and stopped valuing the bond buffer at all.
-More training did not fix that, and a harsher bond penalty made the
-agent hide in bonds. A hard constraint did, and that is also how a real
-allocator would handle it: the reward says what you want, the constraint
-says what you will never do.
+The liquidity constraint is doing real work here. My first version had
+no constraint and relied on the shaped reward alone. That policy earned
+slightly more on average and went bankrupt in a few percent of test
+paths, and every one of those failures was on a path where things had
+gone very well: wealth several times its starting level, almost all of
+it in stocks, bonds at zero, and a small capital call tipping the
+account negative with hundreds of dollars of stock sitting right there.
+Far outside the range of states it was trained on, the linear Q-function
+with polynomial features extrapolated badly and stopped valuing the bond
+buffer at all. More training did not fix that, and a harsher bond
+penalty made the agent hide in bonds. A hard constraint did, and that is
+also how a real allocator would handle it: the reward says what you
+want, the constraint says what you will never do.
 
-Here is one path from the learned policy:
+Here is one sampled path from the learned policy:
 
 ``` julia
 Random.seed!(7)
@@ -956,7 +970,7 @@ plot_one_path(q_path; title = "Learned policy, one path")
 
 <img
 src="2023-12-12-endowment-rl_files/figure-commonmark/cell-26-output-1.svg"
-data-fig-alt="One twenty-year path of the learned policy showing total wealth, stocks, bonds, private NAV, uncalled capital, cumulative spending, and cumulative distributions. Stocks dominate, a few early private commitments run off, and bonds show a sawtooth along the 10% floor." />
+data-fig-alt="One sampled twenty-year path of the learned policy showing total wealth, stocks, bonds, private NAV, uncalled capital, cumulative spending, and cumulative distributions. Stocks dominate, a few early private commitments run off, and bonds show a sawtooth along the 10% floor." />
 
 What the agent learned is less subtle than I had hoped and more honest
 than I expected. It makes a handful of private commitments in the first
@@ -977,10 +991,14 @@ follow-ups is long!
 - **Interpret the agent.** The policy is a linear function of hand-built
   features, so it is in principle readable. What does it believe about
   the right level of uncalled commitments relative to bonds?
-- **Richer dynamics.** Jumps and stochastic volatility in the stock
-  process. Randomness in the timing of calls and distributions,
+- **Richer endowment world model.** More asset classes (hedge funds in
+  publics; differentiating between buyouts and venture); a preference
+  for a smoother privates pacing.
+- **Richer process dynamics.** Jumps and stochastic volatility in the
+  stock process. Randomness in the timing of calls and distributions,
   correlated with stock returns, since the real world calls capital in
-  bad markets and distributes it in good ones.
+  bad markets and distributes it in good ones. Some randomness in the
+  spending.
 - **Richer Q-function.** Drop the manual feature engineering and use a
   deep Q-network.
 - **Less reward shaping.** The bond penalty encodes a lot of my own
