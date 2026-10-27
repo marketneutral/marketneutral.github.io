@@ -144,10 +144,42 @@ many people, or by many agents, and still plug into the same pipeline.
 
 ## Three axes
 
-A dataset, e.g., pricing, is organized in qex as tickers across the columns and data increasing in time along the rows. Every operation in qex works along one of three axes, and knowing which
-one is most of what you need to read an expression.
+A dataset, e.g., pricing, is organized in qex as tickers across the columns
+and dates down the rows. Every operation in qex works along one of three
+axes, and knowing which one is most of what you need to read an expression.
 
-**Time series** operations run down the rows, one ticker at a time:
+The easiest way to see them is on a dataset small enough to check by hand.
+Here are the actual closing prices, `close()`, of five stocks over six
+trading days in March 2025:
+
+| close() | AAPL | MSFT | XOM | CVX | JPM |
+|---|---:|---:|---:|---:|---:|
+| Mar 3 | 238.03 | 388.49 | 107.76 | **153.09** | 260.62 |
+| Mar 4 | 235.93 | 388.61 | 107.54 | **152.00** | 250.25 |
+| Mar 5 | 235.74 | 401.02 | 105.44 | **150.81** | 251.53 |
+| Mar 6 | 235.33 | 396.89 | 107.62 | 152.95 | 246.54 |
+| Mar 7 | 239.07 | 393.31 | 109.02 | 156.34 | 242.28 |
+| Mar 10 | 227.48 | 380.16 | 111.80 | 157.57 | 232.22 |
+
+**Time series** operations run down each column, one ticker at a time.
+
+```qex
+ts_mean(close(), 3)
+```
+
+| ts_mean(close(), 3) | AAPL | MSFT | XOM | CVX | JPM |
+|---|---:|---:|---:|---:|---:|
+| Mar 3 | – | – | – | – | – |
+| Mar 4 | – | – | – | – | – |
+| Mar 5 | 236.57 | 392.71 | 106.91 | **151.97** | 254.13 |
+| Mar 6 | 235.67 | 395.51 | 106.87 | 151.92 | 249.44 |
+| Mar 7 | 236.71 | 397.07 | 107.36 | 153.37 | 246.78 |
+| Mar 10 | 233.96 | 390.12 | 109.48 | 155.62 | 240.35 |
+
+CVX on March 5 is the average of its last three closes,
+(153.09 + 152.00 + 150.81) / 3 = 151.97. No other stock enters into it. The first two rows are empty because
+there are not yet three days to average; that warmup is the engine's job, not
+yours. The same goes for every `ts_` operator:
 
 ```qex
 ts_mean(close(), 20)      # 20-day rolling mean
@@ -156,8 +188,40 @@ ts_corr(returns(1), volume(1), 20)
 ewma(returns(1), 10)      # exponential average, 10-day half-life
 ```
 
-**Cross-sectional** operations run across the columns, one day at a
-time:
+**Cross-sectional** operations run across each row, one day at a time. Start
+with each stock's daily return, `returns(1)`, here in percent:
+
+| returns(1) | AAPL | MSFT | XOM | CVX | JPM |
+|---|---:|---:|---:|---:|---:|
+| Mar 4 | −0.88 | +0.03 | −0.20 | −0.71 | −3.98 |
+| Mar 5 | −0.08 | +3.19 | −1.95 | −0.78 | +0.51 |
+| Mar 6 | −0.17 | −1.03 | +2.07 | +1.42 | −1.98 |
+| Mar 7 | +1.59 | −0.90 | +1.30 | +2.22 | −1.73 |
+| Mar 10 | **−4.85** | **−3.34** | **+2.55** | **+0.79** | **−4.15** |
+
+Then rank them across the stocks on each day:
+
+```qex
+rank(returns(1))
+```
+
+| rank(returns(1)) | AAPL | MSFT | XOM | CVX | JPM |
+|---|---:|---:|---:|---:|---:|
+| Mar 4 | 0.4 | 1.0 | 0.8 | 0.6 | 0.2 |
+| Mar 5 | 0.6 | 1.0 | 0.2 | 0.4 | 0.8 |
+| Mar 6 | 0.6 | 0.4 | 1.0 | 0.8 | 0.2 |
+| Mar 7 | 0.8 | 0.4 | 0.6 | 1.0 | 0.2 |
+| Mar 10 | **0.2** | **0.6** | **1.0** | **0.8** | **0.4** |
+
+`rank` returns each stock's percentile within the day, between 0 and 1: with
+five stocks the ranks are 0.2, 0.4, 0.6, 0.8 and 1.0, from the lowest value
+to the highest, and with two thousand stocks they fill the interval almost
+evenly. March 10 was a sharp sell-off in technology stocks. AAPL had the
+worst day of the five, −4.85%, so it ranks 0.2, and XOM the best, +2.55%, so
+it ranks 1.0. Each row is ranked on its own; yesterday plays no part.
+A rank throws away the size of the moves and keeps their order, which is why
+it is the usual first step of an alpha: one huge outlier cannot dominate the
+book. Other cross-sectional operators:
 
 ```qex
 rank(returns(20))         # percentile rank across stocks, 0 to 1
@@ -165,8 +229,28 @@ zscore(returns(20))
 winsorize(returns(20), 0.05)
 ```
 
-**Group** operations are cross-sectional within a bucket, such as a
-sector, an industry, or a pair:
+**Group** operations are cross-sectional within a bucket, such as a sector,
+an industry, or a pair. AAPL and MSFT are Technology, XOM and CVX are
+Energy, and JPM is Financials:
+
+```qex
+group_demean(returns(1), 'sector')
+```
+
+| group_demean(…) | AAPL | MSFT | XOM | CVX | JPM |
+|---|---:|---:|---:|---:|---:|
+| Mar 4 | −0.46 | +0.46 | +0.25 | −0.25 | 0.00 |
+| Mar 5 | −1.64 | +1.64 | −0.58 | +0.58 | 0.00 |
+| Mar 6 | +0.43 | −0.43 | +0.32 | −0.32 | 0.00 |
+| Mar 7 | +1.25 | −1.25 | −0.46 | +0.46 | 0.00 |
+| Mar 10 | **−0.75** | **+0.75** | **+0.88** | **−0.88** | **0.00** |
+
+On March 10 Technology fell 4.10% on average, so AAPL, down 4.85%, was 0.75%
+worse than its sector, and MSFT, down 3.34%, 0.75% better. Energy rose 1.67%,
+so XOM, up 2.55%, was 0.88% ahead of it and CVX 0.88% behind. JPM, alone in
+its sector, is always zero.
+What is left is how each stock did against its peers, which is what a
+sector-neutral book bets on. Other group operators:
 
 ```qex
 group_demean(returns(60) / volatility(60), 'sector')   # sector-neutral momentum
@@ -187,6 +271,44 @@ let mom    = returns(60),
     sharpe = mom / vol
 in rank(sharpe) * sign(mom)
 ```
+
+The full list of operators, with what each one does, is in the qex docs'
+[All Operations](https://marketneutral.github.io/alpha-parser/reference/operations/)
+reference.
+
+## From a signal to a book
+
+An alpha's output is a score for every stock on every day. To trade it, the
+scores have to become portfolio weights, and the standard book for this
+kind of research is **dollar-neutral**, as many dollars long as short, with
+a **gross of one**, so the absolute weights add up to one dollar. Two
+cross-sectional operators do it:
+
+```qex
+scale(demean(rank(returns(1))))
+```
+
+Here it is on the March 10 ranks from above:
+
+| March 10 | rank | demean | scale = weight |
+|---|---:|---:|---:|
+| AAPL | 0.2 | −0.4 | −0.333 |
+| MSFT | 0.6 | 0.0 | 0.000 |
+| XOM | 1.0 | +0.4 | +0.333 |
+| CVX | 0.8 | +0.2 | +0.167 |
+| JPM | 0.4 | −0.2 | −0.167 |
+| sum | 3.0 | **0.0** | **0.000** |
+| sum of absolute values | 3.0 | 1.2 | **1.000** |
+
+`demean` subtracts the day's average rank, 0.6, so the scores sum to zero:
+that is the dollar neutrality. `scale` divides by the sum of the absolute
+values, 1.2, so they sum to one: that is the gross of one. The book is long
+XOM 33.3% and CVX 16.7%, short AAPL 33.3% and JPM 16.7%, and flat MSFT, which
+is 50 cents long and 50 cents short for each dollar of gross. This one buys
+yesterday's winners; a minus sign in front of `rank` turns it into a
+reversal book. Swap `demean` for `group_demean(…, 'sector')` and the book is
+sector-neutral as well. Every return quoted on gross market value, or GMV,
+later in this post is per dollar of exactly this kind of book.
 
 ## Lazy trees, no lookahead
 
@@ -233,8 +355,8 @@ A research session evaluates many signals, and they often have overlapping atomi
 returns. qex builds a single graph for a set of signals and computes
 each unique sub-expression one time.
 
-<figure class="wide" id="signal-graph">
-  <img src="signal-graph.svg" alt="A directed graph of three signals. The momentum and sharpe outputs both depend on a single shared returns(60) node, highlighted in green; reversal depends on its own returns(5) node.">
+<figure class="diagram" id="signal-graph">
+  <img src="signal-graph.svg" style="width: min(760px, 100%); display: block; margin: 0 auto;" alt="A directed graph of three signals. The momentum and sharpe outputs both depend on a single shared returns(60) node, highlighted in green; reversal depends on its own returns(5) node.">
   <figcaption>Ovals read data directly. Rounded boxes are computed from other nodes. Green marks the named outputs, and the one green oval is the node two of them share.</figcaption>
 </figure>
 
@@ -298,12 +420,19 @@ let lo   = ts_min(low(), 5),
     hi   = ts_max(high(), 5),
     pos  = (close() - lo) / (hi - lo),
     book = group_demean(rank(-pos), 'sector')
-in decay_linear(book, 10)
+in scale(decay_linear(book, 10))
 ```
 
 `pos` is where the close sits in the stock's five-day range, 0 at the low and
 1 at the high, so ranking `-pos` buys the stocks that closed near their lows
-and sells the ones that closed near their highs.
+and sells the ones that closed near their highs. `group_demean` already makes
+the book dollar-neutral, and the decay, an average of neutral days, keeps it
+so; `scale` sets the gross to one.
+
+<figure class="diagram" id="range-graph">
+  <img src="range-graph.svg" style="width: min(500px, 100%); display: block; margin: 0 auto;" alt="The range alpha as a graph of 13 nodes, read from the bottom up. Three data inputs, close(), low() and high(), feed lo = ts_min(low(), 5) and hi = ts_max(high(), 5). lo, highlighted, is shared: it feeds both close() minus lo and hi minus lo, which divide into pos. pos is negated, ranked, sector-demeaned into book, decayed over ten days, and scaled into the alpha at the top.">
+  <figcaption>The same expression as qex sees it, read from the bottom up: thirteen nodes, three inputs. The five-day low, <code>lo</code>, is computed once and used twice.</figcaption>
+</figure>
 
 The decay is a denoiser. `decay_linear` is a weighted moving average whose
 weights fall off linearly with age, the linear cousin of an
@@ -385,18 +514,16 @@ rerun. Turnover around thirty percent a day
 is the classic mid-frequency statistical arbitrage space, ten days is a
 common default for this kind of smoothing.
 
-The gross column is not wasted on whoever does not pay the cost. A
-high-frequency firm is (at best) paid the spread rather than charged it, and to a
-market maker a signal with a gross Sharpe near one and 84% daily
-turnover is something it could use to lean its quotes, not a book it cannot afford to
-trade. The move of high-frequency firms into statistical arbitrage,
-such as Hudson River Trading holding positions for days and weeks in
-Bloomberg's December 2025 [story on the
-firm](https://news.bloomberglaw.com/securities-law/more-risk-less-speed-hudson-river-mints-billions-slowing-down),
-is this picture from the other side: the signal is the same and the
-cost is the only difference. The same holds for a sell-side desk that
-can cross client flow internally, or a large buy-side manager that can
-cross its own flow, since either one trades at a big cost advantage and earns something closer to the gross line in expectation.
+Who earns the gross column? Anyone who does not pay the cost. A market maker
+is paid the spread rather than charged it, so to a market maker the
+unsmoothed signal, with a gross Sharpe near one and 84% daily turnover, is
+not too expensive to trade; it is information to lean its quotes on. That is
+one way to read the move of high-frequency firms into statistical arbitrage,
+such as Hudson River Trading now holding positions for days and weeks
+([Bloomberg, December 2025](https://news.bloomberglaw.com/securities-law/more-risk-less-speed-hudson-river-mints-billions-slowing-down)):
+the edge is as much in what it costs to trade as in the signal. A bank desk that crosses client orders internally, or
+a large manager that crosses its own flow, sits in between, trading cheaply
+enough to keep more of the gross line.
 
 ![Bar chart of the ten-day decay book's net annual return by calendar year at 2 basis points, 2010 through 2025. Twelve of sixteen years are positive, with 2020 the standout at plus 16 percent and 2025 the worst at minus 3.](range-by-year.svg)
 

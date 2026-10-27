@@ -42,11 +42,15 @@ print("universe:", len(ok), "names")
 # One alpha: where the stock closed within its own five-day high-low range,
 # inverted (a close near the low is a buy), ranked across stocks, sector-demeaned
 # so the book is sector- and dollar-neutral, then smoothed with a linear decay.
-RANGE = "rank(-(close() - ts_min(low(), 5)) / (ts_max(high(), 5) - ts_min(low(), 5)))"
-BOOK = f"group_demean({RANGE}, 'sector')"
+# The expressions are the post's, verbatim. scale sets the gross to one, as simulate does again.
+PIECES = """let lo   = ts_min(low(), 5),
+    hi   = ts_max(high(), 5),
+    pos  = (close() - lo) / (hi - lo),
+    book = group_demean(rank(-pos), 'sector')
+in """
 ALPHAS = {
-    "no smoothing": BOOK,
-    "decay 10":     f"decay_linear({BOOK}, 10)",
+    "no smoothing": PIECES + "scale(book)",
+    "decay 10":     PIECES + "scale(decay_linear(book, 10))",
 }
 
 def simulate(weights):

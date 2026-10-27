@@ -1,0 +1,47 @@
+// Source for range-graph.svg: the SignalGraph qex builds for the range alpha in this post,
+// 13 nodes, with lo = ts_min(low(), 5) shared by two of them. Re-render with:
+//   dot -Tsvg range-graph.dot -o range-graph.svg
+digraph range {
+  rankdir=BT;
+  bgcolor="transparent";
+  pad=0.3;
+  nodesep=0.4;
+  ranksep=0.45;
+  node [shape=box, style="rounded,filled", fillcolor="#131927", color="#2a3344",
+        fontcolor="#e8eaf0", fontname="IBM Plex Mono, DejaVu Sans Mono, monospace",
+        fontsize=15, margin="0.22,0.12", penwidth=1.2];
+  edge [color="#6b7280", arrowsize=0.7, penwidth=1.1];
+
+  // leaves: data access
+  close [label="close()", shape=ellipse];
+  low   [label="low()", shape=ellipse];
+  high  [label="high()", shape=ellipse];
+
+  // intermediates, named as in the let
+  lo    [label="lo\nts_min(low(), 5)", color="#3ee87a", penwidth=1.6];
+  hi    [label="hi\nts_max(high(), 5)"];
+  num   [label="close() - lo"];
+  den   [label="hi - lo"];
+  pos   [label="pos\n(close() - lo) / (hi - lo)"];
+  neg   [label="-pos"];
+  rnk   [label="rank(-pos)"];
+  book  [label="book\ngroup_demean(·, 'sector')"];
+  dec   [label="decay_linear(book, 10)"];
+
+  // output
+  alpha [label="alpha\nscale(·)", fontcolor="#3ee87a", color="#3ee87a"];
+
+  low -> lo;
+  high -> hi;
+  close -> num;
+  lo -> num;
+  lo -> den;
+  hi -> den;
+  num -> pos;
+  den -> pos;
+  pos -> neg;
+  neg -> rnk;
+  rnk -> book;
+  book -> dec;
+  dec -> alpha;
+}
