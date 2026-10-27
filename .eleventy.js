@@ -6,10 +6,11 @@ module.exports = function (eleventyConfig) {
     // 'sector'-style group names, numbers and operators. The autoresearch-alpha tooltips use the same rules.
     init: ({ Prism }) => {
       Prism.languages.qex = {
+        comment: /#.*/,
         string: /'[^']*'/,
         keyword: /\b(?:let|in)\b/,
         function: /\b[A-Za-z_]\w*(?=\s*\()/,
-        property: /\b[A-Za-z_]\w*(?=\s*=(?!=))/,
+        property: { pattern: /(^[ \t]*(?:let[ \t]+)?|\blet[ \t]+)[A-Za-z_]\w*(?=[ \t]*=(?!=))/m, lookbehind: true },
         number: /\b\d+(?:\.\d+)?\b/,
         operator: /[<>]=?|==|[-+*\/&|=]/,
         punctuation: /[()[\],]/,
@@ -17,7 +18,7 @@ module.exports = function (eleventyConfig) {
       // a name a let binds is coloured wherever it is used, not only where it is defined
       Prism.hooks.add("before-tokenize", (env) => {
         if (env.language !== "qex") return;
-        const names = [...new Set([...env.code.matchAll(/\b([A-Za-z_]\w*)\s*=(?!=)/g)].map((m) => m[1]))];
+        const names = [...new Set([...env.code.matchAll(/(?:^[ \t]*(?:let[ \t]+)?|\blet[ \t]+)([A-Za-z_]\w*)[ \t]*=(?!=)/gm)].map((m) => m[1]))];
         if (!names.length) return;
         const grammar = {};                                   // a fresh grammar per block, so names never leak between blocks
         for (const [k, v] of Object.entries(Prism.languages.qex)) {

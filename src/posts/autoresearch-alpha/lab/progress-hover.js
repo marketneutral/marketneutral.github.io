@@ -66,7 +66,7 @@
     const re = /(\s+)|\b(let|in)\b|('[^']*')|(\d+(?:\.\d+)?)|([A-Za-z_]\w*)(?=\s*\()|([A-Za-z_]\w*)(?=\s*=(?!=))|([A-Za-z_]\w*)|([<>]=?|==|[-+*\/&|=])|(.)/g;
     let out = "", m;
     const span = (cls, x) => `<span class="token ${cls}">${esc(x)}</span>`;
-    const bound = new Set([...src.matchAll(/\b([A-Za-z_]\w*)\s*=(?!=)/g)].map((x) => x[1]));   // coloured wherever used
+    const bound = new Set([...src.matchAll(/(?:^[ \t]*(?:let[ \t]+)?|\blet[ \t]+)([A-Za-z_]\w*)[ \t]*=(?!=)/gm)].map((x) => x[1]));   // coloured wherever used
     while ((m = re.exec(src))) {
       if (m[1]) out += m[1];
       else if (m[2]) out += span("keyword", m[2]);
