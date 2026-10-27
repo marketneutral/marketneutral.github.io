@@ -2,7 +2,7 @@
 title: "qex: a small language for quant alphas"
 date: 2026-02-08
 tag: PROJECT
-description: "A domain-specific language for quant alphas. Write the idea in one line, let the engine handle the rolling windows, ranks, missing data, and caching."
+description: "Quant alphas in one line. No lookahead by construction, every expression aligned and NaN-safe, shared work computed once across thousands of signals, and backtests built in. A closed grammar small enough for an agent to search."
 ---
 
 Let's talk about qex.
@@ -15,8 +15,8 @@ which I pronounce as *kecks*. The project is
 is a dedicated [documentation
 site](https://marketneutral.github.io/alpha-parser/). A simple but mighty one-line qex expression is:
 
-```python
-signal = qex("rank(-returns(20) / volatility(60))")
+```qex
+rank(-returns(20) / volatility(60))
 ```
 
 That says to rank stocks by risk-adjusted one-month momentum and bet
@@ -25,6 +25,10 @@ equivalent pandas is fifty lines of rolling windows, axis arguments, and
 NaN handling. You do not need to be a programmer to read the short
 version: most portfolio managers can code, but anyone who can write an
 Excel formula can read that line, and most of what follows.
+
+That is the idea behind qex: the shortest possible distance between "I
+think markets behave like this" and code that tests it. The belief goes in,
+nearly word for word, and nothing else does.
 
 <div class="note">
 
@@ -42,6 +46,51 @@ flattering sample.
 
 </div>
 
+## From a belief to a line
+
+Here is a belief about markets, built up one clause at a time, and the
+expression built up alongside it.
+
+```qex
+# Stocks that fell last week bounce back.
+rank(-returns(5))
+
+# ...relative to their sector,
+group_demean(rank(-returns(5)), 'sector')
+
+# ...measured in units of how much the stock usually moves,
+group_demean(rank(-returns(5) / volatility(60)), 'sector')
+
+# ...and I do not want to trade every wiggle.
+decay_linear(group_demean(rank(-returns(5) / volatility(60)), 'sector'), 10)
+```
+
+Each clause of the sentence is one operator, and the expression never says
+anything the sentence does not. Other beliefs read the same way:
+
+```qex
+# Past-year winners keep winning, skipping the last month.
+rank(delay(returns(231), 21))
+
+# Quiet stocks beat noisy ones.
+rank(-volatility(252))
+
+# When price and volume move together, the move fades.
+rank(-ts_corr(returns(1), volume(1), 20))
+
+# Momentum, but only in names that trade $10M a day.
+rank(returns(20)) * (adv(20) > 10000000)
+
+# Earnings surprises keep drifting for a quarter.
+rank(fill_forward(field('earnings_actual') - field('earnings_estimate'), 60))
+```
+
+What is missing is everything a pandas version would add: the loops, the
+index alignment, the `axis=` arguments, the warmup, the NaN handling, the
+care not to peek at tomorrow. None of it is the belief, all of it is where
+the bugs live, and in qex it is the engine's job, written once. The mental
+load left is the idea itself.
+
 ## Why a language
 
 Anyone who has read Kakushadze's *101 Formulaic Alphas* will
@@ -54,8 +103,10 @@ The usual argument for the form is readability, and it is true that the
 expression captures the idea where the pandas buries it. But in the age
 of coding agents, "a human has to read this" gets weaker every month,
 because nobody reads the fifty lines any more; a model writes them and
-another model reviews them. The real case for a language is about what
-that changes:
+another model reviews them. Readability for the reviewer matters less than
+it used to. Writability for the person with the idea, the short path from a
+belief to a test, matters more than ever, and so does what a closed language
+changes for the machines. The real case for a language is about both:
 
 - **The expression is the hypothesis, not the implementation.** It is the
   smallest artifact that fully specifies an alpha, and everything else is
@@ -98,17 +149,17 @@ one is most of what you need to read an expression.
 
 **Time series** operations run down the rows, one ticker at a time:
 
-```python
+```qex
 ts_mean(close(), 20)      # 20-day rolling mean
 delta(close(), 5)         # change over 5 days
 ts_corr(returns(1), volume(1), 20)
-ewma(returns(1), halflife=10)
+ewma(returns(1), 10)      # exponential average, 10-day half-life
 ```
 
 **Cross-sectional** operations run across the columns, one day at a
 time:
 
-```python
+```qex
 rank(returns(20))         # percentile rank across stocks, 0 to 1
 zscore(returns(20))
 winsorize(returns(20), 0.05)
@@ -117,22 +168,22 @@ winsorize(returns(20), 0.05)
 **Group** operations are cross-sectional within a bucket, such as a
 sector, an industry, or a pair:
 
-```python
+```qex
 group_demean(returns(60) / volatility(60), 'sector')   # sector-neutral momentum
 group_rank(returns(20), 'industry')
 ```
 
 They compose, so sector-neutral momentum restricted to liquid names is:
 
-```python
+```qex
 group_demean(rank(returns(20)) * (adv(20) > 1000000), 'sector')
 ```
 
 When an expression repeats itself, `let` names the pieces:
 
-```python
-let mom = returns(60),
-    vol = volatility(60),
+```qex
+let mom    = returns(60),
+    vol    = volatility(60),
     sharpe = mom / vol
 in rank(sharpe) * sign(mom)
 ```
@@ -166,10 +217,10 @@ N days.
 Post-earnings announcement drift, with a textbook standardized
 unexpected earnings score, is three lines:
 
-```python
-surprise = "field('earnings_actual') - field('earnings_estimate')"
-sue      = f"({surprise}) / ts_std_events({surprise}, 8)"
-signal   = qex(f"rank(fill_forward({sue}, 60)) - 0.5")
+```qex
+let surprise = field('earnings_actual') - field('earnings_estimate'),
+    sue      = surprise / ts_std_events(surprise, 8)
+in rank(fill_forward(sue, 60)) - 0.5
 ```
 
 That divides this quarter's surprise by the standard deviation of the
@@ -242,11 +293,17 @@ have called this alpha *Williams %R* or *a stochastic oscillator* for fifty year
 We enhance it with the basics of the modern stat arb toolkit: rank it across stocks, demean within sector so the book is sector-neutral
 and dollar-neutral by construction, and smooth it with a linear decay:
 
-```python
-raw   = "-(close() - ts_min(low(), 5)) / (ts_max(high(), 5) - ts_min(low(), 5))"
-book  = f"group_demean(rank({raw}), 'sector')"
-alpha = qex(f"decay_linear({book}, 10)")
+```qex
+let lo   = ts_min(low(), 5),
+    hi   = ts_max(high(), 5),
+    pos  = (close() - lo) / (hi - lo),
+    book = group_demean(rank(-pos), 'sector')
+in decay_linear(book, 10)
 ```
+
+`pos` is where the close sits in the stock's five-day range, 0 at the low and
+1 at the high, so ranking `-pos` buys the stocks that closed near their lows
+and sells the ones that closed near their highs.
 
 The decay is a denoiser. `decay_linear` is a weighted moving average whose
 weights fall off linearly with age, the linear cousin of an
