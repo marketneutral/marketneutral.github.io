@@ -161,6 +161,8 @@ trading days in March 2025:
 | Mar 7 | 239.07 | 393.31 | 109.02 | 156.34 | 242.28 |
 | Mar 10 | 227.48 | 380.16 | 111.80 | 157.57 | 232.22 |
 
+*The three CVX closes in bold are the ones averaged in the first example below.*
+
 **Time series** operations run down each column, one ticker at a time.
 
 ```qex
@@ -176,8 +178,8 @@ ts_mean(close(), 3)
 | Mar 7 | 236.71 | 397.07 | 107.36 | 153.37 | 246.78 |
 | Mar 10 | 233.96 | 390.12 | 109.48 | 155.62 | 240.35 |
 
-CVX on March 5 is the average of its last three closes,
-(153.09 + 152.00 + 150.81) / 3 = 151.97. No other stock enters into it. The first two rows are empty because
+CVX on March 5 is the average of its last three closes, the three in bold
+above: (153.09 + 152.00 + 150.81) / 3 = 151.97. No other stock enters into it. The first two rows are empty because
 there are not yet three days to average; that warmup is the engine's job, not
 yours. The same goes for every `ts_` operator:
 
@@ -189,10 +191,12 @@ ewma(returns(1), 10)      # exponential average, 10-day half-life
 ```
 
 **Cross-sectional** operations run across each row, one day at a time. Start
-with each stock's daily return, `returns(1)`, here in percent:
+with each stock's daily return, `returns(1)`, here in percent. March 3 is
+empty, since a return needs the previous day's close:
 
 | returns(1) | AAPL | MSFT | XOM | CVX | JPM |
 |---|---:|---:|---:|---:|---:|
+| Mar 3 | – | – | – | – | – |
 | Mar 4 | −0.88 | +0.03 | −0.20 | −0.71 | −3.98 |
 | Mar 5 | −0.08 | +3.19 | −1.95 | −0.78 | +0.51 |
 | Mar 6 | −0.17 | −1.03 | +2.07 | +1.42 | −1.98 |
@@ -207,6 +211,7 @@ rank(returns(1))
 
 | rank(returns(1)) | AAPL | MSFT | XOM | CVX | JPM |
 |---|---:|---:|---:|---:|---:|
+| Mar 3 | – | – | – | – | – |
 | Mar 4 | 0.4 | 1.0 | 0.8 | 0.6 | 0.2 |
 | Mar 5 | 0.6 | 1.0 | 0.2 | 0.4 | 0.8 |
 | Mar 6 | 0.6 | 0.4 | 1.0 | 0.8 | 0.2 |
@@ -239,6 +244,7 @@ group_demean(returns(1), 'sector')
 
 | group_demean(…) | AAPL | MSFT | XOM | CVX | JPM |
 |---|---:|---:|---:|---:|---:|
+| Mar 3 | – | – | – | – | – |
 | Mar 4 | −0.46 | +0.46 | +0.25 | −0.25 | 0.00 |
 | Mar 5 | −1.64 | +1.64 | −0.58 | +0.58 | 0.00 |
 | Mar 6 | +0.43 | −0.43 | +0.32 | −0.32 | 0.00 |
