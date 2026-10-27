@@ -428,9 +428,11 @@ the losers are about to rebound. When it is turbulent, I hold full momentum
 only if the market is up 10% on the year, nothing if it is flat, and the
 reverse if it is down 10%. Separately, I bet that a stock which lagged its
 sector last month will bounce. I add the two views and cube the sum, so I
-bet most where they agree and almost nothing where they are lukewarm. I hold
-no net position and never more than 5% in one name.
+bet most where they agree and almost nothing where they are lukewarm.
 </div>
+
+The book rules are the evaluator's, not the agent's: no net position, gross
+one every day, and never more than 5% in one name.
 
 Who is on the other side? In ordinary markets, the investor who sells
 winners too early and holds losers too long; in the crash state, the
