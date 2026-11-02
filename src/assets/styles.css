@@ -111,7 +111,7 @@ html, body {
   line-height: 1.1;
   letter-spacing: -0.015em;
   color: var(--accent);
-  margin-bottom: 36px;
+  margin-bottom: 0;
 }
 .hero-author {
   font-size: 16px;
@@ -122,24 +122,6 @@ html, body {
   margin-bottom: 28px;
 }
 
-.hero-body {
-  font-size: 15px;
-  line-height: 1.65;
-  color: var(--ink-2);
-  max-width: 72ch;
-  text-wrap: balance;
-  font-weight: 400;
-}
-.hero-body em {
-  font-style: italic;
-  color: var(--accent);
-}
-.hero-body a {
-  color: var(--accent);
-  text-decoration: none;
-  border-bottom: 1px solid var(--accent-d);
-}
-.hero-body a:hover { border-bottom-color: var(--accent); }
 
 /* ─── stat grid ──────────────────────────────────────────── */
 .statgrid {
