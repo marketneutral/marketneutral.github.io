@@ -6,7 +6,8 @@
     "start": "eleventy --serve",
     "build": "eleventy",
     "render": "node scripts/render-qmd.mjs",
-    "clean": "rm -rf _site"
+    "clean": "rm -rf _site",
+    "og": "bash scripts/render-og.sh"
   },
   "devDependencies": {
     "@11ty/eleventy": "^3.0.0"

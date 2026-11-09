@@ -5,6 +5,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% if title %}{{ title }} — {% endif %}SPECULATIVE DECODING_</title>
   {% if description %}<meta name="description" content="{{ description }}">{% endif %}
+  <meta name="author" content="{{ site.author }}">
+  <link rel="canonical" href="{{ site.url }}{{ page.url }}">
+  {#- link previews (LinkedIn, X, Slack, iMessage). A post may set `image: /posts/<slug>/cover.png` in its front matter; otherwise the site card is used. #}
+  {%- set ogTitle = title or site.title %}
+  {%- set ogDesc = description or site.subtitle %}
+  {%- set ogImage = image or "/assets/og-default.png" %}
+  <meta property="og:type" content="{% if tag %}article{% else %}website{% endif %}">
+  <meta property="og:site_name" content="{{ site.title }}">
+  <meta property="og:title" content="{{ ogTitle }}">
+  <meta property="og:description" content="{{ ogDesc }}">
+  <meta property="og:url" content="{{ site.url }}{{ page.url }}">
+  <meta property="og:image" content="{{ site.url }}{{ ogImage }}">
+  {%- if not image %}
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="{{ site.title }}: {{ site.subtitle }}">
+  {%- endif %}
+  {%- if tag %}
+  <meta property="article:published_time" content="{{ page.date | rfc3339 }}">
+  <meta property="article:author" content="{{ site.author }}">
+  {%- endif %}
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ ogTitle }}">
+  <meta name="twitter:description" content="{{ ogDesc }}">
+  <meta name="twitter:image" content="{{ site.url }}{{ ogImage }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">

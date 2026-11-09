@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<!-- Source for /assets/og-default.png, the link-preview image (Open Graph / LinkedIn / X).
+     Re-render with: npm run og -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#0a0e1a; --ink:#e8eaf0; --ink-2:#c0c4cf; --muted:#6b7280; --rule:#2a3344; --accent:#3ee87a; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1200px; height: 630px; background: var(--bg); color: var(--ink);
+    font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace; -webkit-font-smoothing: antialiased; }
+  .card { width: 1200px; height: 630px; display: flex; flex-direction: column; justify-content: space-between; padding: 56px 72px; }
+  .topbar { display: flex; justify-content: space-between; font-size: 22px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .dot { display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 16px var(--accent); margin-right: 16px; vertical-align: middle; position: relative; top: -2px; }
+  .hero .author { font-size: 26px; color: var(--muted); letter-spacing: 0.06em; margin-bottom: 22px; }
+  .hero h1 { font-size: 92px; line-height: 1.02; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); }
+  .hero h1 .cursor { color: var(--accent); }
+  .hero .sub { margin-top: 30px; font-size: 32px; color: var(--accent); }
+  .foot { display: flex; justify-content: space-between; font-size: 22px; color: var(--muted); border-top: 1px solid var(--rule); padding-top: 24px; }
+  .foot .url { color: var(--ink-2); }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="topbar"><span><span class="dot"></span>Speculative Decoding_</span><span>Main · Archive · About · RSS</span></div>
+  <div class="hero">
+    <p class="author">Jonathan Larkin</p>
+    <h1>SPECULATIVE<br>DECODING<span class="cursor">_</span></h1>
+    <p class="sub">Working notes on markets and machines.</p>
+  </div>
+  <div class="foot"><span class="url">marketneutral.github.io</span><span>essays · projects · talks</span></div>
+</div>
+</body>
+</html>
