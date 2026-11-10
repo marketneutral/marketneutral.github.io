@@ -11,7 +11,7 @@ execute:
 fig-format: svg
 ---
 
-How could superintelligence arise in a machine trained on data that humans produced? It seems impossible, and you will hear the objection put two ways.
+How could superintelligence arise in a machine trained on data that humans produced? It seems impossible, and the objection usually comes in one of two forms.
 
 > *"AI is just the average of its training data."*
 >
@@ -19,7 +19,9 @@ How could superintelligence arise in a machine trained on data that humans produ
 
 Neither is precise as stated, so here is the sharpest version of each. The first says a model is the mean of what people did. The second comes in a weak form and a strong form. The weak form: at best, a model finds the best thing a person did and copies it. The strong form: a model can only rearrange pieces it has already seen, so it cannot be creative. Put that way, all three are claims about what a learner computes from its data, and they can be tested.
 
-This post builds the smallest world in which to test them. Six hundred people try to cross a small grid, badly, and every step they take is recorded. The recording never changes. Then four learners take their turn, each asking a better question than the last: four rungs on a ladder. The first three read nothing but the frozen recording. The bottom one scores what the crowd scores. The third beats every human, on a route no human walked. The fourth is allowed one new thing: it may try its own ideas in the world and see what happens. It ends up somewhere no human ever stood. It is superhuman in a world of 25 cells, which is a low bar, but the mechanism is the one that matters.
+In my world the same objection shows up as a claim about investing: *an AI can never invest better than people do, because everything it learns from was produced by people.* This post is not about investing. But the question underneath is the same, and I come back to it briefly at the end.
+
+This post builds the smallest world in which to test them. Six hundred people try to cross a small grid, badly, and every step they take is recorded. The recording never changes. Then four learners take their turn, each asking a better question than the last: four rungs on a ladder. The first three read nothing but the frozen recording. The bottom one scores what the crowd scores. The third beats every human, on a route no human walked. The fourth gets one new ability: it can try its own ideas in the world and see what happens. It ends up somewhere no human ever stood. Being superhuman in a world of 25 cells is not much of an achievement. The mechanism is what matters.
 
 This is the first of two posts. **Each rung has a counterpart in how modern language models are trained**, and each rung below ends with a short note naming it. Some of those matches are tight and some are loose. Part two makes that case in depth. This post is about the mechanism, from first principles, for readers with no background in AI or machine learning.
 
@@ -294,9 +296,9 @@ Here are all six hundred attempts as the log records them, drawn the way people 
 
 ```{python}
 #| label: humans-paths
-#| fig-cap: "Every one of the 600 attempts, as the log records them, drawn the way a person walks: everyone starts from the same point, each later cell visit lands somewhere near the centre of the cell, and each step wanders a little on the way. Blue walks reached the treasure, red ones ended in fire, amber took the exit. Nearly all of them trace the loop through the mud. The recordings that stop short at its edge are the ones cut there."
+#| fig-cap: "Every one of the 600 attempts, as the log records them, drawn the way a person walks: everyone starts from the same point, each later cell visit lands somewhere near the center of the cell, and each step wanders a little on the way. Blue walks reached the treasure, red ones ended in fire, amber took the exit. Nearly all of them trace the loop through the mud. The recordings that stop short at its edge are the ones cut there."
 def wander(pts, local, n=8, sigma=0.08, jitter=0.24):
-    """A human-looking trace of a path: each cell visit lands at a jittered point near the cell centre, and each
+    """A human-looking trace of a path: each cell visit lands at a jittered point near the cell center, and each
     step between two of them is a Brownian bridge, a random walk pinned to both ends."""
     marks = [np.array([c, N - 1 - r]) + local.uniform(-jitter, jitter, 2) for r, c in pts]
     marks[0] = np.array([pts[0][1], N - 1 - pts[0][0]], float)   # everyone starts from the same point
@@ -332,7 +334,7 @@ plt.tight_layout()
 plt.show()
 ```
 
-The humans are not perfect, even when told the plan: each of them veers off course in error, some more often than others, and an error can be fatal. Fire "ends" a walk. Apologies for the morbid turn, but it is simply a feature here, to make sure the data holds many examples that are complete failures. Of the six hundred, 408 reached the treasure, 6 gave up at the exit, and 108 burned, most of them in the fire beside the mud. The remaining 78 recordings stop at the edge of the unknown cell.
+The humans are not perfect, even when told the plan: each of them veers off course in error, some more often than others, and an error can be fatal. Fire "ends" a walk. That is morbid, but it is there for a reason: to make sure the data holds many examples that are complete failures. Of the six hundred, 408 reached the treasure, 6 gave up at the exit, and 108 burned, most of them in the fire beside the mud. The remaining 78 recordings stop at the edge of the unknown cell.
 
 Imagine every one of them wore a Garmin. The log is the pile of activity files: where each person was, which way they went, and where they ended up, step by step. The watch does not record points, and it does not need to. Points can be read off the track afterward: half a point for each step, one more for the mud, and the ending scored by where the walk ended, treasure, fire or exit. A single row of the log has four items:
 
@@ -353,7 +355,7 @@ show_ladder()
 
 A walk of the route without a single error scores **4.0**, and that is the tall bar: 152 attempts did exactly that, and twelve more reached 4.0 after errors that happened to cost nothing. Two of those twelve were knocked off the bottom row before the mud, wandered up through the middle and back onto the route above it, and reached the treasure in twelve steps without ever paying for the mud. Neither of them knew. Nobody scored better than 4.0. The average is about **−1.1**, dragged down by a long tail of wasted steps, mud paid twice, and walks into fire.
 
-There are better routes: ten-step routes that skip the mud, worth 5.0, and an 8-step route straight through the middle, worth 6.0. In this crowd nobody walked any of them. **No route worth more than 4.0 appears in the log, the training data.** That is partly arranged: the notebook would delete any recording worth 5.0 or more, to keep the test clean, and for this crowd it had nothing to delete. Rung 2 comes back to this.
+There are better routes: ten-step routes that skip the mud, worth 5.0, and an 8-step route straight through the middle, worth 6.0. In this crowd nobody walked any of them. **No route worth more than 4.0 appears in the log, the training data.** That is partly by design: the notebook would delete any recording worth 5.0 or more, to keep the test clean, and for this crowd it had nothing to delete. Rung 2 comes back to this.
 
 ## Rung 0: learn to be the average human
 
@@ -389,7 +391,7 @@ The clone averages **−0.6**, against the humans' **−1.1**. It is a faithful 
 
 This is the "average of its training data." The first claim is true of this learner, and it is what a learner gets when the only question it asks of the data is *what did they do here?*
 
-The clone comes out a little ahead of the crowd, and the reason has nothing to do with skill. Stepping into the unknown cell was always a misstep, and it is the one misstep the recordings left out, so the clone never makes it. (Part of the gap in this run is also plain sampling noise across six hundred walks.) Record everything and the gap closes.
+The clone scores slightly better than the crowd, and the reason has nothing to do with skill. Stepping into the unknown cell was always a mistake, and it is the one mistake the recordings left out, so the clone never makes it. (Part of the gap in this run is also plain sampling noise across six hundred walks.) Record everything and the gap closes.
 
 <div class="note">
 
@@ -445,7 +447,7 @@ Why does this work? Because errors are noise, and noise is different for everyon
 
 The consensus robot was trained on nothing but what people did. It never saw a score. It is, in the most literal sense, a model of the training data, and it does on every walk what only 164 of the 600 people managed even once. The average was never the ceiling. It is one of several things you can compute from the same distribution, and the mode is a better one.
 
-This has been measured outside toy worlds. Zhang and co-authors trained a model on nothing but chess games between modest players and found that, when it always played its likeliest move, it could play better than every player in its data [2]. They called it transcendence, and their explanation is the one above: individual errors are scattered, so the majority has fewer of them.
+This has been measured outside toy worlds. Zhang and co-authors trained a model on nothing but chess games between players below a rating cap and found that, when it always played its likeliest move, it could play better than every player in its data [2]. They called it transcendence, and their explanation is the one above: individual errors are scattered, so the majority has fewer of them.
 
 <div class="note">
 
@@ -580,7 +582,7 @@ fig, axes = plt.subplots(2, 3, figsize=(10.2, 6.9))
 vmin, vmax = -10.5, 9.5
 for ax, k in zip(axes.ravel(), PASSES):
     Vk = value_map(hist2[k])
-    draw_grid(ax, f"after {k} pass{'es' if k != 1 else ''}" + ("  (table initialised to 0)" if k == 0 else ""), hole_label=False)
+    draw_grid(ax, f"after {k} pass{'es' if k != 1 else ''}" + ("  (table initialized to 0)" if k == 0 else ""), hole_label=False)
     for r in range(N):
         for c in range(N):
             if visited[r, c] and (r, c) not in FIRES and (r, c) not in (TREASURE, EXIT):
@@ -600,11 +602,11 @@ Read the panels in order.
 
 **After 1 pass**, the table knows one kind of thing: what each move paid immediately. Every ordinary move is worth −0.5, so in most cells that is what shows. Three kinds of move are different. The move from the cell beside the treasure into the treasure paid +9.5, and that cell lights up green. The move from the cell above the exit into the exit paid +0.5. And every move into fire paid −10.5; those entries are in the table too, but never show on the map, because a cell's best move is never the one into the fire. After one pass the table is a map of immediate consequences and nothing more.
 
-**After 2 passes**, the news spreads one cell. Take the top-right corner. One of its logged moves is Left, into the cell beside the treasure. On pass 1 that move was worth −0.5, like every other move out of the corner. Now the rule adds the step's −0.5 to the best value in the cell it leads to, which as of the last pass is 9.5. So the move is worth 9.0, it is the corner's best by a mile, and the corner shows 9.0.
+**After 2 passes**, the news spreads one cell. Take the top-right corner. One of its logged moves is Left, into the cell beside the treasure. On pass 1 that move was worth −0.5, like every other move out of the corner. Now the rule adds the step's −0.5 to the best value in the cell it leads to, which as of the last pass is 9.5. So the move is worth 9.0, it is the corner's best by far, and the corner shows 9.0.
 
 Something smaller happened at the start. On pass 1 the cell above the start learned that going up into the exit is worth +0.5. On pass 2 the start learned that going up into that cell is worth −0.5 + 0.5 = 0.0. The start now believes the best thing it can do is head for the exit, and it will believe that for eight more passes.
 
-**After 3 and 5 passes**, the treasure's value keeps coming, one cell per pass: down the right edge, then around the corner into the middle row. The green region is the set of cells from which the treasure is at most that many logged moves away. Notice the cells that have heard nothing yet: they get worse each pass, −0.5, then −1.0, then −1.5. A cell that has not heard of anything good can only add up step costs. That is the honest value of wandering.
+**After 3 and 5 passes**, the treasure's value keeps spreading, one cell per pass: down the right edge, then around the corner into the middle row. The green region is the set of cells from which the treasure is at most that many logged moves away. Notice the cells that have heard nothing yet: they get worse each pass, −0.5, then −1.0, then −1.5. A cell that has not heard of anything good can only add up step costs. That is the honest value of wandering.
 
 **After 10 passes**, the news reaches the start. The best route from the start to the treasure is ten moves long, so it takes ten passes for the treasure's value to arrive. When it does, the start's Right move is worth 5.0 and the start switches from 0.0 to 5.0. (Its Up move reaches 5.0 on the same pass, by a different ten-move route around the mud. When two moves are worth exactly the same, the robot takes the one that appears more often in the log, which is Right.) Passes 11 through 200 leave every number where it is. The table has converged.
 
@@ -644,7 +646,7 @@ md_table(pd.DataFrame({"step": range(1, len(route_moves) + 1),
                        "times in the log": n_on_route}))
 ```
 
-The first two moves and the last four are the humans' own route, made hundreds of times. Steps 3 to 6 are the detour. Steps 3 and 4 are missteps, two in a row, and the second appears only four times. Steps 5 and 6 are habit, heading back toward the taught route. Nobody who took the detour came out ahead: each of them wasted steps somewhere else, or burned. The max kept the detour and dropped the waste.
+The first two moves and the last four are the humans' own route, made hundreds of times. Steps 3 to 6 are the detour. Steps 3 and 4 are mistakes, two in a row, and the second appears only four times. Steps 5 and 6 are habit, heading back toward the taught route. Nobody who took the detour came out ahead: each of them wasted steps somewhere else, or burned. The max kept the detour and dropped the waste.
 
 This is called **stitching** [4]: a learner that values moves by their outcomes can assemble, from fragments of many mediocre episodes, a trajectory better than any episode in the data. The information was in the log. It just was not there as an answer. It was there as consequences, scattered across six hundred people who did not notice.
 
@@ -652,17 +654,17 @@ So: rung 1 matched the best of the humans by finding what they agreed on. Rung 2
 
 ### Is that creative?
 
-Now the strong form of the second claim: a model can only rearrange what it has seen. Look at the table again and concede the point. Every move on the new route is in the log. The robot did not invent a move. It rearranged.
+Now the strong form of the second claim: a model can only rearrange what it has seen. Look at the table again. The claim is right. Every move on the new route is in the log. The robot did not invent a move. It rearranged.
 
-But notice what the concession costs. The claim began as "it can't do anything it hasn't seen" and has become "it can't do anything whose smallest pieces it hasn't seen." Those are different claims. Every sentence anyone writes is made of words they have seen, and every proof is made of steps that were already legal. What was not in the data is the route: ten moves in an order no person put them in, scoring more than any person scored. Whether to call that creative is a question about the word. That it is new, and better, is on the scoreboard.
+But look at what the claim had to become in order to be right. It began as "it can't do anything it hasn't seen" and has become "it can't do anything whose smallest pieces it hasn't seen." Those are different claims. Every sentence anyone writes is made of words they have seen, and every proof is made of steps that were already legal. What was not in the data is the route: ten moves in an order no person put them in, scoring more than any person scored. You can argue about whether to call that creative. You can't argue with the scoreboard: the route is new, and it is better.
 
-### How much of this was arranged?
+### How much of this did I set up?
 
-Two things, and both deserve saying.
+Two things.
 
-The first is the crowd. I regenerated the six hundred people 40 more times with different random seeds. Rung 2 scored 5.0 on all 40. In 19 of them, though, somebody did walk a 5.0 route by accident, and the notebook deleted that recording before the robot saw it. So "no human walked this path" is a condition I enforced, not a discovery. What the experiment shows is that the robot does not need anyone to have walked it.
+The first is the crowd. I regenerated the six hundred people 40 more times with different random seeds. Rung 2 scored 5.0 on all 40. But in 19 of them, someone did walk a 5.0 route by accident, and the notebook deleted that recording before the robot saw it. So "no human walked this path" is a condition I enforced, not a discovery. What the experiment shows is that the robot does not need anyone to have walked it.
 
-The second is coverage. The stitched route rests on moves made four times. Shrink the crowd to 100 people and rung 2 finds a 5.0 route in only 16 of 40 crowds. In the other 24 the pieces are not all there, and it scores 4.0, the same as rung 1. Rung 2 can only stitch what somebody, somewhere, did at least once. And it can trust a move made four times only because nothing in this world is left to chance: a move that paid once pays always. In a world with luck in it, "someone did this and it went well" may mean someone was lucky, and a learner that takes the max will chase the luck. Methods built for real data have to discount for that [4].
+The second is coverage. The stitched route rests on moves made four times. Shrink the crowd to 100 people and rung 2 finds a 5.0 route in only 16 of 40 crowds. In the other 24 the pieces are not all there, and it scores 4.0, the same as rung 1. Rung 2 can only stitch together what someone actually did. And it can trust a move made four times only because nothing in this world is left to chance: a move that paid once pays always. In a world with luck in it, "someone did this and it went well" may mean someone was lucky, and a learner that takes the max will chase the luck. Methods built for real data have to discount for that [4]. Anyone who has picked the best of a thousand backtests has met this problem.
 
 <div class="note">
 
@@ -684,7 +686,7 @@ We now have a learner that exceeds the best human. Can a learner do even better?
 
 Rungs 0 to 2 read a frozen log. This rung does not, and that is the point of it.
 
-What is a verifier here? The grid itself. Until now the robot could only read other people's recordings. Now it is allowed to walk the grid on its own, Garmin on, and keep the recording. It proposes a route, walks it, and reads off what happened, step by step, including when it burns. Nobody tells it the best route, and nobody tells it where the fire is. The world just answers the one question it has always answered: what happens if I step here? That is all a verifier is: a way to check a proposal against reality without anyone knowing the answer in advance. For a coding AI it is running the tests. For a maths AI it is a proof checker. For a chess AI it is playing the game out. For our robot it is a walk. (One simplification: here the world reports every step's points, not just the route's final score. A real checker usually returns one verdict at the end, which makes the learning slower. This post does not show that version.)
+What is a verifier here? The grid itself. Until now the robot could only read other people's recordings. Now it is allowed to walk the grid on its own, Garmin on, and keep the recording. It proposes a route, walks it, and reads off what happened, step by step, including when it burns. Nobody tells it the best route, and nobody tells it where the fire is. The world just answers the one question it has always answered: what happens if I step here? That is all a verifier is: a way to check a proposal against reality without anyone knowing the answer in advance. For a coding AI it is running the tests. For a math AI it is a proof checker. For a chess AI it is playing the game out. For our robot it is a walk. (One simplification: here the world reports every step's points, not just the route's final score. A real checker usually returns one verdict at the end, which makes the learning slower. This post does not show that version.)
 
 Now run the simplest loop there is [5]:
 
@@ -762,17 +764,17 @@ plt.show()
 
 This is the rung on which "superhuman" stops being a figure of speech. Rung 1 matched the best human, on every walk, by doing what they all meant to do. Rung 2 beat that by assembling what they stumbled into. Rung 3 goes past the humans' entire knowledge of the world, because nothing it does is limited to what they did: it can propose anything, and it keeps what checks.
 
-Be clear about what changed, though. Rung 3 did not get more out of its training data. It made more training data. The step into the unknown cell is in no human's recording; it is in the robot's own. If the question is whether a learner can exceed the *human* data, rung 3 says yes, with no qualification. If the question is whether it can know something that is in no data at all, the answer is still no. The facts have to come from somewhere, and the verifier is where.
+It is worth being precise about what changed. Rung 3 did not get more out of its training data. It made more training data. The step into the unknown cell is in no human's recording; it is in the robot's own. If the question is whether a learner can exceed the *human* data, rung 3 says yes. If the question is whether it can know something that is in no data at all, the answer is still no. The facts have to come from somewhere, and the verifier is where.
 
 ### What the human data was for
 
 Did the humans' log matter in the end? Run the same loop from an empty log and see. The robot starts knowing nothing, wanders, and finds the exit two steps from the start. One point for stopping beats everything else it has seen, so it settles there, scoring 0.0, and it is still there after fifteen rounds: every proposal is a short walk to the exit with the occasional random step, and none of them gets far enough to find out there is a treasure. The humans' log is what told the robot a treasure existed, and roughly where. The data got it started. The verifier took it the rest of the way.
 
-That is a fact about this robot's budget, not a law. A learner that explores harder, for longer, can do without the humans altogether. The famous case is Go. AlphaGo first learned from games between human experts and then improved by playing itself, with the rules of the game as its verifier [6]. In its second game against Lee Sedol it played a move, the 37th, that by its own estimate a human would have played one time in ten thousand, and it won. Its successor, AlphaGo Zero, never saw a human game and ended up stronger [6]. With a verifier and enough compute, human data is a head start, not a requirement.
+That is a fact about this robot's budget, not a law. A learner that explores harder, for longer, does not need the humans at all. The famous case is Go. AlphaGo first learned from games between human experts and then improved by playing itself, with the rules of the game as its verifier [6]. In its second game against Lee Sedol it played a move, the 37th, that by its own estimate a human would have played one time out of ten thousand, and it won. Its successor, AlphaGo Zero, never saw a human game and ended up stronger [6]. With a verifier and enough compute, human data is a head start, not a requirement.
 
 <div class="note">
 
-**In a language model: training against a checker.** The model proposes an answer, something checks it (a test suite for code, a proof checker for mathematics, a known answer for a puzzle), and the model is trained on what checked. Where a checker exists the match is tight. Most of what people ask a language model has no checker, and that is where this rung stops. Part two picks it up there.
+**In a language model: training against a checker.** The model proposes an answer, something checks it (a test suite for code, a proof checker for mathematics, a known answer for a puzzle), and the model is trained on what checked. The field calls this reinforcement learning with verifiable rewards. Where a checker exists the match is tight. Most of what people ask a language model has no checker, and that is where this rung stops. Part two picks it up there.
 
 </div>
 
@@ -790,13 +792,21 @@ show_ladder()
 
 The claims we started with were that a learner computes the average of its training data, and that at best it copies or rearranges what is in it. The first is true, of rung 0. Each rung above it asks a different question and gets a different answer: the mode instead of the mean, the max over outcomes instead of the mode, and a check instead of a guess.
 
-The second claim came in two forms. The weak form, that a learner can at best copy the best person, fell on rung 2: the same frozen log, and a better route than any person walked. The strong form, that a learner only rearranges what it has seen, is true of rungs 0 to 2 and says less than it sounds like, because the rearrangement beat everyone. On rung 3 it is not even true. The robot stood where no human stood, because it had stopped depending on humans for its facts.
+The second claim came in two forms. The weak form, that a learner can at best copy the best person, fell on rung 2: the same frozen log, and a better route than any person walked. The strong form, that a learner only rearranges what it has seen, is true of rungs 0 to 2, but it means less than it seems to, because the rearrangement beat everyone. On rung 3 it is not even true. The robot stood where no human stood, because it had stopped depending on humans for its facts.
 
 So where does superhuman performance come from? Not from the data alone, and not from a cleverer learner alone. Three different things changed on the way up. From rung 0 to rung 1 the data stayed the same and the *question* changed: the likeliest move, not a sampled one. From 1 to 2 the *signal* changed: outcomes, not just actions. From 2 to 3 the *source* changed: the world, not the recordings. Ask which of those a system has and you know where its ceiling is, and on the top rung there is no ceiling made of human data at all.
 
-The limits are real, and each rung has its own. Consensus is bounded by what the humans intended. It worked here because everyone was attempting the same route and each person's errors were their own; where a crowd is split, or wrong in the same direction, the majority's move is no better than the crowd. Outcomes are bounded by what the data covers, as the crowds of 100 showed, and by luck, since a max cannot tell a good move from a fortunate one. That is also why rung 2 refused to assume anything about a move nobody tried: a learner that guesses across an unknown cell in its data can walk confidently into fire. Verification is bounded by the existence of a verifier, and by the cost of being wrong while learning: 105 burned robots are cheap only in a simulation. None of those limits says a learner cannot exceed its data. Each says on which rung, and in which kind of task, the ceiling sits.
+The limits are real, and each rung has its own. Consensus is bounded by what the humans intended. It worked here because everyone was attempting the same route and each person's errors were their own; where a crowd is split, or wrong in the same direction, the majority's move is no better than the crowd. Outcomes are bounded by what the data covers, as the crowds of 100 showed, and by luck, since a max cannot tell a good move from a lucky one. That is also why rung 2 refused to assume anything about a move nobody tried: a learner that guesses across an unknown cell in its data can walk confidently into fire. Verification is bounded by the existence of a verifier, and by the cost of being wrong while learning: 105 burned robots are cheap only in a simulation. None of those limits says a learner cannot exceed its data. Each says on which rung, and in which kind of task, the ceiling sits.
 
-"The average of its training data" describes one learner, on one rung, decoded one way. A modern language model is not on one rung. It is pre-trained on rung 0, decoded on rung 1, tuned on human feedback in the spirit of rung 2 and, increasingly, trained against checkers on rung 3. How well each of those matches holds, and what the ladder says about where language models stop, is part two.
+"The average of its training data" describes one learner, on one rung, decoded one way. A modern language model is not on one rung. It is pre-trained on rung 0, decoded on rung 1, tuned on human feedback in a way that resembles rung 2 and, increasingly, trained against checkers on rung 3. How well each of those matches holds, and what the ladder says about where language models stop, is part two.
+
+## A note on investing
+
+The objection at the top has an investing version: an AI can never invest better than people do, because it learns from what people produced. The ladder says where to look. That claim is true on rung 0 and weaker on each rung above it, so the question is not what the data is made of. It is which rungs markets make available.
+
+The top rung needs a verifier, and investing appears to have one. You take a position, time passes, and there is a P&L. On paper that is a verifiable reward. In practice it is a far worse verifier than a test suite. It is noisy: the grid pays the same for the same move every time and a market does not, so it can take years of live results to tell skill from luck. It cannot be re-run: the robot walked the grid 300 times, and history happened once. A backtest is not a verifier. It is the frozen log, and learning from it is rung 2, with everything rung 2 warned about. It moves: markets adapt, including to the learner's own trading. And mistakes are not free: the robot burned 105 times at no cost, and exploring with real capital is paid for in real losses.
+
+None of that closes the top rung to investing. It says the verifier is slow, noisy, nonstationary and expensive, and how far a learner can climb with a verifier like that is an open question. It is not this post's question. It is the reason a blog about investing is spending two posts on this one.
 
 ## Where this came from
 
