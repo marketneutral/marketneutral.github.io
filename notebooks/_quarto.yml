@@ -4,6 +4,7 @@ project:
 format:
   gfm:
     preserve-yaml: true
+    wrap: none
 
 execute:
   freeze: auto

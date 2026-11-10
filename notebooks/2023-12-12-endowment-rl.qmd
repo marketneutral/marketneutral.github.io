@@ -2,7 +2,7 @@
 title: Endowment asset allocation as a reinforcement learning problem
 date: 2023-12-12
 tag: PROJECT
-description: Can a Q-learning agent learn to run an endowment portfolio of stocks, bonds, and illiquid private fund commitments, and beat a simple rules-based baseline? TL;DR: yes.
+description: "Can a Q-learning agent learn to run an endowment portfolio of stocks, bonds, and illiquid private fund commitments, and beat a simple rules-based baseline? TL;DR: yes."
 engine: julia
 execute:
   echo: true

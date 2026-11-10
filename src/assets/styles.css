@@ -442,14 +442,13 @@ footer a:hover { color: var(--accent); }
 }
 
 /* images (e.g. plots from .qmd notebooks)
-   Plots styled via notebooks/_oos_style.py have transparent / page-colored
-   backgrounds and integrate seamlessly. We keep just a thin rule for boundary. */
+   Plots styled via notebooks/_oos_style.py have page-colored backgrounds
+   and integrate seamlessly, so no border; centred in the column. */
 .post-body img {
   display: block;
   max-width: 100%;
   height: auto;
-  margin: 32px 0;
-  border: 1px solid var(--rule);
+  margin: 32px auto;
 }
 
 /* wide figure: breaks out of the 680px text column, centered, up to 1000px */
@@ -495,7 +494,7 @@ footer a:hover { color: var(--accent); }
 .post-body figure.diagram img {
   width: auto;
   max-width: 100%;
-  margin: 0;
+  margin: 0 auto;   /* the caption can be wider than the plot, so centre the plot inside the figure */
 }
 
 .post-body figure figcaption {

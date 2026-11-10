@@ -16,10 +16,6 @@ fig-dpi: 140
 ---
 
 
-# Endowment asset allocation as a reinforcement learning problem
-
-2023-12-12
-
 In the fall of 2023 I took Stanford’s [AA228, *Decision Making Under
 Uncertainty*](https://aa228.stanford.edu/), as a non-degree graduate
 student. The course, taught by the inimitable Mykel Kochenderfer, works
