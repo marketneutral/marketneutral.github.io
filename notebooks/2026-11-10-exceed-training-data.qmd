@@ -2,7 +2,7 @@
 title: "Can an AI exceed its training data?"
 date: 2026-11-10
 tag: ESSAY
-description: "How can a machine trained on human data end up smarter than the humans? Can AI be creative? A first-principles answer for readers without a machine learning background. Record imperfect human attempts, freeze the data, and ask better questions of it. The learner climbs past the average human, past the best human, past any walk in the data, and then, once it can check its own ideas, past the data itself. Part one of two."
+description: "How can a machine trained on human data end up smarter than the humans? Can AI be creative? A first-principles answer for readers without a machine learning background. Record imperfect human attempts, freeze the data, and ask better questions of it. The learner climbs past the average human, past the best human, past any walk in the data, and then, once it can check its own ideas, past the data itself."
 jupyter: python3
 execute:
   echo: false
@@ -23,7 +23,7 @@ In my world the same objection shows up as a claim about investing: *an AI can n
 
 This post builds the smallest world in which to test them. Six hundred people try to cross a small grid, badly, and every step they take is recorded. The recording never changes. Then four learners take their turn, each asking a better question than the last: four rungs on a ladder. The first three read nothing but the frozen recording. The bottom one scores what the crowd scores. The third beats every human, on a route no human walked. The fourth gets one new ability: it can try its own ideas in the world and see what happens. It ends up somewhere no human ever stood. Being superhuman in a world of 25 cells is not much of an achievement. The mechanism is what matters.
 
-This is the first of two posts. **Each rung has a counterpart in how modern language models are trained**, and each rung below ends with a short note naming it. Some of those matches are tight and some are loose. Part two makes that case in depth. This post is about the mechanism, from first principles, for readers with no background in AI or machine learning.
+**Each rung has a counterpart in how modern language models are trained**, and each rung below ends with a short note naming it. Some of those matches are tight and some are loose, and the notes say which. This post is about the mechanism, from first principles, for readers with no background in AI or machine learning.
 
 ## The world
 
@@ -668,7 +668,7 @@ The second is coverage. The stitched route rests on moves made four times. Shrin
 
 <div class="note">
 
-**In a language model: learning from feedback.** This is the loosest match of the four. People are shown a model's answers and say which are better, and the model is trained toward the answers they preferred, not just toward the answers people write. What that shares with rung 2 is the kind of signal: a record of how things turned out, on top of a record of what was done. The machinery is different, and part two looks at how far the comparison holds.
+**In a language model: learning from feedback.** This is the loosest match of the four. People are shown a model's answers and say which are better, and the model is trained toward the answers they preferred, not just toward the answers people write. What that shares with rung 2 is the kind of signal: a record of how things turned out, on top of a record of what was done. The machinery is different, and the comparison should not be pushed further than that.
 
 </div>
 
@@ -774,7 +774,7 @@ That is a fact about this robot's budget, not a law. A learner that explores har
 
 <div class="note">
 
-**In a language model: training against a checker.** The model proposes an answer, something checks it (a test suite for code, a proof checker for mathematics, a known answer for a puzzle), and the model is trained on what checked. The field calls this reinforcement learning with verifiable rewards. Where a checker exists the match is tight. Most of what people ask a language model has no checker, and that is where this rung stops. Part two picks it up there.
+**In a language model: training against a checker.** The model proposes an answer, something checks it (a test suite for code, a proof checker for mathematics, a known answer for a puzzle), and the model is trained on what checked. The field calls this reinforcement learning with verifiable rewards. Where a checker exists the match is tight. Most of what people ask a language model has no checker, and that is where this rung stops.
 
 </div>
 
@@ -798,7 +798,7 @@ So where does superhuman performance come from? Not from the data alone, and not
 
 The limits are real, and each rung has its own. Consensus is bounded by what the humans intended. It worked here because everyone was attempting the same route and each person's errors were their own; where a crowd is split, or wrong in the same direction, the majority's move is no better than the crowd. Outcomes are bounded by what the data covers, as the crowds of 100 showed, and by luck, since a max cannot tell a good move from a lucky one. That is also why rung 2 refused to assume anything about a move nobody tried: a learner that guesses across an unknown cell in its data can walk confidently into fire. Verification is bounded by the existence of a verifier, and by the cost of being wrong while learning: 105 burned robots are cheap only in a simulation. None of those limits says a learner cannot exceed its data. Each says on which rung, and in which kind of task, the ceiling sits.
 
-"The average of its training data" describes one learner, on one rung, decoded one way. A modern language model is not on one rung. It is pre-trained on rung 0, decoded on rung 1, tuned on human feedback in a way that resembles rung 2 and, increasingly, trained against checkers on rung 3. How well each of those matches holds, and what the ladder says about where language models stop, is part two.
+"The average of its training data" describes one learner, on one rung, decoded one way. A modern language model is not on one rung. It is pre-trained on rung 0, decoded on rung 1, tuned on human feedback in a way that resembles rung 2 and, increasingly, trained against checkers on rung 3. How well each of those matches holds, and what the ladder says about where language models stop, is a story of its own.
 
 ## A note on investing
 
@@ -806,7 +806,7 @@ The objection at the top has an investing version: an AI can never invest better
 
 The top rung needs a verifier, and investing appears to have one. You take a position, time passes, and there is a P&L. On paper that is a verifiable reward. In practice it is a far worse verifier than a test suite. It is noisy: the grid pays the same for the same move every time and a market does not, so it can take years of live results to tell skill from luck. It cannot be re-run: the robot walked the grid 300 times, and history happened once. A backtest is not a verifier. It is the frozen log, and learning from it is rung 2, with everything rung 2 warned about. It moves: markets adapt, including to the learner's own trading. And mistakes are not free: the robot burned 105 times at no cost, and exploring with real capital is paid for in real losses.
 
-None of that closes the top rung to investing. It says the verifier is slow, noisy, nonstationary and expensive, and how far a learner can climb with a verifier like that is an open question. It is not this post's question. It is the reason a blog about investing is spending two posts on this one.
+None of that closes the top rung to investing. It says the verifier is slow, noisy, nonstationary and expensive, and how far a learner can climb with a verifier like that is an open question. It is not this post's question. It is the reason a blog about investing is spending a post on this one.
 
 ## Where this came from
 
