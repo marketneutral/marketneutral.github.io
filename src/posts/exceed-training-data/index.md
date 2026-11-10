@@ -310,11 +310,7 @@ The limits are real, and each rung has its own. Consensus is bounded by what the
 
 ## A note on investing
 
-The objection at the top has an investing version: an AI can never invest better than people do, because it learns from what people produced. The ladder says where to look. That claim is true on rung 0 and weaker on each rung above it, so the question is not what the data is made of. It is which rungs markets make available.
-
-The top rung needs a verifier, and investing appears to have one. You take a position, time passes, and there is a P&L. On paper that is a verifiable reward. In practice it is a far worse verifier than a test suite. It is noisy: the grid pays the same for the same move every time and a market does not, so it can take years of live results to tell skill from luck. It cannot be re-run: the robot walked the grid 300 times, and history happened once. A backtest is not a verifier. It is the frozen log, and learning from it is rung 2, with everything rung 2 warned about. It moves: markets adapt, including to the learner’s own trading. And mistakes are not free: the robot burned 105 times at no cost, and exploring with real capital is paid for in real losses.
-
-None of that closes the top rung to investing. It says the verifier is slow, noisy, nonstationary and expensive, and how far a learner can climb with a verifier like that is an open question. It is not this post’s question. It is the reason a blog about investing is spending a post on this one.
+The objection at the top has an investing version: an AI can never invest better than people do, because it learns from what people produced. The ladder says where to look. The claim is true on rung 0 and weaker on each rung above it, so what matters is which rungs markets make available. The top rung needs a verifier, and it is tempting to say investing has one, since every position ends in a P&L. A backtest is not that verifier. A backtest is the frozen log, and a learner trained to maximize a backtest is not being checked against the world. It is overfitting to the one history that happened. The only real verifier is live, out-of-sample results, and that verifier is slow, noisy, impossible to re-run, shifts in response to the learner’s own trading, and charges real money for every mistake. Whether a learner can climb with a verifier like that is an open question, and this post does not answer it.
 
 ## Where this came from
 
