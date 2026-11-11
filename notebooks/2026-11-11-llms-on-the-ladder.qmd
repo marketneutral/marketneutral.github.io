@@ -1,0 +1,1125 @@
+---
+title: "Language models on the ladder"
+date: 2026-11-11
+tag: ESSAY
+description: "The first post built a 5×5 grid and showed four ways a machine can learn from a frozen log of human attempts and climb past the humans. This one maps each rung onto how language models are trained, with the published results attached, and runs the two experiments the first post skipped: learning from a fallible judge instead of a score, and learning from a single yes-or-no at the end."
+jupyter: python3
+execute:
+  echo: false
+  warning: false
+  message: false
+fig-format: svg
+---
+
+In [the first post](/posts/exceed-training-data/) I built the smallest world I could think of: a 5×5 grid, a treasure, three fires, a patch of mud. Six hundred people were told a route and walked it badly, and every step was recorded. Then the recording was frozen and four machines took a turn. The first asked *what did people do here?* and became the average human. The second asked *what did most people do here?* and became the best human. The third asked *what happened next?* and assembled a route no human had walked, from fragments of many walks. The fourth was allowed to try routes and see what happened, and found the best route on the grid, through the one cell nobody had ever recorded.
+
+A certain kind of reader stopped there: *a grid is not a language model.* Correct, and beside the point. Nothing in the argument depended on the grid. The argument depends on four facts about what a learner computes from a body of data (a mean, a mode, a max, a check), and each of those four facts has been established at language-model scale by a published result with numbers attached. The grid is a microscope. It exists so that you can *watch* the mechanism in a world small enough to see all of it, not to prove the mechanism scales. The proof that it scales is below.
+
+So the question to hold in mind while reading is not "is a grid like an LLM?" It is: **if you believe a model is the average of its training data, which function do you think it computes?** If it is the mean, you have to explain the results in the next section. If it is not the mean, the claim was wrong when you made it.
+
+This post is more technical than the first. It has three jobs. First, the receipts: the published results, one per rung. Second, two experiments the first post skipped, because each closes a gap between the grid and a language model. Rung 2 in the grid was handed points by the world; language models are handed opinions by people, so I strip every score out of the log and learn from a judge who is wrong a third of the time. Rung 3 in the grid was told what every step cost; a language model is told one thing, yes or no, at the very end, so I run rung 3 again with only that. Third, the objections, answered one at a time.
+
+```{python}
+#| label: world
+#| output: false
+# NOTE FOR US: this cell and the five that follow (helpers, humans, rung0, rung1, rung2, rung3) are copied from
+# notebooks/2026-11-10-exceed-training-data.qmd so that the two posts stay independent and each notebook runs on
+# its own. If the world changes in one post, change it in the other too. The reproducibility comment there applies
+# here as well. Everything new to this post starts at the cell labeled `nn`.
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
+
+N = 5
+# Internally, cells are (row, col) with row 0 at the top — convenient for arrays. Everything shown to the reader
+# uses (x, y) instead: x counts columns from the left, y counts rows from the bottom, so START is (0, 0).
+START = (4, 0)                 # (row, col); row 0 is the top
+TREASURE = (0, 2)
+EXIT = (2, 0)
+FIRES = {(0, 1), (1, 2), (3, 3)}
+MUD = (4, 3)                   # crossing costs 1 extra point
+
+def xy(cell):
+    """(row, col) -> (x, y) with the origin at the bottom-left, for display."""
+    return (cell[1], N - 1 - cell[0])
+
+def route_str(path):
+    return " → ".join(str(xy(p)) for p in path)
+MUD_COST = -1.0
+HOLE = (1, 3)                  # the one cell no human ever stood on
+STEP_COST = -0.5
+GAMMA = 1.0
+ACTIONS = {0: (-1, 0), 1: (1, 0), 2: (0, -1), 3: (0, 1)}   # Up, Down, Left, Right
+ARROWS = {0: (0, 0.42), 1: (0, -0.42), 2: (-0.42, 0), 3: (0.42, 0)}
+OPTIMAL_ROUTE = [(4, 0), (4, 1), (4, 2), (3, 2), (2, 2), (2, 3), (1, 3), (0, 3), (0, 2)]
+
+def available(s):
+    """Directions that stay on the grid. Nobody in this world walks into a wall."""
+    r, c = s
+    return [a for a, (dr, dc) in ACTIONS.items() if 0 <= r + dr < N and 0 <= c + dc < N]
+
+def step(s, a):
+    """The real grid. Used to generate the human log, to score policies, and — only on rung 3 — as the verifier."""
+    dr, dc = ACTIONS[a]
+    r, c = s
+    ns = (min(max(r + dr, 0), N - 1), min(max(c + dc, 0), N - 1))
+    if ns == TREASURE:
+        return ns, 10.0 + STEP_COST, True
+    if ns == EXIT:
+        return ns, 1.0 + STEP_COST, True
+    if ns in FIRES:
+        return ns, -10.0 + STEP_COST, True
+    if ns == MUD:
+        return ns, MUD_COST + STEP_COST, False
+    return ns, STEP_COST, False
+
+def rollout(policy, max_steps=40):
+    s, total, path = START, 0.0, [START]
+    for _ in range(max_steps):
+        ns, r, done = step(s, policy(s))
+        total += r; s = ns; path.append(s)
+        if done:
+            break
+    return total, path
+
+def expected_score(policy, n=4000):
+    return float(np.mean([rollout(policy)[0] for _ in range(n)]))
+```
+
+```{python}
+#| label: helpers
+#| output: false
+import _oos_style                 # the site's dark matplotlib theme (notebooks/_oos_style.py)
+from _oos_style import OOS
+CELL = {"empty": "#131927", "treasure": "#17432a", "exit": "#1b3a4a", "fire": "#5a2130", "start": "#1f2a44", "mud": "#4a3b22"}
+def draw_grid(ax, title=None, hole=HOLE, coords=False, hole_label=True):
+    ax.set_xlim(-0.5, N - 0.5); ax.set_ylim(-0.5, N - 0.5)
+    ax.set_aspect("equal"); ax.set_xticks([]); ax.set_yticks([]); ax.grid(False)
+    for sp in ax.spines.values(): sp.set_visible(True)
+    if coords:   # label columns x = 0..4 along the bottom and rows y = 0..4 up the left side
+        ax.set_xticks(range(N)); ax.set_yticks(range(N))
+        ax.set_xlabel("x"); ax.set_ylabel("y", rotation=0, labelpad=10)
+        ax.tick_params(length=0, labelsize=9, colors=OOS["muted"])
+    for r in range(N):
+        for c in range(N):
+            y = N - 1 - r
+            if (r, c) == TREASURE:   color, label = CELL["treasure"], "TREASURE\n+10"
+            elif (r, c) == EXIT:     color, label = CELL["exit"], "EXIT\n+1"
+            elif (r, c) in FIRES:    color, label = CELL["fire"], "FIRE\n−10"
+            elif (r, c) == START:    color, label = CELL["start"], "START"
+            elif (r, c) == MUD:      color, label = CELL["mud"], "MUD\n−1"
+            else:                    color, label = CELL["empty"], ""
+            ax.add_patch(Rectangle((c - 0.5, y - 0.5), 1, 1, facecolor=color, edgecolor=OOS["muted"]))
+            if hole and (r, c) == hole:
+                ax.add_patch(Rectangle((c - 0.5, y - 0.5), 1, 1, facecolor="none", edgecolor=OOS["muted"], hatch="///", linewidth=0))
+                if hole_label:
+                    ax.text(c, y + 0.3, "unknown", ha="center", va="center", fontsize=7, color=OOS["ink"],
+                            bbox=dict(facecolor=OOS["bg"], edgecolor="none", alpha=0.9, pad=1.5))
+            if label:
+                dy = 0.36 if (r, c) in (START, MUD) else 0.0
+                ax.text(c, y + dy, label, ha="center", va="center", fontsize=8, color=OOS["ink"])
+    if title:
+        ax.set_title(title)
+
+def draw_route(ax, path, color, lw=2.0):
+    xs = [c for r, c in path]; ys = [N - 1 - r for r, c in path]
+    ax.plot(xs, ys, color=color, linewidth=lw, alpha=0.7, solid_capstyle="round", solid_joinstyle="round", zorder=3)
+
+def shade_values(ax, V, cells, vmin=None, vmax=None, fmt="{:.1f}"):
+    """Color each cell in `cells` by its value V[r, c] and print the number."""
+    vals = V[cells]
+    vmin = np.nanmin(vals) if vmin is None else vmin
+    vmax = np.nanmax(vals) if vmax is None else vmax
+    for r in range(N):
+        for c in range(N):
+            if cells[r, c] and (r, c) not in FIRES and (r, c) not in (TREASURE, EXIT):
+                y = N - 1 - r
+                shade = (V[r, c] - vmin) / (vmax - vmin + 1e-9)
+                ax.add_patch(Rectangle((c - 0.5, y - 0.5), 1, 1, facecolor=VALUE_CMAP(0.55 + 0.45 * shade), edgecolor=OOS["muted"]))
+                ax.text(c, y - 0.36, fmt.format(V[r, c]), ha="center", va="center", fontsize=7, color=OOS["ink"])
+
+from matplotlib.colors import LinearSegmentedColormap
+VALUE_CMAP = LinearSegmentedColormap.from_list("oos_value", [(0.0, "#7a2a3a"), (0.525, "#1c2436"), (1.0, "#1f8a4c")])
+
+from IPython.display import Markdown
+def walk_scores(policy, n=600):
+    """The score of each of n walks of a policy."""
+    return np.array([rollout(policy)[0] for _ in range(n)])
+LADDER = []
+FLOOR = -20                                              # scores at or below this share one bin on the scoreboard
+def add_rung(label, needs, scores):
+    LADDER.append((label, needs, np.asarray(scores, float)))
+def show_ladder(rows=None):
+    """The scoreboard: one row per machine, a histogram of its scores on a shared axis, a line at its average."""
+    rows = LADDER if rows is None else rows
+    bins = np.arange(FLOOR - 1.5, 7.5, 1.0)            # the leftmost bin collects everything below FLOOR
+    n = len(rows)
+    fig, axes = plt.subplots(n, 1, figsize=(7.6, 0.9 * n + 0.7), sharex=True, squeeze=False)
+    for ax, (label, needs, sc) in zip(axes[:, 0], rows):
+        ax.hist(np.where(sc <= FLOOR, FLOOR - 1, sc), bins=bins, color=OOS["muted"], edgecolor=OOS["bg"], linewidth=0.4)
+        avg = sc.mean()
+        ax.axvline(avg, color=OOS["red"], linewidth=1.6)
+        ax.text(avg - 0.3, 0.88, f"avg {avg:.2f}", transform=ax.get_xaxis_transform(),
+                color=OOS["red"], fontsize=8, va="top", ha="right")
+        ax.set_xlim(FLOOR - 1.5, 7.5)
+        ax.set_yticks([]); ax.grid(False)
+        for sp in ("left", "top", "right"):
+            ax.spines[sp].set_visible(False)
+        ax.annotate(label, xy=(0, 0.62), xycoords="axes fraction", xytext=(-10, 0), textcoords="offset points",
+                    ha="right", va="center", fontsize=9, color=OOS["ink"])
+        ax.annotate(f"learns from {needs}", xy=(0, 0.28), xycoords="axes fraction", xytext=(-10, 0), textcoords="offset points",
+                    ha="right", va="center", fontsize=7.5, color=OOS["muted"])
+    axes[-1, 0].set_xlabel("score")
+    axes[-1, 0].set_xticks([FLOOR - 1] + list(range(FLOOR + 5, 7, 5)))
+    axes[-1, 0].set_xticklabels([f"≤ {FLOOR}".replace("-", "−")] + [str(t).replace("-", "−") for t in range(FLOOR + 5, 7, 5)])
+    fig.subplots_adjust(left=0.36, hspace=0.35)
+    plt.show()
+def md_table(df, fmt="{:.2f}"):
+    """A DataFrame as a markdown table, numbers formatted."""
+    cell = lambda v: (fmt.format(v) if isinstance(v, float) else str(v)).replace("-", "−")
+    head = "| " + " | ".join(df.columns) + " |\n|" + "---|" * len(df.columns)
+    rows = ["| " + " | ".join(cell(v) for v in r) + " |" for r in df.itertuples(index=False)]
+    return Markdown("\n".join([head] + rows))
+```
+
+```{python}
+#| label: humans
+#| output: false
+# The route every human knows: along the bottom, up the right side, left along the top. 10 steps.
+PLAN = {(4, c): 3 for c in range(4)}
+PLAN.update({(r, 4): 0 for r in range(1, 5)})
+PLAN.update({(0, 4): 2, (0, 3): 2})
+# If knocked off the route, each human has one habitual move per cell that heads back toward it. No map, no planning.
+PLAN.update({(3, 0): 1, (1, 0): 1, (0, 0): 1, (1, 1): 1, (2, 1): 1, (3, 1): 1, (3, 2): 1,
+             (2, 2): 3, (2, 3): 3, (1, 3): 0})
+
+rng = np.random.default_rng(2024)
+
+def human_policy(eps):
+    return lambda s: PLAN[s] if rng.random() > eps else int(rng.choice(available(s)))
+
+def human_episode(eps):
+    """Returns (full walk, recording). The human keeps walking to the end; the recording stops at the hole."""
+    s, traj = START, []
+    policy = human_policy(eps)
+    for _ in range(40):
+        a = policy(s)
+        ns, r, done = step(s, a)
+        traj.append((s, a, r, ns, done)); s = ns
+        if done:
+            break
+    cut = next((i for i, t in enumerate(traj) if t[3] == HOLE), None)
+    recording = traj if cut is None else traj[:cut]   # the tape stops when the human is about to enter the hole
+    return traj, recording
+
+walks = [(eps,) + human_episode(eps) for eps in rng.uniform(0.10, 0.35, size=600)]
+
+def path_of(traj):
+    return [t[0] for t in traj] + [traj[-1][3]]
+
+def score(traj):
+    return sum(t[2] for t in traj)
+
+OPTIMAL_SCORE = 10 + 8 * STEP_COST        # treasure in 8 steps, no mud: the best possible score
+CLEAN_LOOP_SCORE = 10 + 10 * STEP_COST    # the 10-step loop that avoids the mud
+removed = sum(score(full) >= CLEAN_LOOP_SCORE for _, full, _ in walks)
+walks = [w for w in walks if score(w[1]) < CLEAN_LOOP_SCORE]          # no mud-free treasure walk reaches the log
+humans = [(eps, rec) for eps, full, rec in walks if rec]               # what the log contains: the recordings
+attempt_scores = np.array([score(full) for _, full, _ in walks])       # what the humans actually scored
+log = [t for _, e in humans for t in e]
+assert not any(t[0] == HOLE or t[3] == HOLE for t in log), "the hole is in the log"
+
+human_scores = attempt_scores
+human_average = human_scores.mean()
+PLAN_SCORE = 10 + 10 * STEP_COST + MUD_COST   # the humans' route, walked perfectly (through the mud)
+print(f"{len(walks)} human attempts; {len(humans)} recordings in the log; {len(log)} steps; average human score {human_average:.2f}")
+```
+
+```{python}
+#| label: rung0
+#| output: false
+counts = np.zeros((N, N, 4))
+for s, a, r, ns, done in log:
+    counts[s[0], s[1], a] += 1
+visited = counts.sum(axis=2) > 0
+pi_bc = np.divide(counts, counts.sum(axis=2, keepdims=True),
+                  out=np.full_like(counts, 0.25), where=counts.sum(axis=2, keepdims=True) > 0)
+
+def policy_copy(s):                       # rung 0: sample what humans did
+    if not visited[s[0], s[1]]:
+        return int(rng.choice(available(s)))
+    return int(rng.choice(4, p=pi_bc[s[0], s[1]]))
+```
+
+```{python}
+#| label: rung1
+#| output: false
+def policy_consensus(s):                  # rung 1: take the humans' most common move
+    return int(np.argmax(pi_bc[s[0], s[1]]))
+
+score_consensus, path_consensus = rollout(policy_consensus)
+```
+
+```{python}
+#| label: rung2
+#| output: false
+def q_learning(transitions, sweeps=200):
+    """Tabular Q-learning over a fixed log. The max is taken only over moves that appear in the log."""
+    seen = np.zeros((N, N, 4), bool)
+    for s, a, r, ns, done in transitions:
+        seen[s[0], s[1], a] = True
+    Q = np.zeros((N, N, 4))
+    history = [Q.copy()]
+    for _ in range(sweeps):
+        tot = np.zeros_like(Q); n = np.zeros_like(Q)
+        for s, a, r, ns, done in transitions:
+            if done:
+                y = r
+            else:
+                avail = seen[ns[0], ns[1]]
+                y = r + GAMMA * (Q[ns[0], ns[1]][avail].max() if avail.any() else 0.0)
+            tot[s[0], s[1], a] += y; n[s[0], s[1], a] += 1
+        Q[seen] = tot[seen] / n[seen]
+        history.append(Q.copy())
+    return Q, seen, history, n
+
+def greedy(Q, seen, n):
+    """Take the best-valued logged move. When two moves are worth exactly the same, take the one made more often."""
+    def policy(s):
+        avail = seen[s[0], s[1]]
+        if not avail.any():
+            return int(rng.choice(available(s)))
+        q = np.where(avail, Q[s[0], s[1]], -np.inf)
+        return int(np.argmax(np.where(np.isclose(q, q.max()), n[s[0], s[1]], -1)))
+    return policy
+
+Q2, seen2, hist2, n2 = q_learning(log)
+score_outcomes, path_outcomes = rollout(greedy(Q2, seen2, n2))
+print(f"Rung 2 — outcomes: {score_outcomes:.2f}   route: " + route_str(path_outcomes))
+```
+
+```{python}
+#| label: rung3
+#| output: false
+def propose_verify_keep_retrain(start_log, rounds=15, proposals_per_round=20, explore=0.3, seed=0):
+    """Rung 3. The machine proposes routes; the verifier (the real grid) checks them; every checked
+    step is kept; the machine retrains. No human is involved after the initial log."""
+    local = np.random.default_rng(seed)
+    data = list(start_log)
+    Q, seen, _, n = q_learning(data, sweeps=60)
+    scores, burned = [rollout(greedy(Q, seen, n))[0]], [0]
+    for _ in range(rounds):
+        base = greedy(Q, seen, n)
+        fires_this_round = 0
+        for _ in range(proposals_per_round):
+            s = START
+            for _ in range(40):
+                a = int(local.choice(available(s))) if local.random() < explore else base(s)
+                ns, r, done = step(s, a)              # <- the verifier
+                data.append((s, a, r, ns, done)); s = ns
+                if done:
+                    fires_this_round += ns in FIRES
+                    break
+        Q, seen, _, n = q_learning(data, sweeps=60)
+        scores.append(rollout(greedy(Q, seen, n))[0]); burned.append(fires_this_round)
+    return Q, seen, n, scores, burned
+
+Q3, seen3, n3, scores3, burned3 = propose_verify_keep_retrain(log)
+score_verify, path_verify = rollout(greedy(Q3, seen3, n3))
+first6_perstep = next(i for i, x in enumerate(scores3) if x >= OPTIMAL_SCORE)
+print(f"Rung 3 — verify: {score_verify:.2f}   route: " + route_str(path_verify) + f"   first 6.0 at round {first6_perstep}")
+```
+
+```{python}
+#| label: ladder-recap
+#| fig-cap: "The ladder from the first post, rebuilt here. One row per learner, a histogram of its scores on a shared axis, a red line at its average. The humans average about −1.1. Rung 0 copies them. Rung 1 walks their route without error, 4.0. Rung 2 assembles a route no human walked, 5.0. Rung 3, allowed to try routes and keep what checks, finds the best route on the grid, 6.0."
+add_rung("Humans, 600 attempts", "being told the route", attempt_scores)
+add_rung("Rung 0: copy", "the log", walk_scores(policy_copy))
+add_rung("Rung 1: consensus", "the log", walk_scores(policy_consensus))
+add_rung("Rung 2: outcomes", "the log, with outcomes", walk_scores(greedy(Q2, seen2, n2)))
+add_rung("Rung 3: verify", "the log, then a verifier", walk_scores(greedy(Q3, seen3, n3)))
+show_ladder()
+```
+
+## The receipts
+
+Each rung is a stage in how language models are trained, and each has at least one published result in which a model climbed past the humans who produced its data.
+
+| Rung | What was done | The humans, and then the model | Source |
+|---|---|---|---|
+| 1, consensus | A transformer trained only on chess games between players rated at most 1000 | at most 1000, then about 1500 at low temperature | Transcendence, 2024 [1] |
+| 1, consensus | Majority vote over a model's own reasoning samples | nothing added, then +17.9 points on grade-school math | Self-consistency, 2022 [2] |
+| 2, judge | Models trained on preferences between summaries, against the human-written references | the reference writers, then summaries preferred to theirs about 70% of the time | Stiennon et al., 2020 [3] |
+| 3, verify | A 6B model bootstraps its own reasoning from an answer key | no reasoning demonstrations, then a match for a model 30× its size | STaR, 2022 [4] |
+| 3, verify | Verifiable-reward RL on a base model | no reasoning demonstrations, then AIME 2024 from 15.6% to 71.0% | DeepSeek-R1-Zero, 2025 [5] |
+| 3, verify | Self-play against a win/loss check | **zero human games**, then superhuman at chess, shogi and Go | AlphaZero, 2018 [6] |
+| 3, verify | IMO 2025 problems under contest conditions | the best human students, then a gold-medal score | 2025 [7] |
+| 3, verify | 4×4 complex matrix multiplication | every mathematician since 1969, then 48 multiplications against Strassen's 49 | AlphaEvolve, 2025 [8] |
+
+Every row is a model outperforming the humans whose data it learned from, or, in the last four, humans as such. The rest of this post says what each row is an instance of, and where the grid and the language model part ways.
+
+**Rung 0 is pre-training.** A language model's state is the text so far. Its action is the next token. Pre-training asks it to reproduce the distribution of what people wrote next:
+
+$$
+\pi_{\text{pretrain}}(\text{next token} \mid \text{text so far}) \approx \pi_{\text{humans}}(\text{next token} \mid \text{text so far}).
+$$
+
+That is behavioral cloning over a trillion words [9]. Sampled at full temperature it is the copy robot: a faithful portrait of the crowd, mistakes in proportion. The "stochastic parrot" critique is a description of rung 0, and as a description of rung 0 it is correct.
+
+**Rung 1 is decoding.** Take the same pre-trained model and sample at low temperature, or sample many times and vote. Nothing is added. The crowd is decoded for its consensus instead of its noise. Zhang and co-authors trained a transformer on nothing but chess games between players rated at most 1000, and at low temperature it played around 1500, above every player in its data; at full temperature it did not, and the effect disappeared when the training players were too similar to one another, which is exactly what the majority-vote explanation predicts [1]. Wang and co-authors sampled many reasoning chains from one model and took a majority vote on the answer: 17.9 points better on grade-school math with no training at all [2]. The model's own samples are the crowd.
+
+**Rung 2 is post-training on human preferences.** Post-training changes the question from *what did people write?* to *which did people prefer?* People compare two of the model's answers. A reward model is fit to their preferences. The language model is then trained to make higher-rated answers more likely. That is valuing an action by its outcome, with human judgment standing in for the score. Stiennon and co-authors showed what that buys: models trained to *imitate* human reference summaries stayed below them, and models trained on human *preferences between* summaries were preferred to the human references themselves about 70% of the time (65% after controlling for length) [3]. Same task, same base models, same raters. The demonstrations were the ceiling for the imitator and not for the preference-trained model. "Standing in" is the operative phrase, and the judge experiment below is about how much weight it bears.
+
+**Rung 3 is reinforcement learning with verifiable rewards.** For tasks with a checker (do the tests pass, does the proof verify, is the final answer right) the loop is the grid's: propose, verify, keep, retrain. STaR had a 6B model generate its own reasoning, keep the reasoning that reached the right answer, train on it, and repeat; with no reasoning demonstrations in its data, only an answer key, it matched a model 30 times its size [4]. DeepSeek-R1-Zero ran verifiable-reward RL on a base model with no demonstrations of reasoning at all; self-checking and backtracking emerged, and its accuracy on the 2024 AIME rose from 15.6% to 71.0% [5]. AlphaZero saw zero human games and became superhuman at chess, shogi and Go from self-play against a win/loss check [6]. In 2025 a model from Google DeepMind scored at gold-medal level on the International Mathematical Olympiad under contest conditions, certified by the competition's graders, and OpenAI reported the same score for an experimental model of its own [7]. AlphaEvolve, a language model inside a propose-and-verify loop, found a way to multiply two 4×4 complex matrices in 48 scalar multiplications, improving on Strassen's 49, a bound that had stood since 1969 [8].
+
+Those last results are not "better than the average human." They are better than the best humans who have ever worked on the problem. That is rung 3 doing what rung 3 does: the data got the model started, and the verifier took it past the data.
+
+## Pre-training builds a map
+
+Before the two experiments, one thing the grid robot never had.
+
+In the first post, the unknown cell was the wall. Rung 2 refused to assume anything about a move nobody tried, and I said that a machine that guesses across a gap in its data can walk confidently into fire. Here is that machine.
+
+```{python}
+#| label: nn
+#| output: false
+# Replace rung 2's table with a small neural network, and let the max range over every move, logged or not.
+# Input: the cell's (x, y) and a one-hot of the move. Trained by fitted Q iteration on the frozen log.
+def feats(s, a):
+    r, c = s
+    f = np.zeros(6); f[0] = c / (N - 1); f[1] = (N - 1 - r) / (N - 1); f[2 + a] = 1.0
+    return f
+X_ALL = np.array([[feats((r, c), a) for a in range(4)] for r in range(N) for c in range(N)]).reshape(N, N, 4, 6)
+WALL = np.zeros((N, N, 4), bool)                       # moves that stay on the grid; nobody here walks into a wall
+for r_ in range(N):
+    for c_ in range(N):
+        WALL[r_, c_, available((r_, c_))] = True
+
+def net_init(seed, h=32):
+    rs = np.random.default_rng(seed)
+    return [rs.normal(0, 1 / np.sqrt(6), (6, h)), np.zeros(h), rs.normal(0, 1 / np.sqrt(h), (h, h)), np.zeros(h),
+            rs.normal(0, 1 / np.sqrt(h), (h, 1)), np.zeros(1)]
+
+def net_forward(P, X):
+    W1, b1, W2, b2, W3, b3 = P
+    h1 = np.tanh(X @ W1 + b1); h2 = np.tanh(h1 @ W2 + b2)
+    return (h2 @ W3 + b3)[..., 0]
+
+def net_train(P, X, y, epochs=150, lr=0.003, seed=0):
+    """Plain Adam on squared error, in numpy."""
+    rs = np.random.default_rng(seed)
+    m = [np.zeros_like(p) for p in P]; v = [np.zeros_like(p) for p in P]; t = 0
+    for _ in range(epochs):
+        idx = rs.permutation(len(X))
+        for b in range(0, len(X), 256):
+            bi = idx[b:b + 256]; xb, yb = X[bi], y[bi]
+            W1, b1, W2, b2, W3, b3 = P
+            h1 = np.tanh(xb @ W1 + b1); h2 = np.tanh(h1 @ W2 + b2); out = (h2 @ W3 + b3)[:, 0]
+            d = (out - yb)[:, None] * 2 / len(bi)
+            gW3 = h2.T @ d; gb3 = d.sum(0)
+            dh2 = d @ W3.T * (1 - h2 ** 2); gW2 = h1.T @ dh2; gb2 = dh2.sum(0)
+            dh1 = dh2 @ W2.T * (1 - h1 ** 2); gW1 = xb.T @ dh1; gb1 = dh1.sum(0)
+            t += 1
+            for i, gr in enumerate([gW1, gb1, gW2, gb2, gW3, gb3]):
+                m[i] = 0.9 * m[i] + 0.1 * gr; v[i] = 0.999 * v[i] + 0.001 * gr ** 2
+                P[i] = P[i] - lr * (m[i] / (1 - 0.9 ** t)) / (np.sqrt(v[i] / (1 - 0.999 ** t)) + 1e-8)
+    return P
+
+S_LOG = np.array([feats(s, a) for s, a, r, ns, done in log]); R_LOG = np.array([r for s, a, r, ns, done in log])
+D_LOG = np.array([done for s, a, r, ns, done in log]); NS_LOG = np.array([ns for s, a, r, ns, done in log])
+
+def fitted_q_network(seed, iterations=12):
+    P = net_init(seed)
+    for it in range(iterations):
+        Q_guess = net_forward(P, X_ALL)                                      # the network's value for every move, seen or not
+        best_next = np.where(WALL, Q_guess, -np.inf)[NS_LOG[:, 0], NS_LOG[:, 1]].max(axis=1)
+        target = R_LOG + np.where(D_LOG, 0.0, GAMMA * best_next)             # the max ranges over ALL moves
+        P = net_train(P, S_LOG, target, lr=0.01 if it == 0 else 0.003, seed=seed + 10 * it)
+    return net_forward(P, X_ALL)
+
+NN_SEEDS = range(5)
+nn_runs = []
+for sd in NN_SEEDS:
+    Qn = fitted_q_network(sd)
+    pol = lambda s, Qn=Qn: int(np.argmax(np.where(WALL[s], Qn[s], -np.inf)))   # no mask: it may pick a move nobody made
+    sc, path = rollout(pol)
+    nn_runs.append((Qn, sc, path))
+nn_burned = [path[-1] in FIRES for _, _, path in nn_runs]
+nn_looped = [len(path) > 20 for _, _, path in nn_runs]
+show_nn = next((i for i, b in enumerate(nn_burned) if b), 0)
+Qn_show, sc_show, path_show = nn_runs[show_nn]
+V_nn = np.where(WALL, Qn_show, -np.inf).max(axis=2)
+V_tab = np.where(visited, np.where(seen2, Q2, -np.inf).max(axis=2), np.nan)
+print(f"Network, {len(NN_SEEDS)} seeds: walked into fire on {sum(nn_burned)}, looped between two cells on {sum(nn_looped)}; scores {[round(s, 1) for _, s, _ in nn_runs]}")
+print(f"Shown: seed {show_nn}, score {sc_show:.1f}, route {route_str(path_show)}")
+print(f"Network's value of the unknown cell across seeds: {[round(float(np.where(WALL[HOLE], q[HOLE], -np.inf).max()), 1) for q, _, _ in nn_runs]}")
+print(f"Network's value of the fire cells beside it, seed {show_nn}: left {V_nn[1, 2]:.1f}, below {V_nn[2, 3]:.1f}; table's best value anywhere {np.nanmax(V_tab):.1f}")
+```
+
+```{python}
+#| label: nn-plot
+#| fig-cap: "Left: rung 2's table, which values only moves that appear in the log and leaves the unknown cell blank. Right: a small neural network trained on the same log, allowed to put a value on every move. The numbers in the never-visited cells are guesses, and the guesses fed on themselves pass after pass. The route in red is what the network's policy did."
+fig, axes = plt.subplots(1, 2, figsize=(9.6, 4.8))
+draw_grid(axes[0], "Rung 2's table: silent where the data is")
+shade_values(axes[0], V_tab, visited)
+draw_route(axes[0], path_outcomes, OOS["accent"], lw=2.6)
+draw_grid(axes[1], "A network: a value for every cell", hole_label=False)
+everywhere = np.ones((N, N), bool)
+shade_values(axes[1], V_nn, everywhere, vmin=np.nanmin(V_tab), vmax=np.nanmax(V_nn), fmt="{:.0f}")
+draw_route(axes[1], path_show, OOS["red"], lw=2.6)
+plt.tight_layout()
+plt.show()
+```
+
+Replace rung 2's table with a small neural network, train it on the same frozen log by the same rule, and remove one restriction: let the max range over all four moves in a cell, not only the moves someone made. The network now has to put a value on moves nobody tried, and it does, by resemblance to the moves it has seen. The cell beside the treasure looks like the cells around it, and so does the fire cell beside that. On the first pass those guesses are modest. But the max keeps picking the guessed move, the guess becomes the target for the cell before it, and the next pass guesses higher. After twelve passes the network values the unknown cell somewhere between 14 and 40 points, in a world where the best possible score is 6. On one seed in five the policy walked straight into fire. On the other four it found two neighboring cells whose made-up values made walking back and forth between them look better than anything else, and did that forever.
+
+That failure has a name, **extrapolation error**, and it is the central hazard of learning from a fixed log [10]. A guess about the unseen is only as good as the prior behind it, and this log offers no prior at all: from the data, the unknown cell and the fire beside it are indistinguishable. Rung 2 in the first post avoided this by refusing to guess, which is the right choice in a world with no prior. Rung 3 avoided it by checking.
+
+A language model is in a different position, and it is the one real advantage it has over the grid robot. Predicting text well requires knowing what is true, what is dangerous and what follows from what, so imitation at that scale builds an approximate model of the world as a side effect. The grid robot has no idea where the fire is. A pre-trained language model, approximately, does. That is why a model's proposals on rung 3 are not random walks but plausible attempts, so verification is affordable and the loop converges. It is why post-training generalizes to prompts it never saw without hallucinating its way into fire, most of the time.
+
+*Most* of the time. The map is approximate, and every place it is wrong is a place where post-training can be fooled. That is the honest reading of reward hacking and confident nonsense: the network above, at scale. Pre-training is both the average-human policy the model has to climb past and the prior that makes climbing possible. The second role is why language models can do what the grid robot cannot. The first is why the climb is needed at all.
+
+## RLHF is rung 2, run on preferences
+
+Rung 2 had a quiet luxury. The log recorded *points*. Every row looked like
+
+$$
+(\text{cell},\ \text{direction},\ \text{points},\ \text{next cell}),
+$$
+
+and the third entry was a number the world had handed over: −0.5 for a step, −1.5 for the mud, +9.5 for the treasure. Rung 2's whole trick was to add those numbers up along the best path.
+
+That is what a grid gives you. It is not what the world gives you. Nobody records the score of an essay, a diagnosis, a joke, a customer-service reply. What people record, what they *can* record, is a preference: *this one was better than that one.* If rung 2 needs numbers and the world only offers preferences, then the sidebar in the first post that mapped rung 2 onto RLHF was a metaphor, not a mechanism.
+
+So the question is: **can rung 2 run on preferences alone?** Strip every number out of the log. Bring in a person who can compare two things and say which was better, and who is sometimes wrong. Can the learner get back to 5.0?
+
+Two words first. **Offline:** every learner in the first post except rung 3 learned from a fixed recording and never acted in the world during training. The judge version is offline too. The judge only ever sees things that are already in the log, and nothing new is generated. **A preference:** show a judge two things, A and B, and ask which was better. The answer is one bit. We write "A was preferred to B" as $A \succ B$. A preference carries *less* information than a score. It says A beat B, not by how much, and not what either was worth on its own. Everything below is about squeezing numbers out of bits.
+
+### A judge who is surer when the gap is bigger
+
+**Clips.** The judge does not look at whole walks. The judge looks at *clips*: one, two or three consecutive steps cut from somewhere in a recording. A clip might be "stepped right, stepped right, stepped into the mud," or just "stepped into the fire." Two clips are drawn at random from the log, shown side by side, and the judge says which one went better. This may seem backwards, since a fragment of a walk should be harder to judge than the whole thing. The last section explains why it is the other way around. For now, take it as given.
+
+**What the judge perceives.** The judge can *see* what happened in a clip but does not know the scoring rules. What registers is roughly how well it went, and I model "roughly how well it went" as the clip's true points, summed over its steps. The judge does not *know* that number. The judge has a feeling that tracks it.
+
+**How sure the judge is.** This is the important part. A real judge shown a clip that walks into fire and a clip that reaches the treasure is not going to get it wrong. A real judge shown two clips that differ by half a point, one step longer, say, is close to guessing. The judge is *surer when the gap is bigger*, and the standard way to write that down is this. Let $g$ be the gap in true points between clip A and clip B, positive if A was better. The probability that the judge says "A" is
+
+$$
+\Pr(\text{judge says } A) = \sigma\!\left(\frac{g}{\tau}\right), \qquad \sigma(x) = \frac{1}{1 + e^{-x}}.
+$$
+
+$\sigma$ is the sigmoid. It squashes any number into the range 0 to 1, smoothly, with $\sigma(0) = 0.5$ in the middle: gap zero, coin flip; gap of one unit, 73% right; gap of four units, 98% right. $\tau$ sets the scale, how many points of gap it takes to make the judge confident. I use $\tau = 2$. With that setting, fire against treasure (a gap of about 20) is $\sigma(10)$: never wrong. The mud against an ordinary step (gap 1) is $\sigma(0.5) \approx 0.62$: right about five times in eight. One extra step (gap 0.5) is $\sigma(0.25) \approx 0.56$: barely better than guessing.
+
+Here is that judge, in code.
+
+```{python}
+#| label: judge
+#| echo: true
+#| output: false
+episodes = [e for _, e in humans]
+N_CELLS = N * N
+def cell_id(c): return c[0] * N + c[1]
+is_terminal = np.zeros(N_CELLS, bool)
+for s, a, r, ns, done in log:
+    if done:
+        is_terminal[cell_id(ns)] = True
+
+def sample_clip(local, max_len=3):
+    """One, two or three consecutive steps, cut from a random recording at a random place."""
+    e = episodes[local.integers(len(episodes))]
+    L = int(local.integers(1, max_len + 1)); start = int(local.integers(0, max(1, len(e) - L + 1)))
+    return e[start:start + L]
+
+def make_judge(local, flip=0.0, blind_to_mud=False, tau=2.0):
+    """The judge perceives a clip's true points (minus the mud's cost, if blind to mud). Surer when the gap is
+    bigger, near a coin flip when it is small. With probability `flip` the answer is reversed: a careless judge."""
+    def perceived(clip):
+        return sum(t[2] - (MUD_COST if (blind_to_mud and t[3] == MUD) else 0.0) for t in clip)
+    def judge(a, b):
+        pref = local.random() < 1 / (1 + np.exp(-(perceived(a) - perceived(b)) / tau))
+        return (not pref) if local.random() < flip else pref
+    return judge
+```
+
+### Four pairs the judge saw
+
+Here is what a comparison looks like. Each row is one pair drawn from the log, clip A on the left and clip B on the right, with the path each took, its true points (which the judge does not see), the gap, the probability the model assigns to "A," and which one the judge in fact chose.
+
+```{python}
+#| label: judge-pairs
+#| fig-cap: "Four real pairs of clips from the log. The mud pair was chosen deliberately as one the judge got wrong, which happens to about three mud pairs in eight. The fourth pair is a near coin flip that happened to land on the longer clip."
+def clip_points(clip):
+    return sum(t[2] for t in clip)
+
+def describe(clip):
+    names = {0: "up", 1: "down", 2: "left", 3: "right"}
+    ends = {TREASURE: "the treasure", EXIT: "the exit", MUD: "the mud"}
+    parts = []
+    for s, a, r, ns, done in clip:
+        parts.append(names[a] + (" into fire" if ns in FIRES else f" into {ends[ns]}" if ns in ends else ""))
+    return ", ".join(parts)
+
+show_rng = np.random.default_rng(7)
+show_judge = make_judge(show_rng)
+def simple(clip):
+    cells = [clip[0][0]] + [t[3] for t in clip]
+    return len(set(cells)) == len(cells) and clip[0][0] != MUD
+def enters(clip, cells): return any(t[3] in cells for t in clip)
+SPECIAL = FIRES | {TREASURE, EXIT, MUD}
+wanted = {"fire": None, "mud": None, "treasure": None, "close": None}
+for _ in range(50000):
+    a, b = sample_clip(show_rng), sample_clip(show_rng)
+    if not (simple(a) and simple(b)) or enters(b, SPECIAL):
+        continue
+    verdict = show_judge(a, b)
+    if wanted["fire"] is None and enters(a, FIRES) and len(a) == len(b) == 1:
+        wanted["fire"] = (a, b, verdict)
+    elif wanted["mud"] is None and enters(a, {MUD}) and len(a) == len(b) == 2 and verdict:
+        wanted["mud"] = (a, b, verdict)
+    elif wanted["treasure"] is None and enters(a, {TREASURE}) and len(a) == len(b) == 2:
+        wanted["treasure"] = (a, b, verdict)
+    elif wanted["close"] is None and not enters(a, SPECIAL) and len(a) == 3 and len(b) == 2 and verdict:
+        wanted["close"] = (a, b, verdict)
+    if all(v is not None for v in wanted.values()):
+        break
+PAIRS = [wanted[k][:2] for k in ("fire", "mud", "treasure", "close")]
+VERDICTS = [wanted[k][2] for k in ("fire", "mud", "treasure", "close")]
+
+def draw_clip(ax, clip, color):
+    draw_grid(ax)
+    pts = [clip[0][0]] + [t[3] for t in clip]
+    xs = [c for r, c in pts]; ys = [N - 1 - r for r, c in pts]
+    ax.plot(xs, ys, color=color, linewidth=3, alpha=0.85, solid_capstyle="round", zorder=3)
+    ax.plot(xs[0], ys[0], "o", color=color, markersize=9, zorder=4)
+    ax.annotate("", xy=(xs[-1], ys[-1]), xytext=(xs[-2], ys[-2]),
+                arrowprops=dict(arrowstyle="-|>", color=color, lw=3, mutation_scale=18, shrinkA=0, shrinkB=0), zorder=5)
+
+TAU = 2.0
+fig, axes = plt.subplots(len(PAIRS), 2, figsize=(7.6, 4.1 * len(PAIRS)))
+for row, ((a, b), said_a) in enumerate(zip(PAIRS, VERDICTS)):
+    pa, pb = clip_points(a), clip_points(b)
+    p_a = 1 / (1 + np.exp(-(pa - pb) / TAU))
+    for col, (clip, name, pts) in enumerate([(a, "A", pa), (b, "B", pb)]):
+        ax = axes[row, col]
+        draw_clip(ax, clip, OOS["amber"] if col == 0 else OOS["cyan"])
+        chosen = (said_a and col == 0) or ((not said_a) and col == 1)
+        ax.set_title(f"Clip {name}: {describe(clip)}\ntrue points {pts:+.1f}".replace("-", "−") + ("   ← judge chose this" if chosen else ""),
+                     fontsize=8.5, color=OOS["accent"] if chosen else OOS["muted"], fontweight="bold" if chosen else "normal")
+    gap = pa - pb
+    fig.text(0.5, 1 - (row + 0.99) / len(PAIRS), f"gap {gap:+.1f} points: the judge says A with probability σ({gap:+.1f}/2) = {p_a:.2f}".replace("-", "−"),
+             ha="center", va="top", fontsize=9, color=OOS["muted"])
+plt.tight_layout(h_pad=2.4)
+plt.show()
+```
+
+Read the rows. *First pair:* one step into fire against one ordinary step, a gap of 10. The judge says A with probability 0.01 and chose B. Nobody needs to be told that walking into fire is worse than not. *Second pair:* two steps through the mud against two ordinary steps, a gap of 1. The judge should prefer B, and does so with probability 0.62, which means that about three times in eight the judge prefers A. **This is one of those times.** I went looking for this one: the figure deliberately shows a mud pair the judge got wrong, because that is what a fallible judge looks like up close. It is not a bug. Mud is a mild thing to notice, and the judge sometimes doesn't. Over thousands of such pairs the clean clip wins five times in eight, and that ratio, not any single verdict, is what the learner will read the mud's price from. *Third pair:* two steps into the treasure against two ordinary steps, a gap of 10, probability 0.99, and the judge chose A. *Fourth pair:* three ordinary steps against two, a gap of half a point, one extra step. The probability of "A" is 0.44, nearly a coin flip, and this time the judge chose the longer clip. At a gap of half a point, wrong barely means anything. The learner gets almost nothing from any one pair like this. It learns the cost of a step only because there are thousands of them and, in aggregate, the shorter clip wins slightly more often than not.
+
+That is the whole judge: certain about fire and treasure, right five times in eight about the mud, close to guessing about a single step. Averaged over all the clip pairs it actually sees, this judge agrees with the true ordering about **two-thirds of the time**. That is not a number I chose. It is what falls out of $\tau = 2$ on this log. It is also a little below the rate at which human annotators agreed with one another on the comparison data used to train the summarization models above, which was in the low seventies [3]. The judge is, if anything, worse than a real one.
+
+### From verdicts to numbers: the reward model
+
+The learner has thousands of verdicts and wants back what rung 2 had: a number for every move.
+
+**Find the scores that best explain the verdicts.** Suppose the learner had some way of giving any clip a score, $R(\text{clip})$. Then it could predict what the judge would say about any pair: if $R(A)$ is much bigger than $R(B)$ the judge should say A, and if they are close the judge should be near a coin flip. That is the same shape as the judge itself, so the prediction is
+
+$$
+\Pr(A \succ B) = \sigma\big(R(A) - R(B)\big).
+$$
+
+This is the **Bradley–Terry model** [11]. It was invented in 1952 for ranking chess players and sports teams from match results, which is exactly our situation: we have who-beat-whom and want back how-good-is-each. Now the learner can grade any proposed scoring: run through every pair the judge saw, compute the probability the model gives to the answer the judge *actually* gave, and multiply them together. A scoring that predicts the judge's answers confidently and correctly gets a high total. Pick the scoring with the highest total. This is **maximum likelihood**, and nothing in it depends on what kind of thing $R$ is.
+
+**The form of $R$ is a detail.** $R$ is any function that turns a clip into a number. Here it is the simplest one that can be read: a lookup table. It could just as well be a forest of decision trees or a neural network, and in real RLHF it *is* a neural network, usually a copy of the language model itself with its final layer replaced by a single output, the score [12]. Whatever $R$ is, three things stay the same: the data (pairs and verdicts), the Bradley–Terry link from scores to verdicts, and the goal. What changes with the choice of $R$ is which patterns it can represent, how much data it needs, and what it does on inputs it has never seen. I use a table for one reason: every number in it can be printed and checked against the truth.
+
+**The table.** One number per cell, $\beta_i$: the reward for entering cell $i$, for $i = 1, \dots, 25$. A clip's score is the sum of the $\beta$ values of the cells it entered. Why per cell rather than per move? Because in this world everything that costs or pays is a property of the cell you land in, and 25 parameters is far fewer than 100, so more of the judge's verdicts bear on each one.
+
+**One prior: steps are never free.** Before fitting, every $\beta$ for a cell where the walk does not end is held at or below −0.05, a small cost. Cells where the walk ends (treasure, exit, fire) are unconstrained. The reason is in the lessons at the end of this section. The short version is that a noisy judge will sometimes make an ordinary cell look free, and a learner that loses nothing by walking in circles will walk in circles forever. Real RLHF carries the same prior as a length penalty and a penalty for drifting from the starting model [12].
+
+**What the regression sees.** With a table for $R$, the fit is exactly **logistic regression**, the most ordinary fitting method in statistics:
+
+$$
+R(A) - R(B) = \sum_{i=1}^{25} \beta_i \, x_i, \qquad x_i = n_A(i) - n_B(i),
+$$
+
+where $n_A(i)$ is how many times clip A entered cell $i$. Each pair becomes one row of 25 features, most of them zero: +1 where only A went, −1 where only B went, 0 where both or neither did. The label $y$ is 1 if the judge chose A. There is no separate feature for length; a clip that is one step longer has one more +1 somewhere, and the cost of that step is carried by the $\beta$ of the cell it entered. There is no intercept, because showing the same pair in the opposite order should flip the prediction exactly. Here are the four pairs from the figure, written the way the regression sees them.
+
+```{python}
+#| label: judge-features
+#| fig-cap: "The four pairs as the regression sees them. Each pair is one row of 25 features, x_i = times clip A entered cell i minus times clip B entered it, laid out on the grid. The label y is 1 if the judge chose A."
+def features(a, b):
+    x = np.zeros((N, N))
+    for t in a: x[t[3]] += 1
+    for t in b: x[t[3]] -= 1
+    return x
+
+names = ["fire pair", "mud pair", "treasure pair", "one extra step"]
+fig, axes = plt.subplots(2, 2, figsize=(7.6, 8.0))
+for ax, (a, b), said_a, name in zip(axes.ravel(), PAIRS, VERDICTS, names):
+    x = features(a, b)
+    draw_grid(ax, hole=None)
+    for r in range(N):
+        for col in range(N):
+            v = x[r, col]
+            if v == 0:
+                continue
+            y = N - 1 - r
+            ax.add_patch(Rectangle((col - 0.5, y - 0.5), 1, 1, facecolor=OOS["amber"] if v > 0 else OOS["cyan"],
+                                   alpha=0.45, edgecolor="none", zorder=2))
+            ax.text(col + 0.42, y - 0.42, f"{v:+.0f}".replace("-", "−"), ha="right", va="bottom", fontsize=10, fontweight="bold",
+                    color=OOS["ink"], zorder=3)
+    ax.set_title(f"{name}\njudge chose {'A' if said_a else 'B'}, so y = {int(said_a)}", fontsize=9.5)
+fig.suptitle("amber +1: clip A entered the cell     blue −1: clip B entered it     blank: 0", fontsize=9, color=OOS["muted"], y=0.995)
+plt.tight_layout(h_pad=1.6)
+plt.show()
+```
+
+**How the fit is found.** The log of the product of probabilities has a single peak, so any optimizer that runs to convergence finds the same answer. I use L-BFGS-B, which handles the bounds from the prior, and run it until nothing changes. What it follows is easy to describe. For each $\beta_i$, the slope of the objective is the average over all pairs of the model's error on that pair, $y - p$, times that pair's feature $x_i$. A pair where the model was confidently right pulls on nothing. A pair where it was surprised pulls on every $\beta$ whose feature is non-zero in that row, in the direction that would have made the surprise smaller. The peak is where the pulls cancel.
+
+Watch the mud. On the mud pair above the judge said A, so $y = 1$. Once the mud's $\beta$ has gone negative the model predicts $p$ below 0.5 for that pair, the error is positive, and the mud feature is +1, so this pair pulls the mud's $\beta$ *up*. The five in eight mud pairs where the judge picked the clean clip pull it *down*. The pulls cancel where the model's predicted chance that the mud clip wins matches how often the judge actually picked it. The judge was built to pick the mud clip with probability $\sigma(-1/2) = 0.38$, and the model matches that when the mud's extra cost over an ordinary cell is $-1/2$. So **Bradley–Terry recovers the rewards in the judge's units, not the world's**: the true rewards divided by $\tau$. A surer judge, with a smaller $\tau$, would produce bigger numbers from the same world. None of this changes the route. Rung 2 only asks which total is bigger, and dividing every reward by the same number never changes that.
+
+```{python}
+#| label: reward-model
+#| echo: true
+#| output: false
+from scipy.optimize import minimize
+
+def judged_pairs(judge, local, n_pairs=6000, sampler=sample_clip):
+    """Draw pairs, ask the judge, and write each pair as one row: x_i = times A entered cell i minus times B
+    entered it; y = 1 if the judge chose A. Also returns how often the judge agreed with the true ordering."""
+    X = np.zeros((n_pairs, N_CELLS)); y = np.zeros(n_pairs); agree = 0.0
+    for k in range(n_pairs):
+        a, b = sampler(local), sampler(local)
+        for t in a: X[k, cell_id(t[3])] += 1
+        for t in b: X[k, cell_id(t[3])] -= 1
+        y[k] = 1.0 if judge(a, b) else 0.0
+        truth = clip_points(a) - clip_points(b)
+        agree += ((y[k] == 1.0) == (truth > 0)) if truth != 0 else 0.5
+    return X, y, agree / n_pairs
+
+STEP_FLOOR = 0.05   # steps are never free: every non-terminal beta is at most -0.05
+
+def fit_reward(X, y, l2=1e-4):
+    """Logistic regression with no intercept, solved to convergence. beta_i <= -STEP_FLOOR for every cell where
+    no walk ends; terminal cells are unconstrained."""
+    def loss_and_grad(beta):
+        z = X @ beta
+        p = 1 / (1 + np.exp(-z))
+        return np.mean(np.logaddexp(0, z) - y * z) + 0.5 * l2 * beta @ beta, X.T @ (p - y) / len(y) + l2 * beta
+    bounds = [(None, None) if is_terminal[k] else (None, -STEP_FLOOR) for k in range(N_CELLS)]
+    res = minimize(loss_and_grad, np.full(N_CELLS, -STEP_FLOOR), jac=True, method="L-BFGS-B", bounds=bounds,
+                   options={"maxiter": 10000, "gtol": 1e-10})
+    assert res.success, res.message
+    return res.x.reshape(N, N)
+
+def policy_from_learned_reward(beta):
+    """Rung 2, verbatim, on the log with the learned reward written in where the true points used to be."""
+    relabeled = [(s, a, beta[ns[0], ns[1]], ns, done) for (s, a, r, ns, done) in log]
+    Q, seen, _, n = q_learning(relabeled)
+    return greedy(Q, seen, n)
+```
+
+### How much the judge sees
+
+Six thousand pairs sounds like a lot. Measured against what the log could have offered, it is almost nothing.
+
+```{python}
+#| label: judge-counts
+from math import comb
+positions = [(e, i, L) for e in episodes for L in (1, 2, 3) for i in range(len(e) - L + 1)]
+def path_key(clip): return tuple((t[0], t[1], t[3]) for t in clip)
+def feature_key(clip): return tuple(sorted(t[3] for t in clip))      # all the reward model sees: which cells were entered
+distinct_paths = {path_key(e[i:i + L]) for e, i, L in positions}
+distinct_features = {feature_key(e[i:i + L]) for e, i, L in positions}
+
+typical = np.random.default_rng(100)                                   # one typical training set: 6,000 pairs
+drawn = [sample_clip(typical) for _ in range(12000)]
+pairs = list(zip(drawn[0::2], drawn[1::2]))
+covered = {path_key(c) for c in drawn}
+def informative(pairs, cells):
+    """Pairs in which exactly one of the two clips enters one of these cells."""
+    return sum(any(t[3] in cells for t in a) != any(t[3] in cells for t in b) for a, b in pairs)
+
+n_positions = len(positions)
+sizes = pd.DataFrame({
+    "": ["Recordings in the log", "Steps in the log", "Clips you could cut from it (1 to 3 consecutive steps)",
+         "Possible pairs of those clips", "Pairs actually judged",
+         "Distinct clips, by path", "Distinct clips, as the reward model sees them (cells entered)",
+         "Distinct clips appearing in one training set of 6,000 pairs"],
+    "count": [f"{len(episodes):,}", f"{len(log):,}", f"{n_positions:,}", f"{comb(n_positions, 2):,}",
+              f"6,000 (1 in {comb(n_positions, 2) // 6000:,})", f"{len(distinct_paths):,}", f"{len(distinct_features):,}",
+              f"{len(covered):,} ({len(covered) / len(distinct_paths):.0%})"]})
+md_table(sizes)
+```
+
+```{python}
+#| label: judge-teaching
+teaching = pd.DataFrame({
+    "what the pair can teach": ["the mud", "the treasure", "fire", "the exit"],
+    "pairs where exactly one clip enters it": [informative(pairs, {MUD}), informative(pairs, {TREASURE}), informative(pairs, FIRES), informative(pairs, {EXIT})]})
+md_table(teaching)
+```
+
+Most of the clips you could cut are the same few moves recorded by different people, so the count of possible pairs overstates what is left out; one training set of 6,000 pairs already contains most of the distinct clips. What matters more than coverage is how many pairs can teach each thing. A pair teaches the model about the mud only if exactly one of its two clips enters the mud. If both do, or neither, the mud cancels out of the comparison. By that measure the mud is taught by a couple of thousand pairs, the treasure and fire by a few hundred each, and the exit by fewer than a hundred. It shows in the fitted rewards below: the exit's is the one furthest from its target, because it rests on the fewest informative verdicts.
+
+This is the shape of real preference learning too. People label a tiny sample of the comparisons that could be made, and the reward model's job is to generalize from that sample to all the rest. Here the job is easy: 25 numbers, thousands of verdicts, and a world whose clips mostly repeat. For a language model, where no two answers are the same and the reward model has billions of parameters, generalizing from the sample is the hard part, and it is where most of RLHF's failures begin.
+
+### The judge is enough
+
+Now run it. Take the log with its numbers removed. Write the *learned* reward into every row where the true points used to be. Run rung 2's Q-learning exactly as in the first post, and read off the greedy route. Then, and only then, score that route on the real grid with the *true* points. The learner never sees these. They are how we grade it.
+
+```{python}
+#| label: judge-result
+local = np.random.default_rng(100)
+X_train, y_train, judge_accuracy = judged_pairs(make_judge(local), local)
+beta_hat = fit_reward(X_train, y_train)
+score_judge, path_judge = rollout(policy_from_learned_reward(beta_hat))
+
+def ordinary(beta, X):
+    """The learned reward for an ordinary step: the median over cells humans entered that are neither terminal nor mud."""
+    ids = [k for k in range(N_CELLS) if (X[:, k] != 0).any() and not is_terminal[k] and k != cell_id(MUD)]
+    return float(np.median(beta.ravel()[ids]))
+
+never = [xy((r, c_)) for r in range(N) for c_ in range(N) if not (X_train[:, cell_id((r, c_))] != 0).any()]
+print(f"Judge: agreed with the true ordering on {judge_accuracy:.0%} of {len(y_train):,} comparisons.")
+print(f"Parameters: {N_CELLS}. Rank of the training data: {np.linalg.matrix_rank(X_train)}. Cells never entered in any judged clip: {never}")
+print(f"Policy from the learned reward: {score_judge:.2f}   route: " + route_str(path_judge))
+more_seeds = []
+for sd in range(6):
+    l_ = np.random.default_rng(500 + sd)
+    X_, y_, _ = judged_pairs(make_judge(l_), l_)
+    more_seeds.append(rollout(policy_from_learned_reward(fit_reward(X_, y_)))[0])
+print(f"Six more seeds: scores {more_seeds}")
+true_pts = np.array([STEP_COST, MUD_COST + STEP_COST, 1 + STEP_COST, -10 + STEP_COST, 10 + STEP_COST])
+learned_vs_true = pd.DataFrame({
+    "Entering": ["an ordinary cell", "the mud", "the exit", "a fire cell", "the treasure"],
+    "True points": true_pts,
+    "True ÷ τ": true_pts / TAU,
+    "Learned β": [ordinary(beta_hat, X_train), beta_hat[MUD], beta_hat[EXIT], beta_hat[3, 3], beta_hat[TREASURE]],
+})
+md_table(learned_vs_true)
+```
+
+**Five point zero.** A mud-free route around the middle, rung 2's score, from a log with no scores in it, explained by a judge who is wrong a third of the time. The judge never said "mud costs 1" or "fire costs 10." Nobody did. But clips through the mud kept losing comparisons, clips into fire lost nearly every comparison, and the fitted rewards found the shape of the world in the pattern of the judge's preferences: fire far below mud, mud below an ordinary step, the treasure far above everything. Repeated on six more seeds, with six fresh sets of verdicts, the score is 5.0 every time.
+
+Two things to notice in the table. The *order* is right everywhere. And the *magnitudes* are the judge's, not the world's: the fitted $\beta$ values sit near the true points divided by $\tau = 2$, a little smaller across the board because the fit is a finite, noisy sample. The exit is the exception, because so few pairs ever put it in play. Five cells were never entered in any judged clip, the unknown cell and two of the three fires among them. Their feature is zero in every row, the data says nothing about them, and the fit leaves them on the prior. The reward model believes walking into those two fires costs about as much as an ordinary step; its fire penalty is learned entirely from the one fire cell humans did walk into. This does no harm here, because rung 2 only ever weighs moves that appear in the log. But it is the reward-model version of the unknown cell: the learned reward is silent exactly where the data is, and a neural network in place of the table would not be silent. It would produce *some* score for the unseen fires, extrapolated from what it had seen, and we saw above how that goes.
+
+```{python}
+#| label: ladder-judge
+#| fig-cap: "The ladder with the judge added. The judge's learner ties rung 2 on score and needs less: no numbers, only preferences from a fallible judge."
+judge_rows = LADDER[:4] + [("Rung 2½: judge", "the log with no scores, plus a judge", walk_scores(policy_from_learned_reward(beta_hat)))] + LADDER[4:]
+show_ladder(judge_rows)
+```
+
+Call it rung 2½. RLHF is an instance of rung 2, not a metaphor for it.
+
+### The judge is the ceiling
+
+```{python}
+#| label: judge-sweep
+#| output: false
+FLIPS = [0.0, 0.1, 0.2, 0.3, 0.4]
+SEEDS_J = range(4)
+sweep = []
+for flip in FLIPS:
+    for sd in SEEDS_J:
+        local = np.random.default_rng(200 + sd)
+        X_, y_, acc_ = judged_pairs(make_judge(local, flip=flip), local)
+        sweep.append({"flip": flip, "seed": sd, "judge accuracy": acc_, "score": rollout(policy_from_learned_reward(fit_reward(X_, y_)))[0]})
+sweep = pd.DataFrame(sweep)
+by_flip = sweep.groupby("flip").agg(judge_accuracy=("judge accuracy", "mean"), mean_score=("score", "mean"),
+                                    min_score=("score", "min"), max_score=("score", "max"), found=("score", lambda s: int((s >= 5).sum())))
+print(by_flip.round(2).to_string())
+
+SEEDS_BLIND = range(6)
+blind = []
+for sd in SEEDS_BLIND:
+    local = np.random.default_rng(300 + sd)
+    X_, y_, _ = judged_pairs(make_judge(local, blind_to_mud=True), local)
+    beta_ = fit_reward(X_, y_)
+    sc_, path_ = rollout(policy_from_learned_reward(beta_))
+    blind.append({"seed": sd, "score": sc_, "mud_extra": beta_[MUD] - ordinary(beta_, X_), "through the mud": MUD in path_})
+blind = pd.DataFrame(blind)
+print(f"Blind judge: went through the mud on {int(blind['through the mud'].sum())} of {len(blind)} seeds; scores {blind['score'].tolist()}; "
+      f"mud's learned extra cost over an ordinary step {blind['mud_extra'].mean():+.3f} (sighted judge {beta_hat[MUD] - ordinary(beta_hat, X_train):+.3f}; target {MUD_COST / TAU:+.2f})")
+```
+
+```{python}
+#| label: judge-sweep-plot
+#| fig-cap: "Train from judges of decreasing reliability, left to right. Down to about two-thirds agreement the policy finds the mud-free route on every seed. Below that it finds it on some seeds and settles for the exit on the others. In the fifties the learned rewards are noise."
+fig, ax = plt.subplots(figsize=(7.6, 4.0))
+ax.plot(by_flip.judge_accuracy, by_flip.mean_score, "o-", color=OOS["amber"], linewidth=2, label="mean score of the policy trained from the judge")
+ax.fill_between(by_flip.judge_accuracy, by_flip.min_score, by_flip.max_score, color=OOS["amber"], alpha=0.18, label="range over seeds")
+ax.axhline(score_outcomes, color=OOS["accent"], linestyle="--", linewidth=1.5, label="rung 2, true outcomes")
+ax.axhline(score_consensus, color=OOS["cyan"], linestyle="--", linewidth=1.5, label="rung 1, consensus")
+ax.axhline(human_average, color=OOS["red"], linewidth=1.5, label="average human")
+ax.set_xlabel("how often the judge agrees with the truth"); ax.set_ylabel("true score of the resulting policy")
+ax.invert_xaxis()
+ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f"{v:.0%}"))
+ax.legend(frameon=False, fontsize=8, loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=2)
+plt.tight_layout()
+plt.show()
+```
+
+**Careless judges.** Take the calibrated judge and, after each verdict, flip it with some probability: 10%, 20%, 30%, 40%. That lowers agreement with the truth from two-thirds toward one-half, where a judge is a coin. At two-thirds the policy finds the 5.0 route on every seed. In the low sixties it finds it on half the seeds and settles for the exit on the other half: the treasure's learned value no longer covers the learned cost of the walk to it. In the fifties it finds the treasure on one seed in four, then none. The failure is always the exit, never fire and never wandering. The steps-are-never-free prior keeps a confused learner from drifting, and the exit is two steps from the start. This plot is the honest companion to "RLHF works": it works to the extent the judge does, and the cliff is not far below where real annotators sit.
+
+**A blind judge.** Now the opposite kind of failure. Give the judge perfect calibration and full attention, but no perception of the mud. To this judge, entering the mud feels like entering any other cell. The mud's learned cost over an ordinary step comes out at essentially zero, where the sighted judge's data put it near −0.5. The two 10-step loops, through the mud and around it, become a tie in learned reward, and the policy chooses between them by accident: on six seeds it went through the mud three times, for a true score of 4.0 instead of 5.0. It has no reason to avoid what the judge never minded.
+
+**What the judge can't see, the model won't avoid.** That sentence is reward hacking, sycophancy and confident nonsense, all at once: a model optimized against human judgment inherits every blind spot in that judgment. That is a limitation on rung 2½. It is not a limitation on the model, and the next section is about the rung that has no judge at all.
+
+### Four things the judge taught me
+
+The first version of this experiment did not work, and the ways it failed are worth more than the version that does, because each is a known pathology of RLHF.
+
+```{python}
+#| label: judge-whole
+#| output: false
+# Lesson 1 check: the same judge shown whole recordings instead of clips.
+def sample_whole(local, max_len=None):
+    return episodes[local.integers(len(episodes))]
+whole_rows = []
+for sd in range(3):
+    local = np.random.default_rng(700 + sd)
+    Xw, yw, accw = judged_pairs(make_judge(local), local, sampler=sample_whole)
+    bw = fit_reward(Xw, yw)
+    whole_rows.append({"seed": sd, "judge accuracy": accw, "score": rollout(policy_from_learned_reward(bw))[0],
+                       "mud extra": bw[MUD] - ordinary(bw, Xw)})
+whole = pd.DataFrame(whole_rows)
+whole_pairs = list(zip([sample_whole(typical) for _ in range(6000)], [sample_whole(typical) for _ in range(6000)]))
+mudfree = [e for e in episodes if not any(t[3] == MUD for t in e)]
+mudfree_treasure = sum(e[-1][3] == TREASURE for e in mudfree)
+print(f"Whole recordings: judge accuracy {whole['judge accuracy'].mean():.0%}; scores {whole['score'].tolist()}; mud's extra cost {whole['mud extra'].round(2).tolist()} (clips: {beta_hat[MUD] - ordinary(beta_hat, X_train):+.2f})")
+print(f"Pairs that can teach the mud: {informative(whole_pairs, {MUD}):,} of 6,000 whole-recording pairs vs {informative(pairs, {MUD}):,} of 6,000 clip pairs")
+print(f"Recordings that avoid the mud: {len(mudfree)} of {len(episodes)}, of which {mudfree_treasure} reached the treasure")
+```
+
+**1. Clips, not whole walks.** My first judge compared whole recordings, start to finish, and on an earlier version of this world, with a costlier mud and not a single mud-free walk to the treasure in the log, it never found the mud. Every walk that reached the treasure went through it, so no pair of treasure walks ever differed on the mud, and you cannot learn the price of something from comparisons in which it never varies. On the world as it stands the whole-walk judge does find the mud-free route, because the log now holds thirteen mud-free recordings, four of which reached the treasure. But look at how thin the signal is. A whole-walk pair teaches about the mud only when exactly one of the two walks went through it, and almost every walk did, so only a few hundred of 6,000 pairs can say anything about it, against a couple of thousand clip pairs. The mud's learned cost comes out anywhere from a third of the clip estimate to all of it, depending on the seed. Clips fix this: a two-step clip that enters the mud loses to a two-step clip that does not, thousands of times over, and the mud's price falls out. This is why Christiano and co-authors, in the paper that introduced the whole approach, compared clips of one to two seconds rather than whole trajectories [13]. The general lesson: **a preference dataset can only teach a reward model about things that differ within the pairs being compared.**
+
+**2. The reward model will be hacked if you let it.** The next version used one free number per (cell, direction), 100 parameters, with no constraint on their sign. The fitted rewards gave "up from one cell in the middle" a small *positive* value. Humans who happened to go that way tended to end well, and the fit attributed the good ending to the move itself. The policy, doing exactly what it was told, went up, then down, then up, forever: a loop that collects a little positive reward on every pass, and a true score of −20. This is reward hacking in five lines, and it is the same phenomenon as a language model learning that longer answers get rated higher and producing ever-longer answers. The fix is a prior the judge takes for granted but never states, steps are never free, imposed by holding every ordinary cell's reward below zero. And *below* zero means strictly below. An intermediate version allowed "at or below zero," and once the fit was run to convergence a noisy judge pushed two neighboring cells to exactly zero. Two free cells side by side are a free loop. Hence the small floor of −0.05. Real RLHF carries the same prior in the form of length normalization and a penalty for drifting from the starting model [12]. Switching from per-move to per-cell rewards helped as well: fewer numbers, more verdicts bearing on each, less room to memorize coincidences.
+
+**3. A perfect judge is worse than a calibrated one.** My first judge always preferred the truly better clip, every time, with no uncertainty. That broke the reward model in a way that took a while to see. Bradley–Terry predicts a *probability*. If the judge is *always* right, then any reward table that gets the order right and makes the gaps a few units wide predicts the judge's verdicts with probability essentially one, and there is nothing left to improve. The fit cannot tell a 1-point gap from a 20-point gap because the judge never behaved differently on them. The treasure came out worth about four steps, and the policy took the exit. Preferences carry magnitude *only because* real judges are surer about big differences than small ones. A calibrated judge who is right two times in three is more informative about the reward's shape than an oracle who is right every time and gives nothing else away.
+
+**4. Fit the reward model all the way.** An earlier version stopped the optimizer after a fixed number of steps. Fire and the treasure came out at well under half their true values, and I wrote a plausible explanation for it: one-sided verdicts say "much worse" without saying how much. The explanation had a grain of truth, since those are exactly the directions in which the objective is flattest, but solving to convergence removed most of the effect. The same early stop had also been hiding the free loop in lesson 2, because an unfinished fit never reached the zeros. An unconverged reward model is not a rougher copy of the converged one. It is a different model, and its quirks look like findings.
+
+## RLVR with one number
+
+Rung 3, as run in the first post, had a luxury that real reinforcement learning with verifiable rewards does not. Every step it proposed came back with its own points. And it started from rung 2, which was built on a log in which every human step carried its points too. Real RLVR gets neither. The model writes a whole answer, and the checker returns *one* number at the end, right or wrong, with nothing about which part of the answer helped.
+
+So here is rung 3 again, with only that. The verifier replays the whole proposed route and returns a single number: its final score. The learner never sees what any individual step paid.
+
+An objection, before going on: to know a route's final score, the verifier has to know what every step cost. True, and exactly as true of every real verifier. A test suite runs every line of the program. A proof checker checks every step of the proof. The verifier is allowed to know everything. What matters is what the *learner* is told, and here it is told one number per attempt. Nor is a graded number (6 against 5 against 3) a cheat relative to pass/fail: AlphaEvolve's score for a matrix-multiplication algorithm is its number of multiplications, a total computed from every step and returned as one number [8].
+
+**One number per route breaks rung 2's machinery.** Stitching works by adding up per-step points across different walks: the value of this move is what it paid plus the best anyone ever did from where it landed. With only a total per walk there is nothing to add up. A walk's total mixes the cost of every move in it, and the learner cannot tell which move earned it. That is the **credit-assignment problem**, and it is the reason outcome-only learning is hard.
+
+So drop rung 2 entirely, and run the loop the rung 3 literature actually uses [4]:
+
+1. **Start from rung 1**, the humans' consensus route. This plays the role of the pre-trained model. It has never seen a single point.
+2. **Propose.** Walk the current route, taking a random step 30% of the time.
+3. **Verify.** The grid returns one number: the route's final score.
+4. **Keep.** Keep the route only if its score beats the best verified so far.
+5. **Retrain.** Imitate the best verified route: from each cell on it, the move it made there.
+6. Repeat, twenty proposals per round.
+
+```{python}
+#| label: verify-only
+#| echo: true
+#| output: false
+def propose(policy, local, explore, max_steps=40):
+    """The learner acts. It knows where it is and what it did, as a model knows its own text,
+    but not what any step paid."""
+    s, moves = START, []
+    for _ in range(max_steps):
+        a = int(local.choice(available(s))) if local.random() < explore else policy(s)
+        ns, _, done = step(s, a)                  # the points are thrown away: the learner never sees them
+        moves.append((s, a)); s = ns
+        if done:
+            break
+    return moves
+
+def verifier(moves):
+    """Replays the whole route on the real grid and returns one number: its final score."""
+    s, total = START, 0.0
+    for _, a in moves:
+        s, r, done = step(s, a); total += r
+        if done:
+            break
+    return total
+
+def imitate(moves, fallback):
+    table = {}
+    for s, a in moves:
+        table[s] = a                              # the last move made from each cell; this cuts out loops
+    return lambda s: table.get(s, fallback(s))
+
+def verify_only(seed, rounds=40, group=20, explore=0.3):
+    local = np.random.default_rng(seed)
+    policy = policy_consensus                     # the "pre-trained model": rung 1
+    best_moves = propose(policy, local, 0.0); best = verifier(best_moves)
+    history, burned = [best], 0
+    for _ in range(rounds):
+        for _ in range(group):
+            moves = propose(policy, local, explore)          # propose
+            total = verifier(moves)                          # verify: one number
+            burned += total < -5
+            if total > best:                                 # keep only a verified improvement
+                best, best_moves = total, moves
+        policy = imitate(best_moves, policy_consensus)       # retrain: imitate the best verified route
+        history.append(verifier(propose(policy, local, 0.0)))
+    return policy, history, burned
+
+SEEDS_V = range(20)
+runs_v = [verify_only(sd) for sd in SEEDS_V]
+```
+
+```{python}
+#| label: verify-only-numbers
+#| output: false
+first6_v = [next((k for k, x in enumerate(h) if x >= OPTIMAL_SCORE), None) for _, h, _ in runs_v]
+policy_v, history_v, burned_v = runs_v[0]
+score_v, path_v = rollout(policy_v)
+print(f"Final score only, from rung 1, seed 0: {score_v:.2f}   route: " + route_str(path_v) + f"   proposals that burned: {burned_v} of {40 * 20}")
+print(f"Seeds reaching 6.0 within 40 rounds: {sum(f is not None for f in first6_v)} of {len(first6_v)}")
+print(f"Round of first 6.0, by seed: {first6_v}   (median {np.median([f for f in first6_v if f is not None]):.0f})")
+print(f"For comparison, rung 3 with every step's points, starting from rung 2: 6.0 at round {first6_perstep}")
+```
+
+```{python}
+#| label: verify-only-plot
+#| fig-cap: "Rung 3 with one number per route, starting from imitation. Left: the route found on seed 0, through the cell no human ever stood on. Right: how many of twenty seeds have found the 6.0 route after each round. The dashed line is the first post's version, which gets every step's points and starts from rung 2."
+fig, axes = plt.subplots(1, 2, figsize=(10.2, 4.4), gridspec_kw={"width_ratios": [1, 1.35]})
+draw_grid(axes[0], "Final score only: the route it found")
+draw_route(axes[0], path_v, OOS["purple"], lw=2.8)
+ax = axes[1]
+rounds_axis = np.arange(41)
+found = [sum(f is not None and f <= k for f in first6_v) for k in rounds_axis]
+ax.step(rounds_axis, found, where="post", color=OOS["purple"], linewidth=2.2, label="final score only, starting from rung 1")
+ax.axvline(first6_perstep, color=OOS["accent"], linestyle="--", linewidth=1.4, label="every step's points, starting from rung 2")
+ax.set_xlabel("round of propose, verify, keep, retrain (20 proposals per round)")
+ax.set_ylabel(f"seeds that have found the 6.0 route (of {len(first6_v)})")
+ax.set_ylim(0, len(first6_v) + 0.5); ax.set_xlim(0, 40); ax.set_yticks(range(0, len(first6_v) + 1, 5))
+ax.legend(frameon=False, fontsize=8.5, loc="lower right")
+plt.tight_layout()
+plt.show()
+```
+
+It works. Every one of twenty seeds finds the 6.0 route, through the unknown cell, from nothing but a consensus policy that never saw a point and a verifier that returns one number per route. It is slower than the per-step version, a median of about 18 rounds against two, and on the way it burns a couple of hundred of its 800 proposals, which is the price of exploring without a map. But it gets there, and it gets there without rung 2: no Q-table, no stitching, no per-step credit. The thing a language model has, a verdict at the end, is enough.
+
+**What did not work.** The loop above keeps the single best route and imitates it. The method used at scale, group relative policy optimization (GRPO) [14], does something that sounds similar and is not: it samples a group of answers, scores each, and pushes every token in an answer up or down by how far that answer's score was above or below the group's average. I ran the grid version of that: a tabular softmax policy initialized from rung 0, 32 routes per round, every move in a route nudged by the route's standardized advantage.
+
+```{python}
+#| label: grpo
+#| echo: true
+#| output: false
+def grpo(seed, explore, rounds=200, group=32, lr=0.5):
+    """Averaged, group-relative updates from the same one-number feedback."""
+    local = np.random.default_rng(seed)
+    p0 = np.where(visited[..., None] & WALL, pi_bc, 0.0)
+    p0 = np.where(p0.sum(-1, keepdims=True) > 0, p0, WALL.astype(float)); p0 = p0 / p0.sum(-1, keepdims=True)
+    theta = np.where(WALL, np.log(np.maximum(p0, 1e-3)), -np.inf)
+    def probs(th):
+        e = np.where(WALL, np.exp(th - th.max(-1, keepdims=True)), 0.0); return e / e.sum(-1, keepdims=True)
+    history = []
+    for _ in range(rounds):
+        P = probs(theta)
+        batch = [propose(lambda s: int(local.choice(4, p=P[s])), local, explore) for _ in range(group)]
+        R = np.array([verifier(m) for m in batch]); adv = (R - R.mean()) / (R.std() + 1e-8)
+        g = np.zeros_like(theta)
+        for moves, A in zip(batch, adv):
+            for s, a in moves:
+                g[s] -= A * P[s]; g[s][a] += A                       # one policy-gradient step per move
+        theta = np.where(WALL, theta + lr * g / group, -np.inf)
+        P = probs(theta)
+        history.append(rollout(lambda s: int(np.argmax(np.where(WALL[s], P[s], -1))))[0])
+    return history
+
+grpo_runs = {ex: [grpo(sd, ex) for sd in range(3)] for ex in (0.0, 0.3)}
+```
+
+```{python}
+#| label: grpo-numbers
+#| output: false
+for ex, hs in grpo_runs.items():
+    print(f"Averaged updates, {ex:.0%} extra randomness: greedy route after 200 rounds scores {[h[-1] for h in hs]}")
+```
+
+With no extra randomness it did nothing new: it grew more and more certain of the humans' 4.0 route and settled there. With 30% extra randomness it did something worse and more interesting. It learned to take the exit. Averaging scores over noisy walks rewards whatever is safe *given your own clumsiness*, and a long route between fires is not safe for a walker who stumbles a third of the time. The keep-the-best loop is immune to this, because it never averages: a noisy walk that happens to find something better is kept whole, and the noise that produced it is thrown away.
+
+Don't over-read this. A lookup table with groups of 32 is a crude stand-in for a neural network trained on millions of answers, and GRPO at scale plainly does find new behavior. R1-Zero is the evidence. The lesson is narrower and more useful: **whether reinforcement learning finds new strategies or only sharpens old ones depends on how it explores and how it assigns credit.** It is a property of the method, not a law of learning from data.
+
+## Objections
+
+Each of the following is a real objection, stated as strongly as I know how to state it, followed by the answer and by what the objector has conceded in making it.
+
+**"A 5×5 grid tells you nothing about a language model."** Agreed, if the grid were the evidence. It is not. The evidence is the table at the top: eight results at language-model or game-engine scale, each a model outperforming the humans whose data it learned from. The grid is where you can watch the four mechanisms, mean, mode, max, check, happen in a world small enough to see all of. If the mechanisms did not scale, the table would be empty. *Conceded: the argument has to be met at the level of the mechanisms and the receipts, not the toy.*
+
+**"It's one fixed maze with a known optimum. A\* would solve it in microseconds. You've shown a lookup table for one task: specific intelligence, not general intelligence."** All true, and none of it is what the claim was about. A\* solves the grid because A\* is handed the rules: which move leads where and what each one costs. None of the robots is. Rungs 0 through 2 have only the log, and rung 3 has only a black box that reports what happened when it tried something. The experiment is not "can this grid be solved?" but "can a learner that sees only imperfect human data end up better than the humans?" Specific, not general: yes. The robot learns a table for one world and would be useless in another. But the claim under test was never "AI is general." It was "an AI can never be better than its training data," a universal claim, and a universal claim falls to a single counterexample. Whether a learned policy generalizes *across* tasks is a real question, and the grid does not answer it. The receipts do. At scale, rung 3 is not run on one problem but on a large set of problems, each with its own check, and the result is judged on problems that were not in the training set. The 2025 IMO problems did not exist when the models were trained. R1-Zero's gains are measured on a competition exam, not on the problems it practiced on. Each new problem is a new grid, and the learned policy is what makes searching it tractable: nobody runs A\* over the space of all proofs. That is where the pre-trained model's map earns its keep, as a prior on which proposals are worth checking. *Conceded: the grid demonstrates the mechanism on one task; whether it generalizes across tasks is an empirical question, answered by held-out results at scale, and so far the answer is yes, within domains that have a check.*
+
+**"There is no known reward function in the real world."** There is, in every domain the superhuman results come from: the tests pass or they don't, the proof checks or it doesn't, the game is won or lost, the protein folds or it doesn't. Those are not niche domains. They are all of mathematics, all of software, and every science that has a simulator. Where there is no such check, humans supply comparisons instead, and the judge section shows that comparisons from a judge who is right two times in three are enough to reach rung 2's score. But look at what the objection is actually claiming: that *some* tasks have no verifier. True. That is a statement about which rung a task sits on, 2½ instead of 3, not a statement that the model cannot exceed its data. *Conceded: the question is no longer "can it?" but "in which tasks?", and the answer is "the ones with a check, and partly the ones with a judge."*
+
+**"RLHF relies on humans, so the model is capped at human level."** Capped at what humans can *recognize*, which is well above what humans can *produce*. The raters in the summarization experiment could not have written the summaries they preferred over the human-written references. Anyone who has ever had a spouse knows it is far easier to criticize a decision in hindsight than to make the right one in the moment. That asymmetry is a fact about the world that every editor, coach and reviewer has always exploited, and RLHF is the first time it has been used to train the thing being reviewed. And RLHF is one rung. The rung above it has no human in the loop: AlphaZero saw zero human games and beat every human who has ever played. *Conceded: "relies on humans" is true of one training stage and false of the one that produced the superhuman results.*
+
+**"Stitching pieces together isn't intelligence. It's bookkeeping."** Call it bookkeeping. It produced a route that beat every human in the data, and at scale it produced a matrix-multiplication algorithm that beat every human since 1969. The claim under examination was about the score, not the dignity of the method. If your position is that a system can outperform every human in its training data *by bookkeeping*, we agree, and the original claim is still dead. *Conceded: outperforming the data does not require anything you would be willing to call intelligence, which makes it easier to achieve, not harder.*
+
+**"You let the humans err and the robot doesn't. That's rigged."** The errors are the model of human fallibility, and they are the whole point: the data is imperfect because real data is imperfect, and the question is what a learner can make of it. The robot is a program; it executes the move it chose. Giving it shaky hands would model nothing. But suppose you insist. Here is every robot's policy scored under the humans' own error rates.
+
+```{python}
+#| label: same-hands
+def shaky(policy, eps):
+    return lambda s: policy(s) if rng.random() > eps else int(rng.choice(available(s)))
+
+rows = []
+for eps in [0.0, 0.05, 0.10, 0.20, 0.35]:
+    rows.append({"error rate": f"{eps:.0%}",
+                 "humans' route": expected_score(human_policy(eps)),
+                 "rung 1: consensus": expected_score(shaky(policy_consensus, eps)),
+                 "rung 2: outcomes": expected_score(shaky(greedy(Q2, seen2, n2), eps)),
+                 "rung 3: verify": expected_score(shaky(greedy(Q3, seen3, n3), eps))})
+same_hands = pd.DataFrame(rows)
+md_table(same_hands)
+```
+
+Rung 1 with the humans' hands scores what the humans' policy scores, the same route walked with the same errors, which is the honest description of what consensus does: it removes the crowd's noise and nothing else. Rung 2 stays ahead at low error rates and its lead shrinks to almost nothing at 20% and 35%, because its route runs between two fires and a clumsy walker pays for that. Rung 3 stays well ahead at every error rate, including 35%, the clumsiest human in the crowd, because its route is shorter and spends less time beside the fire. *Conceded: rung 1's advantage is the removal of human error, which is the mechanism and not a trick, and the rungs above it win on the route, by a margin that depends on how steady the walker is.*
+
+**"Your humans are artificially bad. Real data isn't this noisy."** The ladder holds for any crowd. The claim is relative: the model beats the humans it learned from, whoever they are. And the chess result used real humans, players rated up to 1000 in real games, and the model trained only on them played around 1500. The mechanism does not care whether the crowd is weak. It cares whether the crowd's errors are independent. *Conceded: the objection is about the size of the gap, not its existence.*
+
+**"Verifiers only exist for narrow tasks."** Narrow tasks like mathematics, programming, formal logic, every game, every science with a simulator, and any task whose outcome can be observed. Scope is a fair thing to argue about, and I concede it in full: taste, wisdom and persuasion have no verifier, and there the ceiling is the judge's. But "narrow" is doing a lot of work in that sentence, and the rung 3 receipts, IMO gold, a new algorithm, superhuman game play, are not from the narrow part of anything. *Conceded: the argument is about scope, and the scope already includes the domains where "superhuman" was first claimed and first delivered.*
+
+**"You cannot learn causation from data. The causal model has to come from a human."** The theorem this rests on says that observational data alone cannot answer interventional questions [15]. It does not say a human is required. It says *interventions* are required. Rung 3 is interventions: propose, run it, see what happens. Every proposal the robot made was an intervention, and every fire it walked into was a causal fact learned without a human. An agent that can act is not the passive learner the theorem constrains. *Conceded: the ceiling described by the theorem applies to rung 2 and below, and rung 3 was designed to climb past exactly that ceiling.*
+
+## What superhuman means
+
+Put the ladder and the receipts together and the claim we started with resolves into three statements, each with a condition attached.
+
+1. **A model can outperform every human whose data it trained on**, with no rewards at all, wherever their disagreements are noise around shared competence. (Rung 1. Chess transcendence.)
+2. **A model can outperform the best thing in its training data**, wherever the data records outcomes, or merely a fallible judge's preferences, and not just actions. (Rung 2, with a score or a judge. Summaries preferred to the human references.)
+3. **A model can outperform the best humans, period**, wherever a verifier exists, wherever being right can be checked without anyone knowing the answer in advance. (Rung 3. IMO gold. AlphaEvolve.)
+
+**Superhuman performance is not a property of the model. It is a property of the training signal.** Ask what rung the signal is on and you know what the ceiling is.
+
+Which also says where it stops, and it is worth being exact, because the limits are the part a hostile reader will try to expand into a refutation. Where there is no verifier, in taste, wisdom, persuasion and open-ended judgment, the ceiling is the judge's: what a judge can recognize. That is above what a judge can produce, but it is a ceiling, and a judge can be fooled. Where the crowd's disagreements are not noise but genuine splits, consensus can pick the wrong plan. And where the prior is wrong, a model generalizing across a gap in its data does what the network did above: walks confidently into fire.
+
+Read those limits again and notice their shape. Each one says: *on this rung, in this kind of task, here is the ceiling.* None of them says: *the model cannot exceed its data.* They are statements about which rung a task sits on. That is the shape of every serious objection to this argument, and it is why none of them rescues the original claim. "The average of its training data" describes one learner, on one rung, decoded one way. A modern language model is trained on all four rungs, and on the top one there is no ceiling made of human data at all.
+
+<div class="note">
+
+**Background material.** The courses behind this post are the ones behind the first: [CS221](https://stanford-cs221.github.io/spring2022/) for the grid world and Markov decision processes, [CS224R](https://cs224r.stanford.edu/spring_2025/) for offline reinforcement learning, preference-based reward models and GRPO, and [CS224N](https://web.stanford.edu/class/archive/cs/cs224n/cs224n.1234/) for pre-training and RLHF. The judge experiment is a tabular reconstruction of Christiano and co-authors' 2017 method, down to the clips. The one-number loop is the simplest version of expert iteration and STaR.
+
+</div>
+
+## References
+
+**Source.** The notebook that produced every number and figure in this post is [in the blog's repository](https://github.com/marketneutral/marketneutral.github.io/blob/main/notebooks/2026-11-11-llms-on-the-ladder.qmd). It is self-contained: the world, the crowd and the four rungs are rebuilt at the top, identically to the first post, and the comment there records every setting.
+
+1. Zhang, E., Zhu, V., Saphra, N., Kleiman, A., Edelman, B. L., Tambe, M., Kakade, S. M., & Malach, E. (2024). *Transcendence: Generative Models Can Outperform The Experts That Train Them.* NeurIPS 2024. <https://arxiv.org/abs/2406.11741>
+2. Wang, X., Wei, J., Schuurmans, D., Le, Q., Chi, E., Narang, S., Chowdhery, A., & Zhou, D. (2023). *Self-Consistency Improves Chain of Thought Reasoning in Language Models.* ICLR 2023. <https://arxiv.org/abs/2203.11171>
+3. Stiennon, N., Ouyang, L., Wu, J., Ziegler, D. M., Lowe, R., Voss, C., Radford, A., Amodei, D., & Christiano, P. (2020). *Learning to summarize from human feedback.* NeurIPS 2020. <https://arxiv.org/abs/2009.01325>
+4. Zelikman, E., Wu, Y., Mu, J., & Goodman, N. (2022). *STaR: Bootstrapping Reasoning With Reasoning.* NeurIPS 2022. <https://arxiv.org/abs/2203.14465>
+5. DeepSeek-AI (2025). *DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning.* <https://arxiv.org/abs/2501.12948>
+6. Silver, D., et al. (2018). *A general reinforcement learning algorithm that masters chess, shogi, and Go through self-play.* Science 362, 1140–1144.
+7. Google DeepMind (2025). *Advanced version of Gemini with Deep Think officially achieves gold-medal standard at the International Mathematical Olympiad.* <https://deepmind.google/discover/blog/advanced-version-of-gemini-with-deep-think-officially-achieves-gold-medal-standard-at-the-international-mathematical-olympiad/> OpenAI's result for an experimental reasoning model was announced the same week and graded internally.
+8. Novikov, A., et al. (2025). *AlphaEvolve: A coding agent for scientific and algorithmic discovery.* <https://arxiv.org/abs/2506.13131>
+9. Brown, T. B., et al. (2020). *Language Models are Few-Shot Learners.* NeurIPS 2020. <https://arxiv.org/abs/2005.14165>
+10. Fujimoto, S., Meger, D., & Precup, D. (2019). *Off-Policy Deep Reinforcement Learning without Exploration.* ICML 2019. <https://arxiv.org/abs/1812.02900> Levine, S., Kumar, A., Tucker, G., & Fu, J. (2020). *Offline Reinforcement Learning: Tutorial, Review, and Perspectives on Open Problems.* <https://arxiv.org/abs/2005.01643>
+11. Bradley, R. A., & Terry, M. E. (1952). *Rank Analysis of Incomplete Block Designs: I. The Method of Paired Comparisons.* Biometrika 39, 324–345.
+12. Ouyang, L., et al. (2022). *Training language models to follow instructions with human feedback.* NeurIPS 2022. <https://arxiv.org/abs/2203.02155>
+13. Christiano, P., Leike, J., Brown, T., Martic, M., Legg, S., & Amodei, D. (2017). *Deep Reinforcement Learning from Human Preferences.* NeurIPS 2017. <https://arxiv.org/abs/1706.03741>
+14. Shao, Z., et al. (2024). *DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models.* <https://arxiv.org/abs/2402.03300>
+15. Pearl, J., & Mackenzie, D. (2018). *The Book of Why: The New Science of Cause and Effect.* Basic Books.
