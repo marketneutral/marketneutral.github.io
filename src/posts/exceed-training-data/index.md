@@ -295,6 +295,8 @@ So the objectors have drawn their line in the wrong place. Games are one kind of
 
 **In a language model: reinforcement learning with verifiable rewards.** The state is the problem plus everything the model has written so far. The actions are the words of its reasoning and its answer. The reward is 0 at every step and arrives once, at the end: 1 if the checker accepts, 0 if it does not. That is harder than the robot’s version, where every step reported its points. Go’s reward is just as sparse, but a Go program also has the rules and can search ahead with them \[7\]. A language model has no rules to search. Training raises the probability of the word choices on the attempts that passed. Where a checker exists the match to rung 3 is tight.
 
+The clearest public account of this is the DeepSeek-R1 paper \[12\]. Its R1-Zero model learned to reason by reinforcement learning alone, with no human examples of reasoning, scored only by rules that check the final answer or run the code against tests. When DeepSeek released the model in January 2025, Nvidia lost \$589 billion of market value in a single day, the largest one-day loss for any company on record. The popular press wrote about cost and chips and missed the real story: a frontier lab had published, in the open, how rung 3 is done.
+
 </div>
 
 ## What the ladder says
@@ -346,3 +348,4 @@ If you take away only one thing from this post, I want it to be this: **what hum
 9.  Finn, C., et al. (2025). *CS224R: Deep Reinforcement Learning.* Stanford University, Spring 2025. <https://cs224r.stanford.edu/spring_2025/>
 10. Pearl, J., & Mackenzie, D. (2018). *The Book of Why: The New Science of Cause and Effect.* Basic Books.
 11. Manning, C. D., & Hewitt, J. (2023). *CS224N: Natural Language Processing with Deep Learning.* Stanford University, Winter 2023. <https://web.stanford.edu/class/archive/cs/cs224n/cs224n.1234/>
+12. Guo, D., Yang, D., Zhang, H., et al. (2025). *DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning.* arXiv:2501.12948; published in Nature 645, 633–638. <https://arxiv.org/abs/2501.12948>
