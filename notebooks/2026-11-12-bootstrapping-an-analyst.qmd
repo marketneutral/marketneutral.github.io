@@ -1,0 +1,1015 @@
+---
+title: "Bootstrapping a superhuman buyside equity analyst"
+date: 2026-11-12
+tag: ESSAY
+description: "What humans know is not the limit of what a machine can learn from them."
+jupyter: python3
+execute:
+  echo: false
+  warning: false
+  message: false
+fig-format: svg
+---
+
+This post builds on [the previous one](https://marketneutral.github.io/posts/exceed-training-data/), and it assumes you have read it. There I built a 5×5 grid, simulated six hundred people crossing it badly, and deployed four machines of increasing complexity to learn from the recording of those walks. I called the levels of complexity rungs on a ladder, from 0 to 3. The best person scored 4.0. The machine on rung 2 only read the recorded log of human trials, and learned to score 5.0. The machine on rung 3 was allowed to try moves for itself and scored 6.0, the best possible. To connect these ideas to the "real world", the rungs map to how frontier LLMs are built: rung 0 is LLM pretraining, rung 1 is low-temperature decoding, rung 2 is RLHF, and rung 3 is RLVR. An astonishing takeaway from the prior post that I want you to keep in mind: **Our machine at rung 2 achieved superhuman performance just from learning from faulty human demonstrations.** I ended the post touching on fundamental investing, and I was careful about it.
+
+```{=html}
+<div class="callout">
+This post is a thought experiment with an experiment attached: how would you build an equity analyst that is better than every analyst it learned from?
+</div>
+```
+
+If you have been paying attention, your obvious answer is "**RLVR, rung 3**! Let the machine reason about the world as it is and make investment decisions and learn from how they turn out. No real investment capital needed: just paper trade it." But grading in this way is very slow and noisy. An investment thesis takes months to quarters to play out, and the clock cannot be run faster. A good decision can lose money while a bad one makes it: telling an analyst who is right 55% of the time from a coin flip takes about 400 independent calls. And no, you can't backtest this, because a language model has already read how the past turned out. Rung 3 needs only a verdict at the end, but it needs a great many of them, and here they arrive a few at a time.
+
+What about **RLHF**, rung 2? We saw in the previous post that this rung, although not as good as rung 3, still beat all the humans. Can we apply the rung 2 ideas to bootstrapping a superhuman equity analyst? I believe we can, and that's what this post is about.
+
+## Evaluation is easier than creation
+
+A foundational idea for what follows is that **it is easier to tell which of two things is better than to produce the better thing in the first place.**
+
+The cleanest statement of the gap is in computer science. For a huge class of problems a proposed answer can be checked quickly, while finding the answer seems to be far harder. Whether that gap is real is the P versus NP question, and nearly everyone in the field believes it is. Scott Aaronson described the world we would live in without it [6]:
+
+> "There would be no special value in 'creative leaps,' no fundamental gap between solving a problem and recognizing the solution once it's found. Everyone who could appreciate a symphony would be Mozart; everyone who could follow a step-by-step argument would be Gauss; everyone who could recognize a good investment strategy would be Warren Buffett."
+
+We do not live in that world.
+
+Christiano and co-authors trained machines from "(non-expert) human preferences between pairs of trajectory segments," and taught them "complex novel behaviors with about an hour of human time" [4]. One of those behaviors was a backflip by a simulated robot. Nobody wrote down what a good backflip is, and nobody demonstrated one. A person watched pairs of short clips and picked the better one, [about 900 times](https://openai.com/index/learning-from-human-preferences/).
+
+And it has been measured in language. Stiennon and co-authors collected human comparisons between summaries, trained a model on them, and reported that "our models significantly outperform both human reference summaries and much larger models fine-tuned with supervised learning alone" [7]. The raters only compared summaries. The model that came out wrote better ones than the people did.
+
+## Back to the grid
+
+I need you to forget about investing for a moment. For now we go back to the grid, and only the grid: no analysts, no PMs, no hedge funds. Bear with me: it's necessary and worth it. In the gray "pull quote" about rung 2 vs. RLHF in the prior post, I conceded that the analogy isn't perfect. So, let's make the analogy map tightly. Rung 2 had perfect reward information at every step. That's unrealistic in real-world RLHF. Here is what we do: I take away the one advantage rung 2 had, give the machine a **judge who makes mistakes**, and show that the machine, learning from a fallible judge, still gets past every human. Then I come back to the fund and say which part of the grid stands for what.
+
+```{python}
+#| label: world
+#| output: false
+# NOTE FOR US: this cell and the four that follow (helpers, humans, rung0-1, rung2) are copied from
+# notebooks/2026-11-10-exceed-training-data.qmd so that this post runs on its own. If the world changes there,
+# change it here.
+# Reproducibility.
+# World and crowd: identical to the first post (5x5 grid, 600 simulated people, seed 2024).
+# Judge: says A with probability sigmoid(gap / tau), tau = 2, where gap is the difference in true points
+#   between two clips; a careless judge then reverses the verdict with probability `flip`.
+# Reward model: one number per cell (25), Bradley-Terry / logistic regression with no intercept, L-BFGS-B to
+#   convergence; cells where the walk goes on are held at or below -0.05.
+# Loop: 500 rounds. Each round starts from a cell drawn from the log and has a length of 1 to 3 steps; the
+#   machine walks 4 clips from that cell (30% of steps random); the judge compares every pair of clips that
+#   differ. Every 25 rounds the reward is refit on all verdicts so far and rung 2 is re-run on every move
+#   made so far (the log's and the machine's). Ten seeds (1000 to 1009) per setting.
+# Whole-walk check: the same loop with every clip a whole walk from the start (up to 40 steps).
+# Scores are the true points of the machine's best route, computed by us; the machine never sees points.
+# Runtime: about two minutes on one CPU core (render with OMP_NUM_THREADS=1).
+import os
+os.environ.setdefault("OMP_NUM_THREADS", "1")   # the fits are tiny; one thread is several times faster
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
+
+N = 5
+# Internally, cells are (row, col) with row 0 at the top — convenient for arrays. Everything shown to the reader
+# uses (x, y) instead: x counts columns from the left, y counts rows from the bottom, so START is (0, 0).
+START = (4, 0)                 # (row, col); row 0 is the top
+TREASURE = (0, 2)
+EXIT = (2, 0)
+FIRES = {(0, 1), (1, 2), (3, 3)}
+MUD = (4, 3)                   # crossing costs 1 extra point
+
+def xy(cell):
+    """(row, col) -> (x, y) with the origin at the bottom-left, for display."""
+    return (cell[1], N - 1 - cell[0])
+
+def route_str(path):
+    return " → ".join(str(xy(p)) for p in path)
+MUD_COST = -1.0
+HOLE = (1, 3)                  # the one cell no human ever stood on
+STEP_COST = -0.5
+GAMMA = 1.0
+ACTIONS = {0: (-1, 0), 1: (1, 0), 2: (0, -1), 3: (0, 1)}   # Up, Down, Left, Right
+ARROWS = {0: (0, 0.42), 1: (0, -0.42), 2: (-0.42, 0), 3: (0.42, 0)}
+OPTIMAL_ROUTE = [(4, 0), (4, 1), (4, 2), (3, 2), (2, 2), (2, 3), (1, 3), (0, 3), (0, 2)]
+
+def available(s):
+    """Directions that stay on the grid. Nobody in this world walks into a wall."""
+    r, c = s
+    return [a for a, (dr, dc) in ACTIONS.items() if 0 <= r + dr < N and 0 <= c + dc < N]
+
+def step(s, a):
+    """The real grid. Used to generate the human log, to score policies, and — only on rung 3 — as the verifier."""
+    dr, dc = ACTIONS[a]
+    r, c = s
+    ns = (min(max(r + dr, 0), N - 1), min(max(c + dc, 0), N - 1))
+    if ns == TREASURE:
+        return ns, 10.0 + STEP_COST, True
+    if ns == EXIT:
+        return ns, 1.0 + STEP_COST, True
+    if ns in FIRES:
+        return ns, -10.0 + STEP_COST, True
+    if ns == MUD:
+        return ns, MUD_COST + STEP_COST, False
+    return ns, STEP_COST, False
+
+def rollout(policy, max_steps=40):
+    s, total, path = START, 0.0, [START]
+    for _ in range(max_steps):
+        ns, r, done = step(s, policy(s))
+        total += r; s = ns; path.append(s)
+        if done:
+            break
+    return total, path
+
+def expected_score(policy, n=4000):
+    return float(np.mean([rollout(policy)[0] for _ in range(n)]))
+```
+
+```{python}
+#| label: helpers
+#| output: false
+import _oos_style                 # the site's dark matplotlib theme (notebooks/_oos_style.py)
+from _oos_style import OOS
+CELL = {"empty": "#131927", "treasure": "#17432a", "exit": "#1b3a4a", "fire": "#5a2130", "start": "#1f2a44", "mud": "#4a3b22"}
+def draw_grid(ax, title=None, hole=HOLE, coords=False, hole_label=True, scores=True):
+    ax.set_xlim(-0.5, N - 0.5); ax.set_ylim(-0.5, N - 0.5)
+    ax.set_aspect("equal"); ax.set_xticks([]); ax.set_yticks([]); ax.grid(False)
+    for sp in ax.spines.values(): sp.set_visible(True)
+    if coords:   # label columns x = 0..4 along the bottom and rows y = 0..4 up the left side
+        ax.set_xticks(range(N)); ax.set_yticks(range(N))
+        ax.set_xlabel("x"); ax.set_ylabel("y", rotation=0, labelpad=10)
+        ax.tick_params(length=0, labelsize=9, colors=OOS["muted"])
+    for r in range(N):
+        for c in range(N):
+            y = N - 1 - r
+            if (r, c) == TREASURE:   color, label = CELL["treasure"], "TREASURE\n+10"
+            elif (r, c) == EXIT:     color, label = CELL["exit"], "EXIT\n+1"
+            elif (r, c) in FIRES:    color, label = CELL["fire"], "FIRE\n−10"
+            elif (r, c) == START:    color, label = CELL["start"], "START"
+            elif (r, c) == MUD:      color, label = CELL["mud"], "MUD\n−1"
+            else:                    color, label = CELL["empty"], ""
+            if not scores:           label = label.split("\n")[0]      # the name only: what a judge sees
+            ax.add_patch(Rectangle((c - 0.5, y - 0.5), 1, 1, facecolor=color, edgecolor=OOS["muted"]))
+            if hole and (r, c) == hole:
+                ax.add_patch(Rectangle((c - 0.5, y - 0.5), 1, 1, facecolor="none", edgecolor=OOS["muted"], hatch="///", linewidth=0))
+                if hole_label:
+                    ax.text(c, y + 0.3, "unknown", ha="center", va="center", fontsize=7, color=OOS["ink"],
+                            bbox=dict(facecolor=OOS["bg"], edgecolor="none", alpha=0.9, pad=1.5))
+            if label:
+                dy = 0.36 if (r, c) in (START, MUD) else 0.0
+                ax.text(c, y + dy, label, ha="center", va="center", fontsize=8, color=OOS["ink"])
+    if title:
+        ax.set_title(title)
+
+def draw_arrows(ax, prob, color, cells=None, gap=0.06, reach=0.40):
+    """One arrow per action per cell, the whole arrow — shaft and head — scaled by the action's probability.
+    Because the probabilities in a cell sum to one, the arrow lengths in a cell sum to the same total
+    everywhere: a 60/40 cell shows two solid arrows, an 85/5/5/5 cell shows one long arrow and three ticks.
+    Each arrow starts `gap` from the center in its own direction so the small ones are not buried."""
+    for r in range(N):
+        for c in range(N):
+            if (r, c) in FIRES or (r, c) in (TREASURE, EXIT):
+                continue
+            if cells is not None and not cells[r, c]:
+                continue
+            y = N - 1 - r
+            for a in range(4):
+                p = prob[r, c, a]
+                if p < 0.01:
+                    continue
+                ux, uy = ARROWS[a]; norm = (ux ** 2 + uy ** 2) ** 0.5; ux, uy = ux / norm, uy / norm
+                x0, y0 = c + ux * gap, y + uy * gap
+                ax.annotate("", xy=(x0 + ux * reach * p, y0 + uy * reach * p), xytext=(x0, y0),
+                            arrowprops=dict(arrowstyle="-|>,head_length=0.5,head_width=0.22", color=color,
+                                            lw=0.7 + 1.1 * p, mutation_scale=4 + 10 * p,
+                                            shrinkA=0, shrinkB=0, alpha=0.95, joinstyle="miter"))
+
+def draw_route(ax, path, color, lw=2.0):
+    xs = [c for r, c in path]; ys = [N - 1 - r for r, c in path]
+    ax.plot(xs, ys, color=color, linewidth=lw, alpha=0.7, solid_capstyle="round", solid_joinstyle="round", zorder=3)
+
+from matplotlib.colors import LinearSegmentedColormap
+VALUE_CMAP = LinearSegmentedColormap.from_list("oos_value", [(0.0, "#7a2a3a"), (0.525, "#1c2436"), (1.0, "#1f8a4c")])
+
+from IPython.display import Markdown
+def walk_scores(policy, n=600):
+    """The score of each of n walks of a policy."""
+    return np.array([rollout(policy)[0] for _ in range(n)])
+LADDER = []
+FLOOR = -20                                              # scores at or below this share one bin on the scoreboard
+def add_rung(label, needs, scores):
+    LADDER.append((label, needs, np.asarray(scores, float)))
+def show_ladder():
+    """The scoreboard: one row per machine, a histogram of its scores on a shared axis, a line at its average."""
+    bins = np.arange(FLOOR - 1.5, 7.5, 1.0)            # the leftmost bin collects everything below FLOOR
+    n = len(LADDER)
+    fig, axes = plt.subplots(n, 1, figsize=(7.6, 0.9 * n + 0.7), sharex=True, squeeze=False)
+    for ax, (label, needs, sc) in zip(axes[:, 0], LADDER):
+        ax.hist(np.where(sc <= FLOOR, FLOOR - 1, sc), bins=bins, color=OOS["muted"], edgecolor=OOS["bg"], linewidth=0.4)
+        avg = sc.mean()
+        ax.axvline(avg, color=OOS["red"], linewidth=1.6)
+        ax.text(avg - 0.3, 0.88, f"avg {avg:.2f}", transform=ax.get_xaxis_transform(),
+                color=OOS["red"], fontsize=8, va="top", ha="right")
+        ax.set_xlim(FLOOR - 1.5, 7.5)
+        ax.set_yticks([]); ax.grid(False)
+        for sp in ("left", "top", "right"):
+            ax.spines[sp].set_visible(False)
+        ax.annotate(label, xy=(0, 0.62), xycoords="axes fraction", xytext=(-10, 0), textcoords="offset points",
+                    ha="right", va="center", fontsize=9, color=OOS["ink"])
+        ax.annotate(f"learns from {needs}", xy=(0, 0.28), xycoords="axes fraction", xytext=(-10, 0), textcoords="offset points",
+                    ha="right", va="center", fontsize=7.5, color=OOS["muted"])
+    axes[-1, 0].set_xlabel("score")
+    axes[-1, 0].set_xticks([FLOOR - 1] + list(range(FLOOR + 5, 7, 5)))
+    axes[-1, 0].set_xticklabels([f"≤ {FLOOR}".replace("-", "−")] + [str(t).replace("-", "−") for t in range(FLOOR + 5, 7, 5)])
+    fig.subplots_adjust(left=0.32, hspace=0.35)
+    plt.show()
+def md_table(df, fmt="{:.2f}"):
+    """A DataFrame as a markdown table, numbers formatted."""
+    cell = lambda v: fmt.format(v) if isinstance(v, float) else str(v)
+    head = "| " + " | ".join(df.columns) + " |\n|" + "---|" * len(df.columns)
+    rows = ["| " + " | ".join(cell(v) for v in r) + " |" for r in df.itertuples(index=False)]
+    return Markdown("\n".join([head] + rows))
+```
+
+```{python}
+#| label: humans
+#| output: false
+# The route every human knows: along the bottom, up the right side, left along the top. 10 steps.
+PLAN = {(4, c): 3 for c in range(4)}
+PLAN.update({(r, 4): 0 for r in range(1, 5)})
+PLAN.update({(0, 4): 2, (0, 3): 2})
+# If knocked off the route, each human has one habitual move per cell that heads back toward it. No map, no planning.
+PLAN.update({(3, 0): 1, (1, 0): 1, (0, 0): 1, (1, 1): 1, (2, 1): 1, (3, 1): 1, (3, 2): 1,
+             (2, 2): 3, (2, 3): 3, (1, 3): 0})
+
+rng = np.random.default_rng(2024)
+
+def human_policy(eps):
+    return lambda s: PLAN[s] if rng.random() > eps else int(rng.choice(available(s)))
+
+def human_episode(eps):
+    """Returns (full walk, recording). The human keeps walking to the end; the recording stops at the hole."""
+    s, traj = START, []
+    policy = human_policy(eps)
+    for _ in range(40):
+        a = policy(s)
+        ns, r, done = step(s, a)
+        traj.append((s, a, r, ns, done)); s = ns
+        if done:
+            break
+    cut = next((i for i, t in enumerate(traj) if t[3] == HOLE), None)
+    recording = traj if cut is None else traj[:cut]   # the tape stops when the human is about to enter the hole
+    return traj, recording
+
+walks = [(eps,) + human_episode(eps) for eps in rng.uniform(0.10, 0.35, size=600)]
+
+def path_of(traj):
+    return [t[0] for t in traj] + [traj[-1][3]]
+
+def score(traj):
+    return sum(t[2] for t in traj)
+
+OPTIMAL_SCORE = 10 + 8 * STEP_COST        # treasure in 8 steps, no mud: the best possible score
+CLEAN_LOOP_SCORE = 10 + 10 * STEP_COST    # the 10-step loop that avoids the mud
+removed = sum(score(full) >= CLEAN_LOOP_SCORE for _, full, _ in walks)
+walks = [w for w in walks if score(w[1]) < CLEAN_LOOP_SCORE]          # no mud-free treasure walk reaches the log
+humans = [(eps, rec) for eps, full, rec in walks if rec]               # what the log contains: the recordings
+attempt_scores = np.array([score(full) for _, full, _ in walks])       # what the humans actually scored
+log = [t for _, e in humans for t in e]
+assert not any(t[0] == HOLE or t[3] == HOLE for t in log), "the hole is in the log"
+assert not any(score(e) >= CLEAN_LOOP_SCORE for _, e in humans), "a mud-free treasure episode is in the log"
+
+def outcome(traj):
+    s, done = traj[-1][3], traj[-1][4]
+    if not done:
+        return "Recording cut at the hole"
+    return {TREASURE: "Treasure", EXIT: "Exit"}.get(s, "Fire")
+
+outcomes = pd.Series([outcome(e) for _, e in humans]).value_counts()
+complete = [e for _, e in humans if e[-1][4]]
+human_scores = attempt_scores                  # every attempt, scored on the full walk (the tape may be shorter)
+human_average = human_scores.mean()
+best_episode = human_scores.max()
+PLAN_SCORE = 10 + 10 * STEP_COST + MUD_COST   # the humans' route, walked perfectly (through the mud)
+
+print(f"{len(walks)} human attempts; {len(humans)} recordings in the log, {len(complete)} of them complete; {removed} removed for scoring 5.0 or better")
+print(f"Average human score (all attempts): {human_average:.2f}   Best single attempt: {best_episode:.1f}   Attempts scoring {best_episode:.1f}: {int((human_scores == best_episode).sum())}")
+print(f"Their route walked perfectly: {PLAN_SCORE:.1f}   Same loop without the mud: {CLEAN_LOOP_SCORE:.1f}   Best possible: {OPTIMAL_SCORE:.1f}")
+print(outcomes.to_string())
+went_in = [full for _, full, rec in walks if len(rec) < len(full)]     # the people whose tape was cut at the hole
+print(f"Steps in the log: {len(log)}.  People who entered the unknown cell: {len(went_in)}; "
+      f"{sum(full[-1][3] in FIRES for full in went_in)} of them later burned; their average score {np.mean([score(f) for f in went_in]):.2f}")
+```
+
+```{python}
+#| label: rung0-1
+#| output: false
+counts = np.zeros((N, N, 4))
+for s, a, r, ns, done in log:
+    counts[s[0], s[1], a] += 1
+visited = counts.sum(axis=2) > 0
+pi_bc = np.divide(counts, counts.sum(axis=2, keepdims=True),
+                  out=np.full_like(counts, 0.25), where=counts.sum(axis=2, keepdims=True) > 0)
+
+
+path_consensus = rollout(lambda s: int(np.argmax(pi_bc[s])))[1]   # rung 1: the humans' most common move
+```
+
+```{python}
+#| label: rung2
+#| output: false
+def q_learning(transitions, sweeps=200):
+    """Tabular Q-learning over a fixed log. The max is taken only over moves that appear in the log."""
+    seen = np.zeros((N, N, 4), bool)
+    for s, a, r, ns, done in transitions:
+        seen[s[0], s[1], a] = True
+    Q = np.zeros((N, N, 4))
+    history = [Q.copy()]
+    for _ in range(sweeps):
+        tot = np.zeros_like(Q); n = np.zeros_like(Q)
+        for s, a, r, ns, done in transitions:
+            if done:
+                y = r
+            else:
+                avail = seen[ns[0], ns[1]]
+                y = r + GAMMA * (Q[ns[0], ns[1]][avail].max() if avail.any() else 0.0)
+            tot[s[0], s[1], a] += y; n[s[0], s[1], a] += 1
+        Q[seen] = tot[seen] / n[seen]
+        history.append(Q.copy())
+    return Q, seen, history, n
+
+def greedy(Q, seen, n):
+    """Take the best-valued logged move. When two moves are worth exactly the same, take the one made more often."""
+    def policy(s):
+        avail = seen[s[0], s[1]]
+        if not avail.any():
+            return int(rng.choice(available(s)))
+        q = np.where(avail, Q[s[0], s[1]], -np.inf)
+        return int(np.argmax(np.where(np.isclose(q, q.max()), n[s[0], s[1]], -1)))
+    return policy
+
+Q2, seen2, hist2, n2 = q_learning(log)
+score_outcomes, path_outcomes = rollout(greedy(Q2, seen2, n2))
+print(f"Rung 2 — outcomes: {score_outcomes:.2f}   (best possible {OPTIMAL_SCORE:.1f})")
+print("Route: " + route_str(path_outcomes))
+```
+
+```{python}
+#| label: judge
+#| output: false
+TAU = 2.0
+
+def clip_points(clip):
+    """A clip's true points. The judge has a feeling that tracks this number. The machine
+    never sees it."""
+    return sum(t[2] for t in clip)
+
+def make_judge(local, flip=0.0, blind_to_mud=False, tau=TAU):
+    """Surer when the gap is bigger, near a coin flip when it is small. With probability
+    `flip` the verdict is reversed: a careless judge. A judge who is blind to the mud does
+    not notice its cost at all."""
+    def perceived(clip):
+        return sum(t[2] - (MUD_COST if blind_to_mud and t[3] == MUD else 0.0) for t in clip)
+    def judge(a, b):
+        says_a = local.random() < 1 / (1 + np.exp(-(perceived(a) - perceived(b)) / tau))
+        return (not says_a) if local.random() < flip else says_a
+    return judge
+```
+
+```{python}
+#| label: loop
+#| output: false
+import itertools
+N_CELLS = N * N
+def cell_id(c): return c[0] * N + c[1]
+
+def features(a, b):
+    """One pair as the regression sees it: x_i = times clip A entered cell i, minus times
+    clip B did."""
+    x = np.zeros(N_CELLS)
+    for t in a: x[cell_id(t[3])] += 1
+    for t in b: x[cell_id(t[3])] -= 1
+    return x
+
+episodes = [e for _, e in humans]                     # the log: 600 recorded walks
+
+def rung2_on_moves(times_made, beta, sweeps=60):
+    """Rung 2's rule on every move walked so far, with the learned reward where the points
+    used to be. The machine knows where a move leads and whether the walk ended there,
+    because someone made it."""
+    seen = times_made > 0
+    moves = [((r, c), a) + step((r, c), a)[::2] for r, c, a in zip(*np.nonzero(seen))]
+    Q = np.zeros((N, N, 4))
+    for _ in range(sweeps):
+        new = Q.copy()
+        for s, a, ns, done in moves:
+            ahead = 0.0 if done or not seen[ns].any() else Q[ns][seen[ns]].max()
+            new[s][a] = beta[ns] + ahead
+        Q = new
+    return Q, seen
+
+def best_move(Q, seen, times_made, local):
+    def policy(s):
+        if not seen[s].any():
+            return int(local.choice(available(s)))
+        q = np.where(seen[s], Q[s], -np.inf)
+        return int(np.argmax(np.where(np.isclose(q, q.max()), times_made[s], -1)))
+    return policy
+
+def machine_clip(s, L, policy, local, explore):
+    """One clip: up to L steps from cell s. The machine sees where each step leads and
+    whether the walk ended. It never sees points."""
+    clip = []
+    for _ in range(L):
+        a = int(local.choice(available(s))) if local.random() < explore else policy(s)
+        ns, r, done = step(s, a)
+        clip.append((s, a, r, ns, done)); s = ns
+        if done:
+            break
+    return clip
+
+def human_clip(s, L, local):
+    """A person from the same crowd walks one too. As in the log, the recording stops at
+    the unknown cell."""
+    eps, clip = local.uniform(0.10, 0.35), []
+    for _ in range(L):
+        a = PLAN[s] if local.random() > eps else int(local.choice(available(s)))
+        ns, r, done = step(s, a)
+        if ns == HOLE:
+            break
+        clip.append((s, a, r, ns, done)); s = ns
+        if done:
+            break
+    return clip
+
+def run_loop(seed, rounds=500, clips=4, every=25, flip=0.0, explore=0.3,
+                  person_too=False, use_log=True, blind_to_mud=False, whole_walks=False):
+    """One run: the machine's graded progress, its learned reward and its best route."""
+    local = np.random.default_rng(seed)
+    judge = make_judge(local, flip=flip, blind_to_mud=blind_to_mud)
+    random_move = lambda s: int(local.choice(available(s)))
+    # Every move walked so far, and the cells where a walk has been seen to end.
+    times_made = counts.copy() if use_log else np.zeros((N, N, 4))
+    ends_walk = np.zeros(N_CELLS, bool)
+    if use_log:
+        for t in log:
+            if t[4]: ends_walk[cell_id(t[3])] = True
+        # Start by walking like the people in the log: the clone from rung 0.
+        clone = lambda s: int(local.choice(4, p=pi_bc[s]))
+        policy = lambda s: clone(s) if visited[s] else random_move(s)
+    else:
+        policy = random_move                   # no log: the first clips are random
+    stood = [START]                                    # cells the machine has stood on
+    X, y, right, pairs, history, beta, path = [], [], [], [], [], None, None
+    for k in range(1, rounds + 1):
+        # A round starts from one cell: a cell from the log, or one the machine has stood on.
+        L = int(local.integers(1, 4))
+        if whole_walks:
+            s0, L = START, 40                          # the judge compares whole walks from the start
+        elif use_log:
+            e = episodes[local.integers(len(episodes))]
+            s0 = e[int(local.integers(len(e)))][0]
+        else:
+            s0 = stood[int(local.integers(len(stood)))]
+        # The machine walks several clips from that cell.
+        walked = [machine_clip(s0, L, policy, local, explore) for _ in range(clips)]
+        if person_too:
+            h = human_clip(s0, L, local)
+            if h: walked.append(h)
+        for clip in walked:
+            for s, a, r, ns, done in clip:
+                times_made[s][a] += 1
+                if done: ends_walk[cell_id(ns)] = True
+                elif ns not in stood: stood.append(ns)
+        # The judge compares them two at a time.
+        for a, b in itertools.combinations(walked, 2):
+            x = features(a, b)
+            if not x.any():
+                continue                       # the same clip twice: nothing to compare
+            said_a = judge(a, b)
+            X.append(x); y.append(float(said_a)); pairs.append((k, a, b, said_a))
+            gap = clip_points(a) - clip_points(b)
+            if gap != 0: right.append(said_a == (gap > 0))
+        # Every so often: refit the reward, re-run rung 2 on it, and walk from the result.
+        if k % every == 0:
+            beta = fit_reward(np.array(X), np.array(y), ends_walk, start=beta)
+            Q, seen = rung2_on_moves(times_made, beta)
+            policy = best_move(Q, seen, times_made, local)
+            score, path = rollout(policy)      # graded on the real grid. Only we see this.
+            history.append({"rounds": k, "verdicts": len(y), "score": score,
+                            "judge right": float(np.mean(right))})
+    return {"history": pd.DataFrame(history), "beta": beta, "path": path, "pairs": pairs,
+            "X": np.array(X)}
+```
+
+First, a reminder of what RLHF is. People are shown two of a model's answers and say which is better. A second model learns to predict those preferences, and the language model is tuned toward answers that score well.
+
+Now the advantage. Every row of the log on rung 2 looked like this:
+
+$$
+(\text{cell},\ \text{direction},\ \text{points},\ \text{next cell}).
+$$
+
+The third entry was a number the world handed over: −0.5 for a step, −1.5 for the mud, +9.5 for the treasure. **Rung 2 had a perfect reward.** All it had to do was add those numbers up along the best path. Nobody hands a language model the points for an essay. What people can give is a preference: this one is better than that one. And people are sometimes wrong.
+
+## The judge
+
+The judge is shown two **clips** and says which one went better. A clip is one, two or three consecutive steps on the grid, and the two clips in a pair always start from the same cell.
+
+The judge can see what happened in a clip but does not know the scoring rules. What registers is roughly how well it went, and I model that as the clip's true points. The judge does not know that number. The judge has a feeling that tracks it, and the feeling is **surer when the gap is bigger**. Let $g$ be the gap in true points between clip A and clip B, positive if A was better. The judge says "A" with probability
+
+$$
+\Pr(\text{judge says } A) = \sigma\!\left(\frac{g}{\tau}\right), \qquad \sigma(x) = \frac{1}{1 + e^{-x}}.
+$$
+
+$\sigma$ squashes any number into the range 0 to 1, with $\sigma(0) = 0.5$ in the middle: no gap, coin flip. $\tau$ sets how many points of gap it takes to make the judge confident. I use $\tau = 2$.
+
+Here are four pairs the judge ruled on.
+
+```{python}
+#| label: pairs-plot
+#| fig-cap: "Four real pairs of clips. In each pair both clips start in the same cell, marked with a dot. The cells carry their names but not their scores, because the judge does not see scores. The line under each pair is for you, not the judge: what the two clips were truly worth, and how likely the judge was to pick A. The second pair is one the judge got wrong, and the fourth is a tie that the judge had to call anyway."
+SPECIAL = FIRES | {TREASURE, EXIT, MUD}
+def enters(clip, cells): return any(t[3] in cells for t in clip)
+def simple(clip):
+    cells = [clip[0][0]] + [t[3] for t in clip]
+    return len(set(cells)) == len(cells)
+def describe(clip):
+    names = {0: "up", 1: "down", 2: "left", 3: "right"}
+    ends = {TREASURE: "the treasure", EXIT: "the exit", MUD: "the mud"}
+    return ", ".join(names[a] + (" into fire" if ns in FIRES else f" into {ends[ns]}" if ns in ends else "")
+                     for s, a, r, ns, done in clip)
+
+wanted = {"fire": None, "mud": None, "treasure": None, "tie": None}
+# The machine's early rounds, before it has learned anything: it still walks like the people in the log.
+early_pairs = run_loop(1000, rounds=600, every=10**9)["pairs"]
+for k, a, b, said_a in early_pairs:
+    for a, b, said_a in ((a, b, said_a), (b, a, not said_a)):          # look at the pair both ways round
+        if not (simple(a) and simple(b)) or enters(b, SPECIAL) or len(a) != len(b):
+            continue
+        if wanted["fire"] is None and enters(a, FIRES) and len(a) == 1:
+            wanted["fire"] = (a, b, said_a)
+        elif wanted["mud"] is None and enters(a, {MUD}) and not enters(a, FIRES) and len(a) == 2 and said_a:
+            wanted["mud"] = (a, b, said_a)
+        elif wanted["treasure"] is None and enters(a, {TREASURE}) and len(a) == 2:
+            wanted["treasure"] = (a, b, said_a)
+        elif wanted["tie"] is None and not enters(a, SPECIAL) and len(a) == 3 and a[-1][3] != b[-1][3]:
+            wanted["tie"] = (a, b, said_a)
+assert all(v is not None for v in wanted.values()), wanted
+
+def draw_clip(ax, clip, color):
+    draw_grid(ax, hole_label=False, scores=False)
+    pts = [clip[0][0]] + [t[3] for t in clip]
+    xs = [c for r, c in pts]; ys = [N - 1 - r for r, c in pts]
+    ax.plot(xs, ys, color=color, linewidth=3, alpha=0.85, solid_capstyle="round", zorder=3)
+    ax.plot(xs[0], ys[0], "o", color=color, markersize=9, zorder=4)
+    ax.annotate("", xy=(xs[-1], ys[-1]), xytext=(xs[-2], ys[-2]),
+                arrowprops=dict(arrowstyle="-|>", color=color, lw=3, mutation_scale=18, shrinkA=0, shrinkB=0), zorder=5)
+
+ORDER = ("fire", "mud", "treasure", "tie")
+fig, axes = plt.subplots(len(ORDER), 2, figsize=(7.6, 4.1 * len(ORDER)))
+for row, key in enumerate(ORDER):
+    a, b, said_a = wanted[key]
+    pa, pb = clip_points(a), clip_points(b)
+    p_a = 1 / (1 + np.exp(-(pa - pb) / TAU))
+    for col, (clip, name, pts) in enumerate([(a, "A", pa), (b, "B", pb)]):
+        chosen = said_a == (col == 0)
+        draw_clip(axes[row, col], clip, OOS["amber"] if col == 0 else OOS["cyan"])
+        axes[row, col].set_title(f"Clip {name}: {describe(clip)}" + ("   ← judge chose this" if chosen else ""),
+                                 fontsize=8.5, color=OOS["accent"] if chosen else OOS["muted"], fontweight="bold" if chosen else "normal")
+    fig.text(0.5, 1 - (row + 0.985) / len(ORDER),
+             (f"Hidden from the judge: A is worth {pa:+.1f} points and B is worth {pb:+.1f}.\n"
+              f"The judge says A with probability σ({pa - pb:+.1f}/2) = {p_a:.2f}").replace("-", "−"),
+             ha="center", va="top", fontsize=9, color=OOS["muted"], linespacing=1.5)
+plt.tight_layout(h_pad=6.5)
+plt.show()
+```
+
+*First pair:* one clip steps into fire and the other does not. Nobody needs to be told which is worse. *Second pair:* one clip goes through the mud and the other does not, a gap of one point. The judge should prefer the clean one, and does so about five times in eight. **This is one of the other three.** I went looking for it, because this is what a fallible judge looks like up close. *Third pair:* one clip reaches the treasure. *Fourth pair:* the two clips are worth exactly the same. The judge has to pick one anyway, and the pick means nothing.
+
+So the same judge is very different on easy pairs and hard ones.
+
+```{python}
+#| label: percent-pairs
+md_table(pd.DataFrame({
+    "A pair that differs by": ["fire against an ordinary step", "through the mud against around it", "one step more against one step fewer"],
+    "Gap in points": [10.0, 1.0, 0.5],
+    "Judge picks the better one": [f"{1 / (1 + np.exp(-g / TAU)):.0%}" for g in (10.0, 1.0, 0.5)]}), fmt="{:.1f}")
+```
+
+No single verdict is reliable. Whatever the machine learns, it has to learn from the pile: over hundreds of pairs, the clean clip beats the muddy one more often than not.
+
+## The machine
+
+Where do the clips come from? The machine walks them itself.
+
+A clip is up to three steps from a cell. The machine sees where each step leads and whether the walk ended. **It never sees points.** Note the difference from the first post. Rungs 0 to 2 never touched the grid, and rung 3 had a verifier that reported the true points. This machine may walk, but walking tells it nothing about what is good. The only feedback it ever gets is a fallible judge choosing between two of its clips.
+
+It starts as the clone from rung 0, walking the way the people in the log walked. Then it goes round a loop. One round goes like this.
+
+- A starting cell is drawn from the log, and a length of one to three steps.
+- The machine walks four clips of that length from that cell. Three steps in ten are random, so that it tries things nobody has tried.
+- The judge compares every pair of clips that differ.
+
+Every 25 rounds the machine does two things. It turns all the verdicts so far into a reward, which is the next section. Then it re-runs rung 2 on every move made so far, the log's and its own, with that learned reward where the points used to be, and from then on it walks from the result. A run is 500 rounds, and I ran it ten times.
+
+## From verdicts to a reward
+
+The machine has a pile of verdicts and wants back what rung 2 had: a number for every move.
+
+Suppose it had some way of scoring a clip, $R(\text{clip})$. Then it could predict what the judge would say about any pair. If $R(A)$ is much bigger than $R(B)$ the judge should say A, and if they are close the judge should be near a coin flip:
+
+$$
+\Pr(A \succ B) = \sigma\big(R(A) - R(B)\big).
+$$
+
+This is the **Bradley–Terry model** [2]. It was invented in 1952 for ranking players from match results, which is our situation: we know who beat whom and want to know how good each one is. The machine picks the scoring that best predicts the verdicts the judge actually gave.
+
+Here $R$ is the simplest thing that can be printed and checked: a table with one number per cell, the reward for entering that cell. A clip's score is the sum over the cells it entered. In real RLHF, $R$ is a neural network, usually a copy of the language model with its last layer replaced by a single output [3]. The data and the goal are the same.
+
+One prior goes in before the fit: **steps are never free.** Every cell where the walk does not end is held at or below a small cost. A noisy judge will sometimes make an ordinary cell look free, and a machine that loses nothing by walking in circles will walk in circles forever. Real RLHF carries the same prior as a length penalty and a penalty for drifting from the starting model [3].
+
+Here is the fit, in code.
+
+```{python}
+#| label: reward-model
+#| echo: true
+#| output: false
+from scipy.optimize import minimize
+
+STEP_FLOOR = 0.05   # every cell where the walk goes on is worth at most -0.05
+
+def fit_reward(X, y, ends_walk, start=None, l2=1e-4):
+    """Bradley-Terry with a table for the reward: logistic regression, no intercept, solved
+    to convergence. Each row of X is one pair: x_i = times clip A entered cell i, minus
+    times clip B did. y is 1 if the judge chose A. `start` is the previous fit, if there
+    is one. The answer does not depend on it; it only saves time."""
+    def loss_and_grad(beta):
+        z = X @ beta
+        p = 1 / (1 + np.exp(-z))
+        loss = np.mean(np.logaddexp(0, z) - y * z) + 0.5 * l2 * beta @ beta
+        return loss, X.T @ (p - y) / len(y) + l2 * beta
+    ceiling = np.where(ends_walk, np.inf, -STEP_FLOOR)      # steps are never free
+    x0 = np.full(N_CELLS, -STEP_FLOOR) if start is None else start.ravel()
+    x0 = np.minimum(x0, ceiling)
+    res = minimize(loss_and_grad, x0, jac=True, method="L-BFGS-B",
+                   bounds=[(None, None if np.isinf(c) else c) for c in ceiling],
+                   options={"maxiter": 10000, "gtol": 1e-10})
+    return res.x.reshape(N, N)
+```
+
+## The result
+
+```{python}
+#| label: main-run
+#| output: false
+SEEDS = [1000 + k for k in range(10)]
+CHECK = [50, 100, 150, 200, 300, 400, 500]
+BEST_HUMAN = best_episode                              # 4.0: the best any of the 600 people scored
+
+def year(**settings):
+    return [run_loop(sd, **settings) for sd in SEEDS]
+
+def at(runs, column, p):
+    return np.array([float(r["history"].set_index("rounds")[column][p]) for r in runs])
+
+def progress(runs, check=CHECK):
+    return pd.DataFrame({
+        "rounds": check,
+        "verdicts so far": [int(round(at(runs, "verdicts", p).mean())) for p in check],
+        "runs that beat every human": [int((at(runs, "score", p) > BEST_HUMAN).sum()) for p in check],
+        "runs on the best possible route": [int((at(runs, "score", p) >= OPTIMAL_SCORE).sum()) for p in check]})
+
+def side_by_side(a, b, name_a, name_b):
+    pa, pb = progress(a), progress(b)
+    return pd.DataFrame({"rounds": CHECK,
+                         f"beat every human, {name_a}": pa["runs that beat every human"], f"beat every human, {name_b}": pb["runs that beat every human"],
+                         f"best route, {name_a}": pa["runs on the best possible route"], f"best route, {name_b}": pb["runs on the best possible route"]})
+
+def judge_right(runs):
+    return float(np.mean([r["history"]["judge right"].iloc[-1] for r in runs]))
+
+main = year()
+print(f"Loop, {len(SEEDS)} runs of 500 rounds. The judge picked the truly better clip on {judge_right(main):.0%} of the pairs that had one.")
+print(f"Verdicts per run: {int(round(at(main, 'verdicts', 500).mean()))}. Scores after 500 rounds: {sorted(at(main, 'score', 500).tolist())}")
+print(f"Humans: best {BEST_HUMAN:.1f}, average {human_average:.2f}. Rung 2 in the first post: {score_outcomes:.1f}. Best possible: {OPTIMAL_SCORE:.1f}")
+print("Run 1 route: " + route_str(main[0]["path"]))
+```
+
+We grade the machine the way we graded every rung: the true score of its best route on the real grid. The machine never sees that grade. Here is where the ten runs stood as the rounds went by.
+
+```{python}
+#| label: main-table
+md_table(progress(main))
+```
+
+```{python}
+#| label: main-plot
+#| fig-cap: "Left: the machine's route after 500 rounds in the first run (green), against the route the humans were taught (thin blue). It goes through the cell no human recording ever entered. Right: of ten runs, how many had beaten every human, and how many had found the best possible route, after each refit."
+def counts_over_time(runs, bar):
+    h = [r["history"].set_index("rounds").score for r in runs]
+    return h[0].index.values, np.array([sum(float(x[p]) > bar for x in h) for p in h[0].index])
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10.2, 4.7), gridspec_kw={"width_ratios": [1, 1.2]})
+draw_grid(ax1, f"After 500 rounds: {at(main, 'score', 500)[0]:.1f} points")
+draw_route(ax1, path_consensus, OOS["cyan"], lw=1.4)
+draw_route(ax1, main[0]["path"], OOS["accent"], lw=3.6)
+xs, beat = counts_over_time(main, BEST_HUMAN)
+_, top = counts_over_time(main, OPTIMAL_SCORE - 0.01)
+ax2.step(xs, beat, where="post", color=OOS["cyan"], linewidth=2, label="beat every human (more than 4.0)")
+ax2.step(xs, top, where="post", color=OOS["accent"], linewidth=2, label="on the best possible route (6.0)")
+ax2.set_xlabel("rounds"); ax2.set_ylabel("runs, out of 10"); ax2.set_ylim(-0.3, 10.3); ax2.set_yticks(range(0, 11, 2))
+ax2.set_title("Ten runs"); ax2.legend(loc="lower right", fontsize=8, frameon=False)
+plt.tight_layout()
+plt.show()
+```
+
+**By 300 rounds every one of the ten runs had beaten every human, and by 400 rounds nine of the ten were on the best possible route, worth 6.0.** The judge picked the truly better clip on 85% of the pairs that had one. On the rest, and on every tie, the verdict was noise.
+
+Rung 2 in the first post had perfect points and scored 5.0. This machine had no points, only a judge who is sometimes wrong, and it went past 5.0. The reason is that it walked its own clips, and some of them went through the cell no human recording ever entered. The judge did not mind those clips. So the machine learned that the unknown cell is an ordinary cell, and the short route through it became available.
+
+Here is the reward the machine learned in the first run, next to the truth.
+
+```{python}
+#| label: reward-table
+def learned_reward(run):
+    beta, X = run["beta"], run["X"]
+    judged = [k for k in range(N_CELLS) if (X[:, k] != 0).any()]
+    plain = [k for k in judged if divmod(k, N) not in SPECIAL and divmod(k, N) != HOLE]
+    fires = [k for k in judged if divmod(k, N) in FIRES]
+    flat = beta.ravel()
+    return pd.DataFrame({
+        "Entering": ["an ordinary cell", "the mud", "the exit", "a fire cell", "the treasure", "the unknown cell"],
+        "True points": [STEP_COST, MUD_COST + STEP_COST, 1 + STEP_COST, -10 + STEP_COST, 10 + STEP_COST, STEP_COST],
+        "True ÷ τ": np.array([STEP_COST, MUD_COST + STEP_COST, 1 + STEP_COST, -10 + STEP_COST, 10 + STEP_COST, STEP_COST]) / TAU,
+        "Learned": [float(np.median(flat[plain])), beta[MUD], beta[EXIT], float(np.mean(flat[fires])), beta[TREASURE], beta[HOLE]]})
+md_table(learned_reward(main[0]))
+```
+
+The order is right everywhere: fire far below mud, mud below an ordinary step, the treasure far above everything. The sizes are in the judge's units, not the world's. They sit near the true points divided by $\tau$, because a verdict says which clip was better and never by how much. None of that changes the route, since rung 2 only asks which total is bigger.
+
+## How wrong can the judge be?
+
+Take the same judge and reverse some of the verdicts at random: 10%, 20%, 30% of them. That is a careless judge.
+
+```{python}
+#| label: careless
+#| output: false
+FLIPS = [0.0, 0.1, 0.2, 0.3]
+careless4 = {0.0: main}
+for flip in FLIPS[1:]:
+    careless4[flip] = year(flip=flip)
+careless8 = {flip: year(flip=flip, clips=8) for flip in FLIPS}
+for name, group in [("4 clips", careless4), ("8 clips", careless8)]:
+    for flip in FLIPS:
+        runs = group[flip]
+        print(f"{name}, flip {flip:.0%}: judge right {judge_right(runs):.0%}; verdicts {int(round(at(runs, 'verdicts', 500).mean()))};  beat every human after "
+              + ", ".join(f"{p}: {int((at(runs, 'score', p) > BEST_HUMAN).sum())}" for p in CHECK)
+              + f";  on 6.0 after 500: {int((at(runs, 'score', 500) >= OPTIMAL_SCORE).sum())};  scores after 500: {sorted(at(runs, 'score', 500).tolist())}")
+```
+
+```{python}
+#| label: careless-plot
+#| fig-cap: "The same loop with judges of decreasing reliability. Each line counts, out of ten runs, how many had beaten every human after that many rounds. Left: four clips per round. Right: eight clips per round, which gives the judge about five times as many pairs to rule on. With four clips the four judges are right 85%, 76%, 69% and 62% of the time. With eight they are right 85%, 77%, 70% and 63% of the time."
+fig, axes = plt.subplots(1, 2, figsize=(10.2, 4.6), sharey=True)
+for ax, (name, group) in zip(axes, [("4 clips per round", careless4), ("8 clips per round", careless8)]):
+    for flip, color in zip(FLIPS, [OOS["accent"], OOS["cyan"], OOS["amber"], OOS["red"]]):
+        xs, beat = counts_over_time(group[flip], BEST_HUMAN)
+        ax.step(xs, beat, where="post", color=color, linewidth=2,
+                label="no verdicts reversed" if flip == 0 else f"{flip:.0%} of verdicts reversed")
+    ax.set_title(name); ax.set_xlabel("rounds"); ax.set_ylim(-0.3, 10.3); ax.set_yticks(range(0, 11, 2))
+axes[0].set_ylabel("runs that beat every human, out of 10")
+handles, labels = axes[0].get_legend_handles_labels()
+fig.legend(handles, labels, loc="lower center", ncol=4, fontsize=8.5, frameon=False)
+plt.tight_layout(rect=(0, 0.07, 1, 1))
+plt.show()
+```
+
+With four clips per round, carelessness hurts quickly. A judge who is right 76% of the time gets seven of ten runs past the humans in 500 rounds. Below 70%, one run in ten makes it.
+
+But the machine is short of verdicts, and clips are free. So have it walk eight clips per round. Eight clips make up to 28 pairs, and the judge rules on about five times as many. Now a judge who is right 77% of the time gets all ten runs past the humans by 400 rounds, and a judge who is right 70% of the time gets all ten there by 500. Even a judge who is right only 63% of the time gets seven of ten there.
+
+**Noise is paid for in verdicts.** A noisier judge needs more of them to say the same thing, and the cost of that is the judge's time, not the machine's.
+
+When a run fails, it fails safe. The machine takes the exit, two steps from the start, and scores 0.0. It does not walk into fire.
+
+## What the judge cannot see
+
+Carelessness is random, and random error washes out. A blind spot is not random.
+
+```{python}
+#| label: blind
+#| output: false
+blind = year(blind_to_mud=True)
+def mud_extra(run):
+    t = learned_reward(run).set_index("Entering")["Learned"]
+    return t["the mud"] - t["an ordinary cell"]
+def through_mud(runs):
+    return sum(int((r["history"].score == PLAN_SCORE).sum()) for r in runs)
+print(f"Blind judge: mud's learned extra cost {np.mean([mud_extra(r) for r in blind]):+.2f} (sighted judge {np.mean([mud_extra(r) for r in main]):+.2f}; target {MUD_COST / TAU:+.2f}); "
+      f"scores after 500: {sorted(at(blind, 'score', 500).tolist())}; "
+      f"checks at which the machine's best route was the loop through the mud: blind {through_mud(blind)}, sighted {through_mud(main)} (of {20 * len(SEEDS)} each)")
+```
+
+Give the judge full attention but no perception of the mud. To this judge, a clip through the mud is as good as a clip around it. The machine's learned cost for the mud, over an ordinary step, comes out at +0.13. With the sighted judge it was −0.62, against a target of −0.5. The machine has learned that the mud does not matter.
+
+It shows on the way up. Each run is checked 20 times, so ten runs give 200 checks. With the blind judge, the machine's best route was the humans' loop straight through the mud at 20 of them. With the sighted judge that never happened once. In the end the blind judge's machine still found the 6.0 route in nine runs of ten, the same as the sighted judge's, but only because that route does not pass the mud. Where the blind spot touched the answer, the answer was wrong.
+
+**What the judge cannot see, the machine will not avoid.** More verdicts do not fix that, and neither do more clips.
+
+## Does it need the log at all?
+
+One more run. Take away the log.
+
+The machine now starts with nothing. It has never seen a human walk, and its first clips are random moves. With no log to supply starting cells, each round starts from a cell the machine has already stood on, which at first is only the start. Everything else is the same: four clips per round, the plain judge, 500 rounds, ten runs.
+
+```{python}
+#| label: no-log
+no_log = year(use_log=False)
+md_table(side_by_side(main, no_log, "with the log", "without the log"))
+```
+
+All ten runs end on the best possible route, and they get there sooner than they did with the log. A machine with no points and no recordings, and nothing but a judge who is wrong some of the time, found the best possible route.
+
+## Back to the analyst
+
+Now the fund. In a hedge fund today, analysts pitch stocks and the portfolio manager says yes or no. The PM does not write the pitch. The PM judges it. Every fund already has that judge.
+
+Here is what each part of the grid stands for.
+
+| On the grid | In the fund |
+|---|---|
+| The log of 600 recorded walks | The archive of old pitches |
+| A cell | A stock at a moment, with the analyst's notes on it |
+| A clip: one to three steps from a cell | A section of a pitch |
+| The machine walking a clip | The machine writing a version of a section |
+| The judge choosing between two clips | The PM choosing between two sections |
+| The learned reward table | A model of the PM's taste |
+| The machine's best route | The pitch it would write |
+| The true points | The P&L |
+
+And here is the loop, as a blueprint.
+
+1. **Start by imitating.** Fine-tune a model on the firm's archive of old pitches, so that it writes like the firm's analysts. Every firm has that archive. On the grid this was the clone from rung 0.
+2. **A human gathers, the machine writes.** An analyst still does the legwork a machine cannot: talking to management and to the sell side, collecting the data points, keeping notes. Then, from that same set of notes, the machine writes several versions of each section of the pitch.
+3. **The PM judges pairs.** The PM is shown two versions of the same section and says which is better.
+4. **Learn the PM's taste, and write toward it.** Then go back to step 2.
+
+### One pair, as the PM would see it
+
+To make that concrete, here is one pair. A pitch is built from sections: a recommendation, a business description, numbered thesis points, a valuation, a list of risks. These are two versions of one section, the first point of an investment thesis on Carlisle Companies (NYSE: CSL).
+
+One of them was written by people. It comes from a pitch by three Columbia Business School students, Tuan Nguyen, Erik Listoe and Dimitry Karavaikin, which took first place in the 18th Annual Pershing Square Challenge in 2025 [8]. The full pitch is on page 36 of the Spring 2025 issue of [*Graham & Doddsville*](https://business.columbia.edu/sites/default/files-efs/imce-uploads/Graham_Doddsville_Spring_2025_Issue_.pdf#page=36), the school's investment newsletter. The other was written by an LLM (Claude), which was given that one section of the pitch, charts included, and nothing else. It checked nothing and it adds no fact of its own. This is step 2 of the blueprint only: no PM has judged anything and nothing has been learned.
+
+I am not going to say which is which. Both are set in the same type, and the students' two charts are left out, so that nothing differs but the writing. Neither version is research, and neither is investment advice.
+
+```{=html}
+<figure class="wide">
+<div style="display:flex; flex-wrap:wrap; gap:16px; align-items:flex-start;">
+<div style="flex:1 1 380px; min-width:300px;">
+<div style="font: 600 11px/1.4 ui-monospace, monospace; letter-spacing:.08em; text-transform:uppercase; margin:0 0 6px;">Version A</div>
+<div style="background:#fff; color:#111; font-family:'Gill Sans','Gill Sans MT',Calibri,'Trebuchet MS',sans-serif; font-size:13px; line-height:1.38; padding:10px 14px 12px; text-align:left;">
+<div style="font-weight:700; text-decoration:underline; color:#111;">Investment Thesis:</div>
+<div style="color:#111; font-weight:700;">I. Significant pent-up demand for reroofing and continued increase in insulation content per sqft of roof will drive revenue growth beyond consensus expectations and management guidance</div>
+<ul style="margin:8px 0 0; padding-left:18px; color:#111;">
+<li style="color:#111; margin:0 0 5px;">Management guides 5%+ organic revenue growth through 2030 while sell-side consensus is modeling 4.5-5% revenue growth with only 2-3% total growth for 2025. After conducting value added-research, attending 3 industry trade shows and speaking to over 80 people across the value chain, we believe CSL will grow organically by at least 6% per year over the next 5 years.</li>
+<li style="color:#111; margin:0 0 5px;">The lifespan and warranty of a typical commercial roof is 20-30 years. We conducted a granular analysis of EIA survey microdata and identified a spike in commercial construction spending in the late '90s and 2000s. Buildings constructed during this period comprise ~1/3 of the commercial building stock today and have roofs that are either at or past the end of their useful lives. COVID restrictions (combined with labor and material shortages) resulted in project deferrals and prevented re-roofing. Our analysis suggests pent-up re-roofing demand can add 1-2% volume growth above and beyond base volumes.</li>
+<li style="color:#111; margin:0 0 5px;">Increasingly stringent energy codes in the US are expanding requirements for building insulation. Since 2013, insulation content per sqft of installed roof has increased by ~50%, with polyiso insulation volumes growing at 10% per year. This trend is not driven purely by regulation as increased roofing insulation leads to significant energy savings and becomes a positive financial decision for building owners. We estimate insulation accounts for 1/3 of CCM segment revenue and is poised to grow at HSD rates, well ahead of organic growth guidance.</li>
+<li style="color:#111; margin:0 0 5px;">Tracking the core over time, on our best historical through-cycle estimate, CSL has grown volumes at ~6% organically, ahead of both guidance and what is priced in, over a period with negative price impact.</li>
+</ul>
+</div>
+</div>
+<div style="flex:1 1 380px; min-width:300px;">
+<div style="font: 600 11px/1.4 ui-monospace, monospace; letter-spacing:.08em; text-transform:uppercase; margin:0 0 6px;">Version B</div>
+<div style="background:#fff; color:#111; font-family:'Gill Sans','Gill Sans MT',Calibri,'Trebuchet MS',sans-serif; font-size:13px; line-height:1.38; padding:10px 14px 12px; text-align:left;">
+<div style="font-weight:700; text-decoration:underline; color:#111;">Investment Thesis:</div>
+<div style="color:#111; font-weight:700;">I. Old roofs and thicker insulation put revenue growth above consensus and above guidance</div>
+<ul style="margin:8px 0 0; padding-left:18px; color:#111;">
+<li style="color:#111; margin:0 0 5px;"><b style="color:#111; font-weight:700;">The gap.</b> Management guides to 5%+ organic growth through 2030. The sell side models 4.5-5%, and only 2-3% total growth for 2025. We expect at least 6% a year for the next 5 years.</li>
+<li style="color:#111; margin:0 0 5px;"><b style="color:#111; font-weight:700;">Roofs wear out on a schedule.</b> A commercial roof lasts 20-30 years. Construction spending spiked in the late '90s and 2000s, and buildings from those years are ~1/3 of today's commercial stock. Their roofs are at or past the end of their useful lives. Over 90% of reroofing demand is non-discretionary.</li>
+<li style="color:#111; margin:0 0 5px;"><b style="color:#111; font-weight:700;">COVID deferred the work. It did not cancel it.</b> Restrictions and shortages of labor and material pushed projects out. We estimate the catch-up adds 1-2% to volume growth above base volumes.</li>
+<li style="color:#111; margin:0 0 5px;"><b style="color:#111; font-weight:700;">Each roof carries more insulation.</b> Insulation content per sqft of installed roof is up ~50% since 2013, and polyiso volumes are growing 10% a year. Energy codes are part of it, but the energy savings make it a positive financial decision for the owner, so the trend does not depend on regulation. Insulation is ~1/3 of CCM revenue and should grow at HSD rates.</li>
+<li style="color:#111; margin:0 0 5px;"><b style="color:#111; font-weight:700;">The history agrees.</b> Through the cycle, CSL has grown volumes ~6% organically, over a period when price was a headwind. Our 6% is what the business has already done.</li>
+<li style="color:#111; margin:0 0 5px;"><b style="color:#111; font-weight:700;">Sources.</b> Three industry trade shows, conversations with over 80 people across the value chain, and EIA survey microdata on the building stock.</li>
+</ul>
+</div>
+</div>
+</div>
+<figcaption>One pair. One version is from <em>Graham &amp; Doddsville</em>, Spring 2025, page 36, retyped without its two charts. The other was written by an LLM from that section alone.</figcaption>
+</figure>
+```
+
+Same stock, same moment, same information, two versions of one section. Which is the better piece of analysis? That one choice is all the blueprint asks of the PM, a few hundred times over.
+
+### We never needed the P&L
+
+Look at the last row of the table. On the grid the machine never saw a single point, and it still found the route worth the most points. In the fund that means the machine never sees a P&L. Nothing is traded, on paper or otherwise, and nobody waits a quarter for a thesis to play out. All the machine needs is the PM's choice between two sections, and a PM can make hundreds of those in the time one thesis takes to resolve.
+
+### Why the same stock, and why sections
+
+On the grid both clips in a pair started from the same cell. In the fund that is the same stock at the same moment. A fund has one analyst on a stock at a time, so nothing in the archive can be compared with a given pitch. The comparison has to be manufactured, and the machine can manufacture it for free.
+
+Why short clips and not whole walks? Here I have to be straight about what the grid shows. I ran the loop with whole walks in place of clips, and it worked better: all ten runs beat every human within 100 rounds. But that is because my simulated judge reads a forty-step walk as easily and as reliably as a three-step clip. A person does not. Comparing two whole pitches takes a PM far longer than comparing two paragraphs, and the verdict is still one bit, now spread over a hundred differences. Short sections keep the judge fast and the bit about something. The paper that introduced learning from human preferences showed its raters clips of one to two seconds, to make the most of their time [4].
+
+```{python}
+#| label: whole-walks
+#| output: false
+whole = year(whole_walks=True)
+print(f"Whole walks: judge right {judge_right(whole):.0%}; verdicts {int(round(at(whole, 'verdicts', 500).mean()))}; beat every human after "
+      + ", ".join(f"{p}: {int((at(whole, 'score', p) > BEST_HUMAN).sum())}" for p in CHECK)
+      + f"; on 6.0 after 500: {int((at(whole, 'score', 500) >= OPTIMAL_SCORE).sum())}")
+```
+
+And every version rests on the same information, the analyst's notes. The machine is not asked to find things out. It is asked to do better analysis with what has been found out.
+
+### The analyst's own section in the pile
+
+The analyst writes a pitch anyway, so it costs nothing to add the analyst's own section to the pile. I ran that on the grid: in every round a person from the same crowd also walks a clip from the same cell, and the judge compares it with the machine's four.
+
+```{python}
+#| label: with-human
+with_human = year(person_too=True)
+md_table(side_by_side(main, with_human, "machine clips only", "plus a person's clip"))
+```
+
+It did not help. All ten runs still beat every human, a little later, and fewer of them found the best possible route within 500 rounds. The person's clip never goes through the unknown cell, so it adds verdicts about ground that is already well covered. In this blueprint the human's value is the information, not the draft.
+
+### What "right 76% of the time" means for a PM
+
+The best equity analysts are right about stocks a little more than half the time. That is a different quantity. It asks whether judgment predicts outcomes. The percentage on the grid asks something smaller: **when the PM makes a quick call about which of two sections is the better piece of analysis, how often does that match the call they would make with unlimited time and care?** It is a measure of consistency, and it can be measured without knowing whether the stock went up.
+
+Show the PM the same pair twice, a few weeks apart, and count how often the two verdicts agree. If the errors are independent from one showing to the next, that agreement rate converts to the percentage on the grid.
+
+```{python}
+#| label: percent-retest
+md_table(pd.DataFrame({
+    "Judge picks the better one": [f"{a:.0%}" for a in (0.60, 0.65, 0.70, 0.75, 0.80, 0.85)],
+    "Judge agrees with their own earlier verdict": [f"{a * a + (1 - a) ** 2:.0%}" for a in (0.60, 0.65, 0.70, 0.75, 0.80, 0.85)]}))
+```
+
+A judge at 60% is barely distinguishable from a coin on a retest. For reference, in OpenAI's InstructGPT paper the people who rated model outputs agreed with one another about 73% of the time [3]. Under the same arithmetic that puts each of them near 85%, which is where the plain judge on the grid sits. A fund would measure its own number with a pilot of a few hundred pairs before training anything.
+
+The blind judge carries over too. A machine trained this way becomes superhuman at what the PM values, and it inherits everything the PM systematically misses. A careless PM costs verdicts. A PM with a blind spot costs the answer.
+
+### Who judges, and why would they try?
+
+The grid's judge is tireless and honest. A person is neither, and this is where I think the real obstacle is.
+
+The AI labs use contractors, paid by the hour or by the task. Quality is enforced with a screening test, written guidelines, planted items with a known right answer, several raters on the same item, and removal of raters who fail. Nobody is paid on whether the model turns out better. It is a floor on carelessness.
+
+A fund is in a harder position. Step 4 produces two things: the writer, and the model of the PM's taste. **The second is a fitted copy of the judge.** A PM who judges carefully is helping to replace the analysts and is also putting their own judgment into a file that belongs to the firm. The incentive to do it well is negative. And the P&L cannot referee: both sections in a pair are about the same stock, so they share one outcome.
+
+So the judge cannot be assumed to be trying. A careless judge clicks through. That is random error, which the grid tolerates up to a point, and which repeated pairs detect. A sandbagging judge deliberately picks the worse section, consistently. That is worse than noise, because it pushes the machine the wrong way, and repeats do not catch it.
+
+Planted pairs catch both: now and then, show a pair in which one section has a known flaw, such as a wrong number or a misread of guidance. If anyone's pay is cut for bad judging, it should be cut for failing those. It should not be cut for disagreeing with other judges. Paying for agreement rewards conformity, and the model then learns the committee's shared blind spots.
+
+That leaves the incentive. I see three options: hire outside judges with no stake, as the labs in effect do; give the judges a share of what the model produces; or use insiders, audit hard, and accept losing some signal. The grid cannot choose among these. The method tolerates an imperfect judge. It needs a judge who is trying.
+
+### Making it cheaper
+
+The grid experiment is the plain version: random pairs, one bit per verdict, one judge. A real fund would do better, because the scarce thing is the judge's time. Four ways to get more out of each minute of it:
+
+1. **Choose which pairs to show.** Many random pairs are near-duplicates that teach nothing. Show the judge the pairs the taste model is least sure about.
+2. **Ask for a ranking, or for strength.** One ranking of five sections carries about as much as ten pairwise verdicts. "Much better" against "slightly better" says how big the gap is.
+3. **Use several judges, weighted by reliability.** Estimate each judge's reliability from planted and repeated pairs and weight their verdicts by it.
+4. **Explore on purpose.** The machine on the grid takes a random step three times in ten. Steering those tries toward what the taste model knows least about would find the unknown cell sooner. In a fund: have the machine deliberately write some versions that take an approach no analyst has used.
+
+<div class="note">
+
+**RLHF is not the only way to use pairs.** Direct preference optimization (DPO) trains the writer on the same pairs without a separate reward model [5]. It rests on the same Bradley–Terry assumption and is simpler to run. Neither method adds information. Everything either one can learn is in the judge's verdicts, which is why the four items above matter more than the choice between them.
+
+</div>
+
+## How little human it takes
+
+Go back to the run without the log. That machine was not shown a single thing a human had done. It needed a person only to say which of two clips was better.
+
+Two caveats, and they are large. First, the grid has 25 cells, and random clips cover it quickly. A language model cannot start from random text, because the space is too large for random writing to say anything a judge could rule on. That is what the archive, and pre-training before it, are for. The blueprint still starts with step 1. Second, on the grid there is nothing to find out. In a fund somebody has to go and get the information, and for now that is a person.
+
+So the fund's version keeps two people: one who gathers, and one who judges. Neither of them has to be able to write the pitch the machine ends up writing.
+
+If you take away only one thing from this post, I want it to be the same thing as last time: **what humans know is not the limit of what a machine can learn from them.**
+
+```{python}
+#| label: qa
+#| output: false
+for name, runs in [("plus a person's clip", with_human), ("without the log", no_log)]:
+    print(f"{name}: judge right {judge_right(runs):.0%}; verdicts {int(round(at(runs, 'verdicts', 500).mean()))}; scores after 500: {sorted(at(runs, 'score', 500).tolist())}")
+```
+
+<div class="note">
+
+**What this is.** A thought experiment in a toy world. The people, the judge and the machine are all simulated, and a 25-cell grid is not a stock. The experiment shows that the mechanism works where every piece of it can be printed and checked. It does not show how well it would work in a fund.
+
+</div>
+
+## References
+
+**Source.** The notebook that produced every number and figure in this post is [in the blog's repository](https://github.com/marketneutral/marketneutral.github.io/blob/main/notebooks/2026-11-12-bootstrapping-an-analyst.qmd). The world, the crowd and rung 2 are rebuilt at the top, identically to the first post, and the comment there records every setting.
+
+1. Larkin, J. (2026). *How LLM-based AI beats its human teachers.* [/posts/exceed-training-data/](https://marketneutral.github.io/posts/exceed-training-data/)
+2. Bradley, R. A., & Terry, M. E. (1952). *Rank Analysis of Incomplete Block Designs: I. The Method of Paired Comparisons.* Biometrika 39, 324–345.
+3. Ouyang, L., et al. (2022). *Training language models to follow instructions with human feedback.* NeurIPS 2022. <https://arxiv.org/abs/2203.02155>
+4. Christiano, P., Leike, J., Brown, T., Martic, M., Legg, S., & Amodei, D. (2017). *Deep Reinforcement Learning from Human Preferences.* NeurIPS 2017. <https://arxiv.org/abs/1706.03741>
+5. Rafailov, R., Sharma, A., Mitchell, E., Ermon, S., Manning, C. D., & Finn, C. (2023). *Direct Preference Optimization: Your Language Model is Secretly a Reward Model.* NeurIPS 2023. <https://arxiv.org/abs/2305.18290>
+6. Aaronson, S. (2006). *Reasons to believe.* Shtetl-Optimized. <https://scottaaronson.blog/?p=122>
+7. Stiennon, N., Ouyang, L., Wu, J., Ziegler, D. M., Lowe, R., Voss, C., Radford, A., Amodei, D., & Christiano, P. (2020). *Learning to summarize from human feedback.* NeurIPS 2020. <https://arxiv.org/abs/2009.01325>
+8. Nguyen, T., Listoe, E., & Karavaikin, D. (2025). *Carlisle Companies (NYSE: CSL) - Long.* First place, 18th Annual Pershing Square Challenge, Columbia Business School, 2025. Published in *Graham & Doddsville*, Spring 2025, pages 36 and 37. <https://business.columbia.edu/sites/default/files-efs/imce-uploads/Graham_Doddsville_Spring_2025_Issue_.pdf>

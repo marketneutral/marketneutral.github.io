@@ -1,0 +1,391 @@
+---
+title: Bootstrapping a superhuman buyside equity analyst
+date: 2026-11-12T00:00:00.000Z
+tag: ESSAY
+description: What humans know is not the limit of what a machine can learn from them.
+jupyter: python3
+execute:
+  echo: false
+  warning: false
+  message: false
+fig-format: svg
+---
+
+This post builds on [the previous one](https://marketneutral.github.io/posts/exceed-training-data/), and it assumes you have read it. There I built a 5×5 grid, simulated six hundred people crossing it badly, and deployed four machines of increasing complexity to learn from the recording of those walks. I called the levels of complexity rungs on a ladder, from 0 to 3. The best person scored 4.0. The machine on rung 2 only read the recorded log of human trials, and learned to score 5.0. The machine on rung 3 was allowed to try moves for itself and scored 6.0, the best possible. To connect these ideas to the “real world”, the rungs map to how frontier LLMs are built: rung 0 is LLM pretraining, rung 1 is low-temperature decoding, rung 2 is RLHF, and rung 3 is RLVR. An astonishing takeaway from the prior post that I want you to keep in mind: **Our machine at rung 2 achieved superhuman performance just from learning from faulty human demonstrations.** I ended the post touching on fundamental investing, and I was careful about it.
+
+<div class="callout">
+This post is a thought experiment with an experiment attached: how would you build an equity analyst that is better than every analyst it learned from?
+</div>
+
+If you have been paying attention, your obvious answer is “**RLVR, rung 3**! Let the machine reason about the world as it is and make investment decisions and learn from how they turn out. No real investment capital needed: just paper trade it.” But grading in this way is very slow and noisy. An investment thesis takes months to quarters to play out, and the clock cannot be run faster. A good decision can lose money while a bad one makes it: telling an analyst who is right 55% of the time from a coin flip takes about 400 independent calls. And no, you can’t backtest this, because a language model has already read how the past turned out. Rung 3 needs only a verdict at the end, but it needs a great many of them, and here they arrive a few at a time.
+
+What about **RLHF**, rung 2? We saw in the previous post that this rung, although not as good as rung 3, still beat all the humans. Can we apply the rung 2 ideas to bootstrapping a superhuman equity analyst? I believe we can, and that’s what this post is about.
+
+## Evaluation is easier than creation
+
+A foundational idea for what follows is that **it is easier to tell which of two things is better than to produce the better thing in the first place.**
+
+The cleanest statement of the gap is in computer science. For a huge class of problems a proposed answer can be checked quickly, while finding the answer seems to be far harder. Whether that gap is real is the P versus NP question, and nearly everyone in the field believes it is. Scott Aaronson described the world we would live in without it \[6\]:
+
+> “There would be no special value in ‘creative leaps,’ no fundamental gap between solving a problem and recognizing the solution once it’s found. Everyone who could appreciate a symphony would be Mozart; everyone who could follow a step-by-step argument would be Gauss; everyone who could recognize a good investment strategy would be Warren Buffett.”
+
+We do not live in that world.
+
+Christiano and co-authors trained machines from “(non-expert) human preferences between pairs of trajectory segments,” and taught them “complex novel behaviors with about an hour of human time” \[4\]. One of those behaviors was a backflip by a simulated robot. Nobody wrote down what a good backflip is, and nobody demonstrated one. A person watched pairs of short clips and picked the better one, [about 900 times](https://openai.com/index/learning-from-human-preferences/).
+
+And it has been measured in language. Stiennon and co-authors collected human comparisons between summaries, trained a model on them, and reported that “our models significantly outperform both human reference summaries and much larger models fine-tuned with supervised learning alone” \[7\]. The raters only compared summaries. The model that came out wrote better ones than the people did.
+
+## Back to the grid
+
+I need you to forget about investing for a moment. For now we go back to the grid, and only the grid: no analysts, no PMs, no hedge funds. Bear with me: it’s necessary and worth it. In the gray “pull quote” about rung 2 vs. RLHF in the prior post, I conceded that the analogy isn’t perfect. So, let’s make the analogy map tightly. Rung 2 had perfect reward information at every step. That’s unrealistic in real-world RLHF. Here is what we do: I take away the one advantage rung 2 had, give the machine a **judge who makes mistakes**, and show that the machine, learning from a fallible judge, still gets past every human. Then I come back to the fund and say which part of the grid stands for what.
+
+First, a reminder of what RLHF is. People are shown two of a model’s answers and say which is better. A second model learns to predict those preferences, and the language model is tuned toward answers that score well.
+
+Now the advantage. Every row of the log on rung 2 looked like this:
+
+$$
+(\text{cell},\ \text{direction},\ \text{points},\ \text{next cell}).
+$$
+
+The third entry was a number the world handed over: −0.5 for a step, −1.5 for the mud, +9.5 for the treasure. **Rung 2 had a perfect reward.** All it had to do was add those numbers up along the best path. Nobody hands a language model the points for an essay. What people can give is a preference: this one is better than that one. And people are sometimes wrong.
+
+## The judge
+
+The judge is shown two **clips** and says which one went better. A clip is one, two or three consecutive steps on the grid, and the two clips in a pair always start from the same cell.
+
+The judge can see what happened in a clip but does not know the scoring rules. What registers is roughly how well it went, and I model that as the clip’s true points. The judge does not know that number. The judge has a feeling that tracks it, and the feeling is **surer when the gap is bigger**. Let $g$ be the gap in true points between clip A and clip B, positive if A was better. The judge says “A” with probability
+
+$$
+\Pr(\text{judge says } A) = \sigma\!\left(\frac{g}{\tau}\right), \qquad \sigma(x) = \frac{1}{1 + e^{-x}}.
+$$
+
+$\sigma$ squashes any number into the range 0 to 1, with $\sigma(0) = 0.5$ in the middle: no gap, coin flip. $\tau$ sets how many points of gap it takes to make the judge confident. I use $\tau = 2$.
+
+Here are four pairs the judge ruled on.
+
+<figure class="diagram">
+<img src="2026-11-12-bootstrapping-an-analyst_files/figure-commonmark/pairs-plot-output-1.svg" alt="Four real pairs of clips. In each pair both clips start in the same cell, marked with a dot. The cells carry their names but not their scores, because the judge does not see scores. The line under each pair is for you, not the judge: what the two clips were truly worth, and how likely the judge was to pick A. The second pair is one the judge got wrong, and the fourth is a tie that the judge had to call anyway.">
+<figcaption>Four real pairs of clips. In each pair both clips start in the same cell, marked with a dot. The cells carry their names but not their scores, because the judge does not see scores. The line under each pair is for you, not the judge: what the two clips were truly worth, and how likely the judge was to pick A. The second pair is one the judge got wrong, and the fourth is a tie that the judge had to call anyway.</figcaption>
+</figure>
+
+*First pair:* one clip steps into fire and the other does not. Nobody needs to be told which is worse. *Second pair:* one clip goes through the mud and the other does not, a gap of one point. The judge should prefer the clean one, and does so about five times in eight. **This is one of the other three.** I went looking for it, because this is what a fallible judge looks like up close. *Third pair:* one clip reaches the treasure. *Fourth pair:* the two clips are worth exactly the same. The judge has to pick one anyway, and the pick means nothing.
+
+So the same judge is very different on easy pairs and hard ones.
+
+| A pair that differs by | Gap in points | Judge picks the better one |
+|----|----|----|
+| fire against an ordinary step | 10.0 | 99% |
+| through the mud against around it | 1.0 | 62% |
+| one step more against one step fewer | 0.5 | 56% |
+
+No single verdict is reliable. Whatever the machine learns, it has to learn from the pile: over hundreds of pairs, the clean clip beats the muddy one more often than not.
+
+## The machine
+
+Where do the clips come from? The machine walks them itself.
+
+A clip is up to three steps from a cell. The machine sees where each step leads and whether the walk ended. **It never sees points.** Note the difference from the first post. Rungs 0 to 2 never touched the grid, and rung 3 had a verifier that reported the true points. This machine may walk, but walking tells it nothing about what is good. The only feedback it ever gets is a fallible judge choosing between two of its clips.
+
+It starts as the clone from rung 0, walking the way the people in the log walked. Then it goes round a loop. One round goes like this.
+
+- A starting cell is drawn from the log, and a length of one to three steps.
+- The machine walks four clips of that length from that cell. Three steps in ten are random, so that it tries things nobody has tried.
+- The judge compares every pair of clips that differ.
+
+Every 25 rounds the machine does two things. It turns all the verdicts so far into a reward, which is the next section. Then it re-runs rung 2 on every move made so far, the log’s and its own, with that learned reward where the points used to be, and from then on it walks from the result. A run is 500 rounds, and I ran it ten times.
+
+## From verdicts to a reward
+
+The machine has a pile of verdicts and wants back what rung 2 had: a number for every move.
+
+Suppose it had some way of scoring a clip, $R(\text{clip})$. Then it could predict what the judge would say about any pair. If $R(A)$ is much bigger than $R(B)$ the judge should say A, and if they are close the judge should be near a coin flip:
+
+$$
+\Pr(A \succ B) = \sigma\big(R(A) - R(B)\big).
+$$
+
+This is the **Bradley–Terry model** \[2\]. It was invented in 1952 for ranking players from match results, which is our situation: we know who beat whom and want to know how good each one is. The machine picks the scoring that best predicts the verdicts the judge actually gave.
+
+Here $R$ is the simplest thing that can be printed and checked: a table with one number per cell, the reward for entering that cell. A clip’s score is the sum over the cells it entered. In real RLHF, $R$ is a neural network, usually a copy of the language model with its last layer replaced by a single output \[3\]. The data and the goal are the same.
+
+One prior goes in before the fit: **steps are never free.** Every cell where the walk does not end is held at or below a small cost. A noisy judge will sometimes make an ordinary cell look free, and a machine that loses nothing by walking in circles will walk in circles forever. Real RLHF carries the same prior as a length penalty and a penalty for drifting from the starting model \[3\].
+
+Here is the fit, in code.
+
+``` python
+from scipy.optimize import minimize
+
+STEP_FLOOR = 0.05   # every cell where the walk goes on is worth at most -0.05
+
+def fit_reward(X, y, ends_walk, start=None, l2=1e-4):
+    """Bradley-Terry with a table for the reward: logistic regression, no intercept, solved
+    to convergence. Each row of X is one pair: x_i = times clip A entered cell i, minus
+    times clip B did. y is 1 if the judge chose A. `start` is the previous fit, if there
+    is one. The answer does not depend on it; it only saves time."""
+    def loss_and_grad(beta):
+        z = X @ beta
+        p = 1 / (1 + np.exp(-z))
+        loss = np.mean(np.logaddexp(0, z) - y * z) + 0.5 * l2 * beta @ beta
+        return loss, X.T @ (p - y) / len(y) + l2 * beta
+    ceiling = np.where(ends_walk, np.inf, -STEP_FLOOR)      # steps are never free
+    x0 = np.full(N_CELLS, -STEP_FLOOR) if start is None else start.ravel()
+    x0 = np.minimum(x0, ceiling)
+    res = minimize(loss_and_grad, x0, jac=True, method="L-BFGS-B",
+                   bounds=[(None, None if np.isinf(c) else c) for c in ceiling],
+                   options={"maxiter": 10000, "gtol": 1e-10})
+    return res.x.reshape(N, N)
+```
+
+## The result
+
+We grade the machine the way we graded every rung: the true score of its best route on the real grid. The machine never sees that grade. Here is where the ten runs stood as the rounds went by.
+
+| rounds | verdicts so far | runs that beat every human | runs on the best possible route |
+|----|----|----|----|
+| 50 | 167 | 2 | 2 |
+| 100 | 316 | 4 | 1 |
+| 150 | 468 | 9 | 4 |
+| 200 | 618 | 9 | 6 |
+| 300 | 915 | 10 | 6 |
+| 400 | 1222 | 10 | 9 |
+| 500 | 1534 | 10 | 9 |
+
+<figure class="wide">
+<img src="2026-11-12-bootstrapping-an-analyst_files/figure-commonmark/main-plot-output-1.svg" alt="Left: the machine’s route after 500 rounds in the first run (green), against the route the humans were taught (thin blue). It goes through the cell no human recording ever entered. Right: of ten runs, how many had beaten every human, and how many had found the best possible route, after each refit.">
+<figcaption>Left: the machine’s route after 500 rounds in the first run (green), against the route the humans were taught (thin blue). It goes through the cell no human recording ever entered. Right: of ten runs, how many had beaten every human, and how many had found the best possible route, after each refit.</figcaption>
+</figure>
+
+**By 300 rounds every one of the ten runs had beaten every human, and by 400 rounds nine of the ten were on the best possible route, worth 6.0.** The judge picked the truly better clip on 85% of the pairs that had one. On the rest, and on every tie, the verdict was noise.
+
+Rung 2 in the first post had perfect points and scored 5.0. This machine had no points, only a judge who is sometimes wrong, and it went past 5.0. The reason is that it walked its own clips, and some of them went through the cell no human recording ever entered. The judge did not mind those clips. So the machine learned that the unknown cell is an ordinary cell, and the short route through it became available.
+
+Here is the reward the machine learned in the first run, next to the truth.
+
+| Entering         | True points | True ÷ τ | Learned |
+|------------------|-------------|----------|---------|
+| an ordinary cell | -0.50       | -0.25    | -0.31   |
+| the mud          | -1.50       | -0.75    | -1.11   |
+| the exit         | 0.50        | 0.25     | 0.44    |
+| a fire cell      | -10.50      | -5.25    | -3.99   |
+| the treasure     | 9.50        | 4.75     | 3.83    |
+| the unknown cell | -0.50       | -0.25    | -0.56   |
+
+The order is right everywhere: fire far below mud, mud below an ordinary step, the treasure far above everything. The sizes are in the judge’s units, not the world’s. They sit near the true points divided by $\tau$, because a verdict says which clip was better and never by how much. None of that changes the route, since rung 2 only asks which total is bigger.
+
+## How wrong can the judge be?
+
+Take the same judge and reverse some of the verdicts at random: 10%, 20%, 30% of them. That is a careless judge.
+
+<figure class="wide">
+<img src="2026-11-12-bootstrapping-an-analyst_files/figure-commonmark/careless-plot-output-1.svg" alt="The same loop with judges of decreasing reliability. Each line counts, out of ten runs, how many had beaten every human after that many rounds. Left: four clips per round. Right: eight clips per round, which gives the judge about five times as many pairs to rule on. With four clips the four judges are right 85%, 76%, 69% and 62% of the time. With eight they are right 85%, 77%, 70% and 63% of the time.">
+<figcaption>The same loop with judges of decreasing reliability. Each line counts, out of ten runs, how many had beaten every human after that many rounds. Left: four clips per round. Right: eight clips per round, which gives the judge about five times as many pairs to rule on. With four clips the four judges are right 85%, 76%, 69% and 62% of the time. With eight they are right 85%, 77%, 70% and 63% of the time.</figcaption>
+</figure>
+
+With four clips per round, carelessness hurts quickly. A judge who is right 76% of the time gets seven of ten runs past the humans in 500 rounds. Below 70%, one run in ten makes it.
+
+But the machine is short of verdicts, and clips are free. So have it walk eight clips per round. Eight clips make up to 28 pairs, and the judge rules on about five times as many. Now a judge who is right 77% of the time gets all ten runs past the humans by 400 rounds, and a judge who is right 70% of the time gets all ten there by 500. Even a judge who is right only 63% of the time gets seven of ten there.
+
+**Noise is paid for in verdicts.** A noisier judge needs more of them to say the same thing, and the cost of that is the judge’s time, not the machine’s.
+
+When a run fails, it fails safe. The machine takes the exit, two steps from the start, and scores 0.0. It does not walk into fire.
+
+## What the judge cannot see
+
+Carelessness is random, and random error washes out. A blind spot is not random.
+
+Give the judge full attention but no perception of the mud. To this judge, a clip through the mud is as good as a clip around it. The machine’s learned cost for the mud, over an ordinary step, comes out at +0.13. With the sighted judge it was −0.62, against a target of −0.5. The machine has learned that the mud does not matter.
+
+It shows on the way up. Each run is checked 20 times, so ten runs give 200 checks. With the blind judge, the machine’s best route was the humans’ loop straight through the mud at 20 of them. With the sighted judge that never happened once. In the end the blind judge’s machine still found the 6.0 route in nine runs of ten, the same as the sighted judge’s, but only because that route does not pass the mud. Where the blind spot touched the answer, the answer was wrong.
+
+**What the judge cannot see, the machine will not avoid.** More verdicts do not fix that, and neither do more clips.
+
+## Does it need the log at all?
+
+One more run. Take away the log.
+
+The machine now starts with nothing. It has never seen a human walk, and its first clips are random moves. With no log to supply starting cells, each round starts from a cell the machine has already stood on, which at first is only the start. Everything else is the same: four clips per round, the plain judge, 500 rounds, ten runs.
+
+| rounds | beat every human, with the log | beat every human, without the log | best route, with the log | best route, without the log |
+|----|----|----|----|----|
+| 50 | 2 | 5 | 2 | 5 |
+| 100 | 4 | 8 | 1 | 7 |
+| 150 | 9 | 8 | 4 | 7 |
+| 200 | 9 | 9 | 6 | 9 |
+| 300 | 10 | 10 | 6 | 10 |
+| 400 | 10 | 9 | 9 | 9 |
+| 500 | 10 | 10 | 9 | 10 |
+
+All ten runs end on the best possible route, and they get there sooner than they did with the log. A machine with no points and no recordings, and nothing but a judge who is wrong some of the time, found the best possible route.
+
+## Back to the analyst
+
+Now the fund. In a hedge fund today, analysts pitch stocks and the portfolio manager says yes or no. The PM does not write the pitch. The PM judges it. Every fund already has that judge.
+
+Here is what each part of the grid stands for.
+
+| On the grid | In the fund |
+|----|----|
+| The log of 600 recorded walks | The archive of old pitches |
+| A cell | A stock at a moment, with the analyst’s notes on it |
+| A clip: one to three steps from a cell | A section of a pitch |
+| The machine walking a clip | The machine writing a version of a section |
+| The judge choosing between two clips | The PM choosing between two sections |
+| The learned reward table | A model of the PM’s taste |
+| The machine’s best route | The pitch it would write |
+| The true points | The P&L |
+
+And here is the loop, as a blueprint.
+
+1.  **Start by imitating.** Fine-tune a model on the firm’s archive of old pitches, so that it writes like the firm’s analysts. Every firm has that archive. On the grid this was the clone from rung 0.
+2.  **A human gathers, the machine writes.** An analyst still does the legwork a machine cannot: talking to management and to the sell side, collecting the data points, keeping notes. Then, from that same set of notes, the machine writes several versions of each section of the pitch.
+3.  **The PM judges pairs.** The PM is shown two versions of the same section and says which is better.
+4.  **Learn the PM’s taste, and write toward it.** Then go back to step 2.
+
+### One pair, as the PM would see it
+
+To make that concrete, here is one pair. A pitch is built from sections: a recommendation, a business description, numbered thesis points, a valuation, a list of risks. These are two versions of one section, the first point of an investment thesis on Carlisle Companies (NYSE: CSL).
+
+One of them was written by people. It comes from a pitch by three Columbia Business School students, Tuan Nguyen, Erik Listoe and Dimitry Karavaikin, which took first place in the 18th Annual Pershing Square Challenge in 2025 \[8\]. The full pitch is on page 36 of the Spring 2025 issue of [*Graham & Doddsville*](https://business.columbia.edu/sites/default/files-efs/imce-uploads/Graham_Doddsville_Spring_2025_Issue_.pdf#page=36), the school’s investment newsletter. The other was written by an LLM (Claude), which was given that one section of the pitch, charts included, and nothing else. It checked nothing and it adds no fact of its own. This is step 2 of the blueprint only: no PM has judged anything and nothing has been learned.
+
+I am not going to say which is which. Both are set in the same type, and the students’ two charts are left out, so that nothing differs but the writing. Neither version is research, and neither is investment advice.
+
+<figure class="wide">
+<div style="display:flex; flex-wrap:wrap; gap:16px; align-items:flex-start;">
+<div style="flex:1 1 380px; min-width:300px;">
+<div style="font: 600 11px/1.4 ui-monospace, monospace; letter-spacing:.08em; text-transform:uppercase; margin:0 0 6px;">Version A</div>
+<div style="background:#fff; color:#111; font-family:'Gill Sans','Gill Sans MT',Calibri,'Trebuchet MS',sans-serif; font-size:13px; line-height:1.38; padding:10px 14px 12px; text-align:left;">
+<div style="font-weight:700; text-decoration:underline; color:#111;">Investment Thesis:</div>
+<div style="color:#111; font-weight:700;">I. Significant pent-up demand for reroofing and continued increase in insulation content per sqft of roof will drive revenue growth beyond consensus expectations and management guidance</div>
+<ul style="margin:8px 0 0; padding-left:18px; color:#111;">
+<li style="color:#111; margin:0 0 5px;">Management guides 5%+ organic revenue growth through 2030 while sell-side consensus is modeling 4.5-5% revenue growth with only 2-3% total growth for 2025. After conducting value added-research, attending 3 industry trade shows and speaking to over 80 people across the value chain, we believe CSL will grow organically by at least 6% per year over the next 5 years.</li>
+<li style="color:#111; margin:0 0 5px;">The lifespan and warranty of a typical commercial roof is 20-30 years. We conducted a granular analysis of EIA survey microdata and identified a spike in commercial construction spending in the late '90s and 2000s. Buildings constructed during this period comprise ~1/3 of the commercial building stock today and have roofs that are either at or past the end of their useful lives. COVID restrictions (combined with labor and material shortages) resulted in project deferrals and prevented re-roofing. Our analysis suggests pent-up re-roofing demand can add 1-2% volume growth above and beyond base volumes.</li>
+<li style="color:#111; margin:0 0 5px;">Increasingly stringent energy codes in the US are expanding requirements for building insulation. Since 2013, insulation content per sqft of installed roof has increased by ~50%, with polyiso insulation volumes growing at 10% per year. This trend is not driven purely by regulation as increased roofing insulation leads to significant energy savings and becomes a positive financial decision for building owners. We estimate insulation accounts for 1/3 of CCM segment revenue and is poised to grow at HSD rates, well ahead of organic growth guidance.</li>
+<li style="color:#111; margin:0 0 5px;">Tracking the core over time, on our best historical through-cycle estimate, CSL has grown volumes at ~6% organically, ahead of both guidance and what is priced in, over a period with negative price impact.</li>
+</ul>
+</div>
+</div>
+<div style="flex:1 1 380px; min-width:300px;">
+<div style="font: 600 11px/1.4 ui-monospace, monospace; letter-spacing:.08em; text-transform:uppercase; margin:0 0 6px;">Version B</div>
+<div style="background:#fff; color:#111; font-family:'Gill Sans','Gill Sans MT',Calibri,'Trebuchet MS',sans-serif; font-size:13px; line-height:1.38; padding:10px 14px 12px; text-align:left;">
+<div style="font-weight:700; text-decoration:underline; color:#111;">Investment Thesis:</div>
+<div style="color:#111; font-weight:700;">I. Old roofs and thicker insulation put revenue growth above consensus and above guidance</div>
+<ul style="margin:8px 0 0; padding-left:18px; color:#111;">
+<li style="color:#111; margin:0 0 5px;"><b style="color:#111; font-weight:700;">The gap.</b> Management guides to 5%+ organic growth through 2030. The sell side models 4.5-5%, and only 2-3% total growth for 2025. We expect at least 6% a year for the next 5 years.</li>
+<li style="color:#111; margin:0 0 5px;"><b style="color:#111; font-weight:700;">Roofs wear out on a schedule.</b> A commercial roof lasts 20-30 years. Construction spending spiked in the late '90s and 2000s, and buildings from those years are ~1/3 of today's commercial stock. Their roofs are at or past the end of their useful lives. Over 90% of reroofing demand is non-discretionary.</li>
+<li style="color:#111; margin:0 0 5px;"><b style="color:#111; font-weight:700;">COVID deferred the work. It did not cancel it.</b> Restrictions and shortages of labor and material pushed projects out. We estimate the catch-up adds 1-2% to volume growth above base volumes.</li>
+<li style="color:#111; margin:0 0 5px;"><b style="color:#111; font-weight:700;">Each roof carries more insulation.</b> Insulation content per sqft of installed roof is up ~50% since 2013, and polyiso volumes are growing 10% a year. Energy codes are part of it, but the energy savings make it a positive financial decision for the owner, so the trend does not depend on regulation. Insulation is ~1/3 of CCM revenue and should grow at HSD rates.</li>
+<li style="color:#111; margin:0 0 5px;"><b style="color:#111; font-weight:700;">The history agrees.</b> Through the cycle, CSL has grown volumes ~6% organically, over a period when price was a headwind. Our 6% is what the business has already done.</li>
+<li style="color:#111; margin:0 0 5px;"><b style="color:#111; font-weight:700;">Sources.</b> Three industry trade shows, conversations with over 80 people across the value chain, and EIA survey microdata on the building stock.</li>
+</ul>
+</div>
+</div>
+</div>
+<figcaption>One pair. One version is from <em>Graham &amp; Doddsville</em>, Spring 2025, page 36, retyped without its two charts. The other was written by an LLM from that section alone.</figcaption>
+</figure>
+
+Same stock, same moment, same information, two versions of one section. Which is the better piece of analysis? That one choice is all the blueprint asks of the PM, a few hundred times over.
+
+### We never needed the P&L
+
+Look at the last row of the table. On the grid the machine never saw a single point, and it still found the route worth the most points. In the fund that means the machine never sees a P&L. Nothing is traded, on paper or otherwise, and nobody waits a quarter for a thesis to play out. All the machine needs is the PM’s choice between two sections, and a PM can make hundreds of those in the time one thesis takes to resolve.
+
+### Why the same stock, and why sections
+
+On the grid both clips in a pair started from the same cell. In the fund that is the same stock at the same moment. A fund has one analyst on a stock at a time, so nothing in the archive can be compared with a given pitch. The comparison has to be manufactured, and the machine can manufacture it for free.
+
+Why short clips and not whole walks? Here I have to be straight about what the grid shows. I ran the loop with whole walks in place of clips, and it worked better: all ten runs beat every human within 100 rounds. But that is because my simulated judge reads a forty-step walk as easily and as reliably as a three-step clip. A person does not. Comparing two whole pitches takes a PM far longer than comparing two paragraphs, and the verdict is still one bit, now spread over a hundred differences. Short sections keep the judge fast and the bit about something. The paper that introduced learning from human preferences showed its raters clips of one to two seconds, to make the most of their time \[4\].
+
+And every version rests on the same information, the analyst’s notes. The machine is not asked to find things out. It is asked to do better analysis with what has been found out.
+
+### The analyst’s own section in the pile
+
+The analyst writes a pitch anyway, so it costs nothing to add the analyst’s own section to the pile. I ran that on the grid: in every round a person from the same crowd also walks a clip from the same cell, and the judge compares it with the machine’s four.
+
+| rounds | beat every human, machine clips only | beat every human, plus a person’s clip | best route, machine clips only | best route, plus a person’s clip |
+|----|----|----|----|----|
+| 50 | 2 | 2 | 2 | 0 |
+| 100 | 4 | 5 | 1 | 0 |
+| 150 | 9 | 9 | 4 | 2 |
+| 200 | 9 | 8 | 6 | 3 |
+| 300 | 10 | 9 | 6 | 5 |
+| 400 | 10 | 10 | 9 | 4 |
+| 500 | 10 | 10 | 9 | 4 |
+
+It did not help. All ten runs still beat every human, a little later, and fewer of them found the best possible route within 500 rounds. The person’s clip never goes through the unknown cell, so it adds verdicts about ground that is already well covered. In this blueprint the human’s value is the information, not the draft.
+
+### What “right 76% of the time” means for a PM
+
+The best equity analysts are right about stocks a little more than half the time. That is a different quantity. It asks whether judgment predicts outcomes. The percentage on the grid asks something smaller: **when the PM makes a quick call about which of two sections is the better piece of analysis, how often does that match the call they would make with unlimited time and care?** It is a measure of consistency, and it can be measured without knowing whether the stock went up.
+
+Show the PM the same pair twice, a few weeks apart, and count how often the two verdicts agree. If the errors are independent from one showing to the next, that agreement rate converts to the percentage on the grid.
+
+| Judge picks the better one | Judge agrees with their own earlier verdict |
+|----------------------------|---------------------------------------------|
+| 60%                        | 52%                                         |
+| 65%                        | 55%                                         |
+| 70%                        | 58%                                         |
+| 75%                        | 62%                                         |
+| 80%                        | 68%                                         |
+| 85%                        | 74%                                         |
+
+A judge at 60% is barely distinguishable from a coin on a retest. For reference, in OpenAI’s InstructGPT paper the people who rated model outputs agreed with one another about 73% of the time \[3\]. Under the same arithmetic that puts each of them near 85%, which is where the plain judge on the grid sits. A fund would measure its own number with a pilot of a few hundred pairs before training anything.
+
+The blind judge carries over too. A machine trained this way becomes superhuman at what the PM values, and it inherits everything the PM systematically misses. A careless PM costs verdicts. A PM with a blind spot costs the answer.
+
+### Who judges, and why would they try?
+
+The grid’s judge is tireless and honest. A person is neither, and this is where I think the real obstacle is.
+
+The AI labs use contractors, paid by the hour or by the task. Quality is enforced with a screening test, written guidelines, planted items with a known right answer, several raters on the same item, and removal of raters who fail. Nobody is paid on whether the model turns out better. It is a floor on carelessness.
+
+A fund is in a harder position. Step 4 produces two things: the writer, and the model of the PM’s taste. **The second is a fitted copy of the judge.** A PM who judges carefully is helping to replace the analysts and is also putting their own judgment into a file that belongs to the firm. The incentive to do it well is negative. And the P&L cannot referee: both sections in a pair are about the same stock, so they share one outcome.
+
+So the judge cannot be assumed to be trying. A careless judge clicks through. That is random error, which the grid tolerates up to a point, and which repeated pairs detect. A sandbagging judge deliberately picks the worse section, consistently. That is worse than noise, because it pushes the machine the wrong way, and repeats do not catch it.
+
+Planted pairs catch both: now and then, show a pair in which one section has a known flaw, such as a wrong number or a misread of guidance. If anyone’s pay is cut for bad judging, it should be cut for failing those. It should not be cut for disagreeing with other judges. Paying for agreement rewards conformity, and the model then learns the committee’s shared blind spots.
+
+That leaves the incentive. I see three options: hire outside judges with no stake, as the labs in effect do; give the judges a share of what the model produces; or use insiders, audit hard, and accept losing some signal. The grid cannot choose among these. The method tolerates an imperfect judge. It needs a judge who is trying.
+
+### Making it cheaper
+
+The grid experiment is the plain version: random pairs, one bit per verdict, one judge. A real fund would do better, because the scarce thing is the judge’s time. Four ways to get more out of each minute of it:
+
+1.  **Choose which pairs to show.** Many random pairs are near-duplicates that teach nothing. Show the judge the pairs the taste model is least sure about.
+2.  **Ask for a ranking, or for strength.** One ranking of five sections carries about as much as ten pairwise verdicts. “Much better” against “slightly better” says how big the gap is.
+3.  **Use several judges, weighted by reliability.** Estimate each judge’s reliability from planted and repeated pairs and weight their verdicts by it.
+4.  **Explore on purpose.** The machine on the grid takes a random step three times in ten. Steering those tries toward what the taste model knows least about would find the unknown cell sooner. In a fund: have the machine deliberately write some versions that take an approach no analyst has used.
+
+<div class="note">
+
+**RLHF is not the only way to use pairs.** Direct preference optimization (DPO) trains the writer on the same pairs without a separate reward model \[5\]. It rests on the same Bradley–Terry assumption and is simpler to run. Neither method adds information. Everything either one can learn is in the judge’s verdicts, which is why the four items above matter more than the choice between them.
+
+</div>
+
+## How little human it takes
+
+Go back to the run without the log. That machine was not shown a single thing a human had done. It needed a person only to say which of two clips was better.
+
+Two caveats, and they are large. First, the grid has 25 cells, and random clips cover it quickly. A language model cannot start from random text, because the space is too large for random writing to say anything a judge could rule on. That is what the archive, and pre-training before it, are for. The blueprint still starts with step 1. Second, on the grid there is nothing to find out. In a fund somebody has to go and get the information, and for now that is a person.
+
+So the fund’s version keeps two people: one who gathers, and one who judges. Neither of them has to be able to write the pitch the machine ends up writing.
+
+If you take away only one thing from this post, I want it to be the same thing as last time: **what humans know is not the limit of what a machine can learn from them.**
+
+<div class="note">
+
+**What this is.** A thought experiment in a toy world. The people, the judge and the machine are all simulated, and a 25-cell grid is not a stock. The experiment shows that the mechanism works where every piece of it can be printed and checked. It does not show how well it would work in a fund.
+
+</div>
+
+## References
+
+**Source.** The notebook that produced every number and figure in this post is [in the blog’s repository](https://github.com/marketneutral/marketneutral.github.io/blob/main/notebooks/2026-11-12-bootstrapping-an-analyst.qmd). The world, the crowd and rung 2 are rebuilt at the top, identically to the first post, and the comment there records every setting.
+
+1.  Larkin, J. (2026). *How LLM-based AI beats its human teachers.* [/posts/exceed-training-data/](https://marketneutral.github.io/posts/exceed-training-data/)
+2.  Bradley, R. A., & Terry, M. E. (1952). *Rank Analysis of Incomplete Block Designs: I. The Method of Paired Comparisons.* Biometrika 39, 324–345.
+3.  Ouyang, L., et al. (2022). *Training language models to follow instructions with human feedback.* NeurIPS 2022. <https://arxiv.org/abs/2203.02155>
+4.  Christiano, P., Leike, J., Brown, T., Martic, M., Legg, S., & Amodei, D. (2017). *Deep Reinforcement Learning from Human Preferences.* NeurIPS 2017. <https://arxiv.org/abs/1706.03741>
+5.  Rafailov, R., Sharma, A., Mitchell, E., Ermon, S., Manning, C. D., & Finn, C. (2023). *Direct Preference Optimization: Your Language Model is Secretly a Reward Model.* NeurIPS 2023. <https://arxiv.org/abs/2305.18290>
+6.  Aaronson, S. (2006). *Reasons to believe.* Shtetl-Optimized. <https://scottaaronson.blog/?p=122>
+7.  Stiennon, N., Ouyang, L., Wu, J., Ziegler, D. M., Lowe, R., Voss, C., Radford, A., Amodei, D., & Christiano, P. (2020). *Learning to summarize from human feedback.* NeurIPS 2020. <https://arxiv.org/abs/2009.01325>
+8.  Nguyen, T., Listoe, E., & Karavaikin, D. (2025). *Carlisle Companies (NYSE: CSL) - Long.* First place, 18th Annual Pershing Square Challenge, Columbia Business School, 2025. Published in *Graham & Doddsville*, Spring 2025, pages 36 and 37. <https://business.columbia.edu/sites/default/files-efs/imce-uploads/Graham_Doddsville_Spring_2025_Issue_.pdf>
