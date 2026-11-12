@@ -1,6 +1,6 @@
 ---
 title: "How LLM-based AI beats its human teachers"
-date: 2026-11-10
+date: 2026-11-11
 tag: ESSAY
 description: "A machine that only watches people can beat every one of them. No expert in the data. No practice. Here is the smallest proof I could build."
 jupyter: python3

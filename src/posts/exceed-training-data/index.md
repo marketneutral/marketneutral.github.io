@@ -1,6 +1,6 @@
 ---
 title: How LLM-based AI beats its human teachers
-date: 2026-11-10T00:00:00.000Z
+date: 2026-11-11T00:00:00.000Z
 tag: ESSAY
 description: >-
   A machine that only watches people can beat every one of them. No expert in
