@@ -19,7 +19,7 @@ This post is a thought experiment with an experiment attached: how would you bui
 </div>
 ```
 
-Here is the core idea, before any of the machinery. **You don't need to know whether an analyst's recommendation made money to begin training a better analyst. You need someone who can reliably distinguish better research from worse research.** The rest of this post is about why that is enough, on a grid where it can be checked, and what it would take in a fund.
+Here is the core idea, before any of the machinery. **You don't need to know whether an analyst's recommendation made money to begin training a better analyst. You need someone who can distinguish better research from worse research more often than not.** The rest of this post is about why that is enough, on a grid where it can be checked, and what it would take in a fund.
 
 ## Why not RLVR?
 
