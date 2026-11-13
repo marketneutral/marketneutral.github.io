@@ -365,6 +365,8 @@ Why short clips and not whole walks? Here I have to be straight about what the g
 
 Sections have a weakness, though. Individually strong sections can still add up to an incoherent conclusion, and a judge who only ever sees sections cannot catch that. So the PM should also compare some complete theses: most verdicts on sections, where they are quick, and some on whole write-ups, where the conclusion has to follow from the parts.
 
+Why a choice between two, and not a score out of ten? A score looks like more information, since any two scores can be turned into a choice. But people compare better than they score. In one experiment, people asked which of two people in photographs was older were wrong 13% of the time. Asked for each age as a number, the comparisons their numbers implied were wrong 17% of the time \[10\]. Each judge also scores on a private scale, one harsh and one generous, and a choice between two has no scale to calibrate.
+
 And every version rests on the same information, the analyst’s notes. The machine is not asked to find things out. It is asked to do better analysis with what has been found out.
 
 ### The analyst’s own section in the pile
@@ -424,7 +426,7 @@ The grid experiment is the plain version: random pairs, one bit per verdict, one
 
 1.  **Choose which pairs to show.** Many random pairs are near-duplicates that teach nothing. Show the judge the pairs the taste model is least sure about.
 2.  **Ask for a ranking, or for strength.** One ranking of five sections carries about as much as ten pairwise verdicts. “Much better” against “slightly better” says how big the gap is.
-3.  **Use several judges, weighted by reliability.** Estimate each judge’s reliability from planted and repeated pairs and weight their verdicts by it.
+3.  **Use several judges, weighted by reliability.** Estimate each judge’s reliability from planted and repeated pairs and weight their verdicts by it. Bradley–Terry extends to this with one more number per judge, which multiplies the gap between the two ratings. A large number is a reliable judge, zero is a coin flip, and a negative number is a judge who picks the worse one. This was worked out for students grading each other’s homework in online courses \[10\].
 4.  **Explore on purpose.** The machine on the grid takes a random step three times in ten. Steering those tries toward what the taste model knows least about would find the unknown cell sooner. In a fund: have the machine deliberately write some versions that take an approach no analyst has used.
 
 <div class="note">
@@ -464,3 +466,4 @@ If you take away only one thing from this post, I want it to be the same thing a
 7.  Stiennon, N., Ouyang, L., Wu, J., Ziegler, D. M., Lowe, R., Voss, C., Radford, A., Amodei, D., & Christiano, P. (2020). *Learning to summarize from human feedback.* NeurIPS 2020. <https://arxiv.org/abs/2009.01325>
 8.  Nguyen, T., Listoe, E., & Karavaikin, D. (2025). *Carlisle Companies (NYSE: CSL) - Long.* First place, 18th Annual Pershing Square Challenge, Columbia Business School, 2025. Published in *Graham & Doddsville*, Spring 2025, pages 36 and 37. <https://business.columbia.edu/sites/default/files-efs/imce-uploads/Graham_Doddsville_Spring_2025_Issue_.pdf>
 9.  Elo, A. E. (1978). *The Rating of Chessplayers, Past and Present.* Arco.
+10. Shah, N. B., Bradley, J. K., Parekh, A., Wainwright, M., & Ramchandran, K. (2013). *A Case for Ordinal Peer-evaluation in MOOCs.* NIPS 2013 Workshop on Data Driven Education. <https://jkbradley.github.io/assets/papers/2013_neurips_moocs.pdf>
