@@ -103,6 +103,7 @@ const imageWidthPx = (file) => {
     return m ? parseFloat(m[1]) * (m[2] === "pt" ? 96 / 72 : 1) : 0;
   }
   if (file.endsWith(".png")) return readFileSync(file).readUInt32BE(16);
+  if (file.endsWith(".gif")) return readFileSync(file).readUInt16LE(6);
   return 0;
 };
 // Quarto also writes a title block (# Title, then the date) at the top of the body, which the

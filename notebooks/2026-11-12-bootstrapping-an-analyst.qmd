@@ -473,6 +473,7 @@ def run_loop(seed, rounds=500, clips=4, every=25, flip=0.0, explore=0.3,
         policy = random_move                   # no log: the first clips are random
     stood = [START]                                    # cells the machine has stood on
     X, y, right, pairs, history, beta, path = [], [], [], [], [], None, None
+    snapshots = []                                     # the learned reward at every check, for the animation
     for k in range(1, rounds + 1):
         # A round starts from one cell: a cell from the log, or one the machine has stood on.
         L = int(local.integers(1, 4))
@@ -510,8 +511,10 @@ def run_loop(seed, rounds=500, clips=4, every=25, flip=0.0, explore=0.3,
             score, path = rollout(policy)      # graded on the real grid. Only we see this.
             history.append({"rounds": k, "verdicts": len(y), "score": score,
                             "judge right": float(np.mean(right))})
+            snapshots.append({"rounds": k, "verdicts": len(y), "score": score, "beta": beta.copy(), "path": path,
+                              "judged": (np.array(X) != 0).any(axis=0).reshape(N, N)})
     return {"history": pd.DataFrame(history), "beta": beta, "path": path, "pairs": pairs,
-            "X": np.array(X)}
+            "X": np.array(X), "snapshots": snapshots}
 ```
 
 ## Step 1: the machine walks
@@ -689,7 +692,7 @@ If the same pair came up again, the ratings would give A a probability of $\sigm
 
 **Now keep going until the ratings stop moving.** Go through the whole pile of verdicts, then through it again, and again. The ratings drift, then settle. They have settled when the adjustments over the whole pile cancel out: for every cell, the ups and the downs add to zero. At that point the ratings predict the pile as well as any ratings can.
 
-That settled set of ratings is the machine's reward. The machine does not actually take the adjustments one at a time. It uses a solver that jumps straight to where they settle. The answer is the same, and there is no $K$ to choose. Statisticians call this the **Bradley–Terry model** [2]. The math is not needed for anything that follows. If you want it, I have worked through it on small numbers in [a separate note](https://github.com/marketneutral/marketneutral.github.io/blob/main/notes/bradley-terry.md).
+That settled set of ratings is the machine's reward. The machine does not actually take the adjustments one at a time. It uses a solver that jumps straight to where they settle. The answer is the same, and there is no $K$ to choose. Statisticians call this the **Bradley–Terry model** [2]. It is the more formal way to do what the chess ratings do, and the better one, but following it takes more background, such as gradient descent. So I have kept that math out of this post. You do not need Bradley–Terry for anything that follows. You need to understand how Elo works. The full math is in [a supporting notebook](https://github.com/marketneutral/marketneutral.github.io/blob/main/notes/bradley-terry.md), worked through on small numbers.
 
 The 25 ratings are the simplest reward model that can be printed and checked. In real RLHF the reward model is a neural network, usually a copy of the language model with its last layer replaced by a single output [3]. The verdicts and the goal are the same.
 
@@ -823,6 +826,92 @@ def learned_reward(run):
         "Learned": [float(np.median(flat[plain])), beta[MUD], beta[EXIT], float(np.mean(flat[fires])), beta[TREASURE], beta[HOLE]]})
 md_table(learned_reward(main[0]))
 ```
+
+```{python}
+#| label: reward-gif
+#| output: false
+from matplotlib.animation import FuncAnimation, PillowWriter
+FILES = "2026-11-12-bootstrapping-an-analyst_files/animation"   # a subfolder of Quarto's folder for this notebook's figures
+NAMES = {TREASURE: "TREASURE", EXIT: "EXIT", START: "START", MUD: "MUD", HOLE: "unknown", **{f: "FIRE" for f in FIRES}}
+GIF_RUN = 6                                                # the seventh run: it passes through all three stages
+run = main[GIF_RUN]
+gif_pairs, gif_X = run["pairs"], run["X"]
+gif_y = np.array([float(said_a) for _, _, _, said_a in gif_pairs])
+# Which verdicts get a frame. Only pairs in which neither clip doubles back on itself: about half of all
+# pairs have a clip that revisits a cell (three steps in ten are random, and a random step often goes back),
+# and a line that returns to its own start is hard to read. Of those, the first ten, then fewer and fewer.
+readable = [n for n, (_, a, b, _) in enumerate(gif_pairs, start=1) if simple(a) and simple(b)]
+SHOWN = sorted(set(readable[:10]) | {min(readable, key=lambda n: abs(n - v)) for v in np.geomspace(readable[9], len(gif_pairs), 50)})
+print(f"GIF: {len(gif_pairs)} pairs, {len(readable)} readable, {len(SHOWN)} shown, first {SHOWN[:12]}, last {SHOWN[-1]}")
+
+def state_after(n):
+    """The reward fitted to the first n verdicts: the same fit the run makes at each check."""
+    ends = np.zeros(N_CELLS, bool)
+    for t in log + [t for _, a, b, _ in gif_pairs[:n] for t in a + b]:
+        if t[4]: ends[cell_id(t[3])] = True
+    rounds = gif_pairs[n - 1][0]
+    checks = [sn for sn in run["snapshots"] if sn["rounds"] <= rounds]
+    return {"n": n, "rounds": rounds, "pair": gif_pairs[n - 1], "beta": fit_reward(gif_X[:n], gif_y[:n], ends),
+            "judged": (gif_X[:n] != 0).any(axis=0).reshape(N, N), "check": checks[-1] if checks else None}
+
+def draw_pair(ax, st):
+    """Left: the two clips the judge was just shown, and which one the judge picked."""
+    ax.clear()
+    draw_grid(ax, hole_label=False, scores=False)
+    _, a, b, said_a = st["pair"]
+    # Both clips start in the same cell, so they are drawn from the same point. The picked clip is thick
+    # and goes underneath; the other is thin and goes on top, so a shared stretch shows both.
+    for clip, color, chosen in sorted(((a, OOS["amber"], said_a), (b, OOS["cyan"], not said_a)), key=lambda t: not t[2]):
+        pts = [clip[0][0]] + [t[3] for t in clip]
+        xs = [c for r, c in pts]; ys = [N - 1 - r for r, c in pts]
+        ax.plot(xs, ys, color=color, linewidth=6 if chosen else 2, alpha=0.9, solid_capstyle="round", zorder=3 if chosen else 4)
+        ax.annotate("", xy=(xs[-1], ys[-1]), xytext=(xs[-2], ys[-2]), zorder=5 if chosen else 6,
+                    arrowprops=dict(arrowstyle="-|>", color=color, lw=6 if chosen else 2, mutation_scale=22 if chosen else 14, shrinkA=0, shrinkB=0))
+    r0, c0 = a[0][0]
+    ax.plot(c0, N - 1 - r0, "o", color=OOS["ink"], markersize=9, zorder=7)      # the one cell both clips start from
+    ax.set_title(f"Verdict {st['n']:,} of {len(gif_pairs):,}, in round {st['rounds']}\n"
+                 f"the judge picked the {'amber' if said_a else 'blue'} clip (thick)", fontsize=10.5)
+
+def draw_reward(ax, st):
+    """Right: the reward learned from every verdict so far, cell by cell."""
+    ax.clear()
+    ax.set_xlim(-0.5, N - 0.5); ax.set_ylim(-0.5, N - 0.5)
+    ax.set_aspect("equal"); ax.set_xticks([]); ax.set_yticks([]); ax.grid(False)
+    for r in range(N):
+        for c in range(N):
+            y = N - 1 - r
+            judged = st["judged"][r, c]
+            b = st["beta"][r, c] if judged else 0.0
+            color = VALUE_CMAP(0.525 + 0.475 * np.tanh(b / 1.5)) if judged else OOS["bg"]
+            ax.add_patch(Rectangle((c - 0.5, y - 0.5), 1, 1, facecolor=color, edgecolor=OOS["muted"]))
+            if (r, c) in NAMES:
+                ax.text(c, y + 0.33, NAMES[(r, c)], ha="center", va="center", fontsize=7, color=OOS["muted"])
+            if judged:
+                ax.text(c, y - 0.25, f"{b:+.2f}".replace("-", "−"), ha="center", va="center", fontsize=10.5,
+                        color=OOS["ink"], fontweight="bold")
+    check = st["check"]
+    if check is None:
+        route = "the machine has not used it yet"
+    else:
+        draw_route(ax, check["path"], OOS["accent"], lw=3.2)
+        route = f"the machine's best route (green) scores {check['score']:+.1f}".replace("-", "−")
+    ax.set_title(f"The learned reward after {st['n']:,} verdict{'s' if st['n'] > 1 else ''}\n{route}", fontsize=10.5)
+
+states = [state_after(n) for n in SHOWN]
+states += [states[-1]] * 9                                 # hold the last frame
+fig, (ax_l, ax_r) = plt.subplots(1, 2, figsize=(10.4, 5.65))
+fig.subplots_adjust(left=0.02, right=0.98, bottom=0.03, top=0.9, wspace=0.06)
+def draw_frame(i):
+    draw_pair(ax_l, states[i]); draw_reward(ax_r, states[i])
+anim = FuncAnimation(fig, draw_frame, frames=len(states))
+os.makedirs(FILES, exist_ok=True)
+anim.save(os.path.join(FILES, "learned-reward.gif"), writer=PillowWriter(fps=3), dpi=90)
+plt.close(fig)
+```
+
+And here is a reward taking shape, verdict by verdict. This is the seventh run, not the first. The first run found the best route early, and the seventh shows every stage. On the left are the two clips the judge was just shown. Both start from the same cell, marked with a white dot, and the one the judge picked is drawn thick. On the right is the reward the machine has learned from every verdict up to that one: a number for entering each cell.
+
+![The seventh run. Left: one pair of clips and the judge's verdict on it. Right: the reward fitted to all the verdicts so far. A cell is blank until some verdict has turned on it. The animation shows a few of the earliest verdicts and then skips ahead faster and faster, through all 1,594. It shows only pairs in which neither clip doubles back on itself, which is about half of them. The rest are judged in the same way, but a clip that steps out and comes straight back is hard to read as a picture. After a handful of verdicts the numbers are wild, because a cell that has lost once and never won looks terrible. They settle as the verdicts pile up. The green line is the machine's best route at its latest check. First it takes the exit. At 100 rounds it finds a ten-step route around the mud, worth 5.0, which beats every human. At 375 rounds it finds the eight-step route through the unknown cell, worth 6.0, and stays on it.](2026-11-12-bootstrapping-an-analyst_files/animation/learned-reward.gif)
 
 The order is right everywhere: fire far below mud, mud below an ordinary step, the treasure far above everything. The sizes are in the judge's units, not the world's. They sit near the true points divided by $\tau$, because a verdict says which clip was better and never by how much. None of that changes the route, since rung 2 only asks which total is bigger.
 
