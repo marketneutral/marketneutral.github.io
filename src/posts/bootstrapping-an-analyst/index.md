@@ -17,6 +17,8 @@ This post builds on [the previous one](https://marketneutral.github.io/posts/exc
 This post is a thought experiment with an experiment attached: how would you build an equity analyst that is better than every analyst it learned from?
 </div>
 
+Here is the core idea, before any of the machinery. **You don’t need to know whether an analyst’s recommendation made money to begin training a better analyst. You need someone who can reliably distinguish better research from worse research.** The rest of this post is about why that is enough, on a grid where it can be checked, and what it would take in a fund.
+
 ## Why not RLVR?
 
 Rung 3 did best, so the obvious move is to use RLVR to build an equity analyst. Let the machine make investment decisions, see how they turn out, and learn from that. No capital needed: just paper trade it.
@@ -272,11 +274,18 @@ Here is what each part of the grid stands for.
 
 And here is the recipe again, as a blueprint.
 
-1.  **Train an LLM on the firm’s historical write-ups,** so that it writes like the firm’s analysts. On the grid this was the clone from rung 0.
+1.  **Train an LLM on the firm’s historical write-ups,** so that it writes like the firm’s analysts. Tie each write-up to the information that was available when it was written, so the model never learns from hindsight. On the grid this was the clone from rung 0.
 2.  **Have the LLM write new ones.** An analyst still does the legwork a machine cannot: talking to management and to the sell side, gathering data points for the mosaic, keeping notes. From that same set of notes, the LLM writes several versions of each section. On the grid this was the machine walking clips.
 3.  **The PM rates pairs.** The PM is shown two versions of the same section and says which is better. Nothing else.
 4.  **Train a reward model on the PM’s verdicts.** This is step 3 on the grid: Bradley–Terry, with a neural network in place of the table.
-5.  **Train the LLM with RLHF against the reward model.** Then go back to step 2.
+5.  **Train the LLM with RLHF against the reward model,** with a constraint that keeps it grounded in the facts in the notes. Then go back to step 2.
+
+Two more steps decide whether it worked.
+
+6.  **Evaluate on held-out companies and periods,** against the firm’s analysts, judged by PMs who did not do the training judgments.
+7.  **Separately, track investment outcomes,** to see whether better research turns into better decisions. This step is slow, and it is the only one that is.
+
+None of the grid’s numbers is a forecast for equity research. About 1,500 verdicts was enough on 25 cells. A fund may need far more, and how many has to be found by trying.
 
 ### One pair, as the PM would see it
 
@@ -326,11 +335,22 @@ Same stock, same moment, same information, two versions of one section. Which is
 
 Look at the last row of the table. On the grid the machine never saw a single point, and it still found the route worth the most points. In the fund that means the machine never sees a P&L. Nothing is traded, on paper or otherwise, and nobody waits a quarter for a thesis to play out. All the machine needs is the PM’s choice between two sections, and a PM can make hundreds of those in the time one thesis takes to resolve.
 
+### Two meanings of “superhuman”
+
+The last row of the table hides an assumption. On the grid the judge’s feeling tracks the true points by construction, because I built the judge that way. In a fund nothing guarantees that the PM’s preferences track the P&L. So “a superhuman equity analyst” can mean two different things.
+
+1.  **A superhuman research producer:** analysis that is more rigorous, more insightful and better supported than what the firm’s analysts write.
+2.  **A superhuman stock picker:** recommendations that earn better risk-adjusted returns.
+
+The blueprint targets the first directly. It may help with the second, but it does not establish it. The first can be tested without waiting for outcomes, which is step 6. The second is step 7, and it takes as long as it takes. Passing step 6 is not demonstrated alpha.
+
 ### Why the same stock, and why sections
 
 On the grid both clips in a pair started from the same cell. In the fund that is the same stock at the same moment. A fund has one analyst on a stock at a time, so nothing in the archive can be compared with a given pitch. The comparison has to be manufactured, and the machine can manufacture it for free.
 
 Why short clips and not whole walks? Here I have to be straight about what the grid shows. I ran the loop with whole walks in place of clips, and it worked better: all ten runs beat every human within 100 rounds. But that is because my simulated judge reads a forty-step walk as easily and as reliably as a three-step clip. A person does not. Comparing two whole pitches takes a PM far longer than comparing two paragraphs, and the verdict is still one bit, now spread over a hundred differences. Short sections keep the judge fast and the bit about something. The paper that introduced learning from human preferences showed its raters clips of one to two seconds, to make the most of their time \[4\].
+
+Sections have a weakness, though. Individually strong sections can still add up to an incoherent conclusion, and a judge who only ever sees sections cannot catch that. So the PM should also compare some complete theses: most verdicts on sections, where they are quick, and some on whole write-ups, where the conclusion has to follow from the parts.
 
 And every version rests on the same information, the analyst’s notes. The machine is not asked to find things out. It is asked to do better analysis with what has been found out.
 
@@ -369,6 +389,8 @@ A judge at 60% is barely distinguishable from a coin on a retest. For reference,
 
 The blind judge carries over too. A machine trained this way becomes superhuman at what the PM values, and it inherits everything the PM systematically misses. A careless PM costs verdicts. A PM with a blind spot costs the answer.
 
+The blind spot most worth worrying about is persuasiveness. A PM may consistently prefer the more persuasive write-up, even when the thesis is wrong. Then the reward model learns persuasiveness instead of sound analysis, and the machine gets very good at it. This is reward hacking, and on the grid it is the judge who could not see the mud. The defense is to tell judges what to judge: factual accuracy, valuation logic, whether the write-up identifies a variant perception, the quality of the evidence, the treatment of uncertainty, and the strength of the counterarguments. The planted pairs below check that they do.
+
 ### Who judges, and why would they try?
 
 The grid’s judge is tireless and honest. A person is neither, and this is where I think the real obstacle is.
@@ -405,6 +427,8 @@ Go back to the run without the log. That machine was not shown a single thing a 
 Two caveats, and they are large. First, the grid has 25 cells, and random clips cover it quickly. A language model cannot start from random text, because the space is too large for random writing to say anything a judge could rule on. That is what the archive, and pre-training before it, are for. The blueprint still starts with step 1. Second, on the grid there is nothing to find out. In a fund somebody has to go and get the information, and for now that is a person.
 
 So the fund’s version keeps two people: one who gathers, and one who judges. Neither of them has to be able to write the pitch the machine ends up writing.
+
+The scientific question is this: **do imperfect human preferences contain enough information for a machine to find research that consistently beats the people who gave the preferences?** The grid shows that it is possible in a controlled setting. A fund would be testing whether it is still possible in markets that are messy, uncertain and always changing. That test can be run without waiting years for outcomes. Passing it is not the same as demonstrated alpha.
 
 If you take away only one thing from this post, I want it to be the same thing as last time: **what humans know is not the limit of what a machine can learn from them.**
 
