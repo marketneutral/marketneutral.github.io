@@ -11,19 +11,63 @@ execute:
 fig-format: svg
 ---
 
-This post builds on [the previous one](https://marketneutral.github.io/posts/exceed-training-data/), and it assumes you have read it. There I built a 5×5 grid, simulated six hundred people crossing it badly, and deployed four machines of increasing complexity to learn from the recording of those walks. I called the levels of complexity rungs on a ladder, from 0 to 3. The best person scored 4.0. The machine on rung 2 only read the recorded log of human trials, and learned to score 5.0. The machine on rung 3 was allowed to try moves for itself and scored 6.0, the best possible. To connect these ideas to the “real world”, the rungs map to how frontier LLMs are built: rung 0 is LLM pretraining, rung 1 is low-temperature decoding, rung 2 is RLHF, and rung 3 is RLVR. An astonishing takeaway from the prior post that I want you to keep in mind: **Our machine at rung 2 achieved superhuman performance just from learning from faulty human demonstrations.** I ended the post touching on fundamental investing, and I was careful about it.
+This post builds on [the previous one](https://marketneutral.github.io/posts/exceed-training-data/), and it assumes you have read it. There I built a 5×5 grid, simulated six hundred people crossing it badly, and recorded every step. Then four machines learned from that recording, each a rung higher on a ladder. The best person scored 4.0. The machine on rung 2 read nothing but the log, with the points for every step, and learned to score 5.0. **It beat every person without ever setting foot on the grid.** The machine on rung 3 was allowed to explore: to try moves of its own and have the world score them. It scored 6.0, the best possible. In terms of how frontier language models are built, rung 2 stands for RLHF and rung 3 for RLVR.
 
 <div class="callout">
 This post is a thought experiment with an experiment attached: how would you build an equity analyst that is better than every analyst it learned from?
 </div>
 
-If you have been paying attention, your obvious answer is “**RLVR, rung 3**! Let the machine reason about the world as it is and make investment decisions and learn from how they turn out. No real investment capital needed: just paper trade it.” But grading in this way is very slow and noisy. An investment thesis takes months to quarters to play out, and the clock cannot be run faster. A good decision can lose money while a bad one makes it: telling an analyst who is right 55% of the time from a coin flip takes about 400 independent calls. And no, you can’t backtest this, because a language model has already read how the past turned out. Rung 3 needs only a verdict at the end, but it needs a great many of them, and here they arrive a few at a time.
+## Why not RLVR?
 
-What about **RLHF**, rung 2? We saw in the previous post that this rung, although not as good as rung 3, still beat all the humans. Can we apply the rung 2 ideas to bootstrapping a superhuman equity analyst? I believe we can, and that’s what this post is about.
+Rung 3 did best, so the obvious move is to use RLVR to build an equity analyst. Let the machine make investment decisions, see how they turn out, and learn from that. No capital needed: just paper trade it.
 
-## Evaluation is easier than creation
+Unfortunately, RLVR is not realistic here. It needs a great many episodes, each played out to the end, and in investing the end arrives in wall-clock time. An investment thesis takes months to quarters to play out, and the clock cannot be run faster. The outcome is noisy, too: a good decision can lose money while a bad one makes it, and telling an analyst who is right 55% of the time from a coin flip takes about 400 independent calls. And no, you can’t backtest it, because a language model has already read how the past turned out.
 
-A foundational idea for what follows is that **it is easier to tell which of two things is better than to produce the better thing in the first place.**
+## Why RLHF?
+
+What about rung 2? In the first post it beat every human by learning from a log. It never had to touch the real world, so it never had to wait for it. So let’s use RLHF.
+
+## The catch: rung 2 had a perfect reward
+
+The grid made one radical simplification on rung 2. Every row of the log looked like this:
+
+$$
+(\text{cell},\ \text{direction},\ \text{points},\ \text{next cell}).
+$$
+
+The third entry was a number the world handed over: −0.5 for a step, −1.5 for the mud, +9.5 for the treasure. **Rung 2 had a perfect reward model.** All it had to do was add those numbers up along the best path.
+
+Real RLHF has nothing like that. Nobody hands a language model the points for an essay. What people can give is a preference: this one is better than that one. And people are sometimes wrong. In the first post I conceded that the match between rung 2 and RLHF was loose, and this is why. In this post I tighten it. I take away the perfect reward and run real RLHF on the grid: the machine learns its reward from a fallible judge’s verdicts on short snippets of walks. Then I come back to the fund.
+
+So forget investing for a moment. For now, only the grid.
+
+## The recipe
+
+Here is the whole method in five steps. The sections that follow take them one at a time.
+
+1.  **The machine walks.** It starts as the clone from rung 0, walking the way the people in the log walked, and now and then takes a random step. It is never told a score.
+2.  **A judge compares snippets.** Short stretches of those walks are shown to a judge two at a time, and the judge says which one went better. Nothing else.
+3.  **Fit a reward model.** The machine turns the pile of verdicts into a number for every cell.
+4.  **Q-learning, just like before.** The machine runs rung 2’s rule with the learned reward where the true points used to be.
+5.  **Repeat.** The machine walks again from what it learned, and the judge sees new snippets.
+
+## Step 1: the machine walks
+
+The machine walks the grid itself. It sees where each step leads and whether the walk ended. **It never sees points.** Three steps in ten are random, so that it tries things nobody has tried.
+
+This is not RLVR. Rung 3 also walked, but the world told it the points for every step. Here the walking only collects data. Whether any of it was good is for the judge to say, and only about short pieces of it.
+
+Those pieces are **clips**: one, two or three consecutive steps. The walking happens in rounds, and one round goes like this.
+
+- A starting cell is drawn from the log, and a length of one to three steps.
+- The machine walks four clips of that length from that cell.
+- The judge compares every pair of those clips that differ.
+
+## Step 2: the judge
+
+### Does the judge have to be an expert?
+
+If the judge decides what “better” means, doesn’t the judge have to be an expert, or even infallible? No. **It is easier to tell which of two things is better than to produce the better thing in the first place.**
 
 The cleanest statement of the gap is in computer science. For a huge class of problems a proposed answer can be checked quickly, while finding the answer seems to be far harder. Whether that gap is real is the P versus NP question, and nearly everyone in the field believes it is. Scott Aaronson described the world we would live in without it \[6\]:
 
@@ -35,23 +79,11 @@ Christiano and co-authors trained machines from “(non-expert) human preference
 
 And it has been measured in language. Stiennon and co-authors collected human comparisons between summaries, trained a model on them, and reported that “our models significantly outperform both human reference summaries and much larger models fine-tuned with supervised learning alone” \[7\]. The raters only compared summaries. The model that came out wrote better ones than the people did.
 
-## Back to the grid
+The judge does not need to be able to walk the best route. The judge only needs to recognize the better of two clips, more often than not.
 
-I need you to forget about investing for a moment. For now we go back to the grid, and only the grid: no analysts, no PMs, no hedge funds. Bear with me: it’s necessary and worth it. In the gray “pull quote” about rung 2 vs. RLHF in the prior post, I conceded that the analogy isn’t perfect. So, let’s make the analogy map tightly. Rung 2 had perfect reward information at every step. That’s unrealistic in real-world RLHF. Here is what we do: I take away the one advantage rung 2 had, give the machine a **judge who makes mistakes**, and show that the machine, learning from a fallible judge, still gets past every human. Then I come back to the fund and say which part of the grid stands for what.
+### A judge who makes mistakes
 
-First, a reminder of what RLHF is. People are shown two of a model’s answers and say which is better. A second model learns to predict those preferences, and the language model is tuned toward answers that score well.
-
-Now the advantage. Every row of the log on rung 2 looked like this:
-
-$$
-(\text{cell},\ \text{direction},\ \text{points},\ \text{next cell}).
-$$
-
-The third entry was a number the world handed over: −0.5 for a step, −1.5 for the mud, +9.5 for the treasure. **Rung 2 had a perfect reward.** All it had to do was add those numbers up along the best path. Nobody hands a language model the points for an essay. What people can give is a preference: this one is better than that one. And people are sometimes wrong.
-
-## The judge
-
-The judge is shown two **clips** and says which one went better. A clip is one, two or three consecutive steps on the grid, and the two clips in a pair always start from the same cell.
+The judge is shown two clips and says which one went better. The two clips in a pair always start from the same cell.
 
 The judge can see what happened in a clip but does not know the scoring rules. What registers is roughly how well it went, and I model that as the clip’s true points. The judge does not know that number. The judge has a feeling that tracks it, and the feeling is **surer when the gap is bigger**. Let $g$ be the gap in true points between clip A and clip B, positive if A was better. The judge says “A” with probability
 
@@ -59,7 +91,7 @@ $$
 \Pr(\text{judge says } A) = \sigma\!\left(\frac{g}{\tau}\right), \qquad \sigma(x) = \frac{1}{1 + e^{-x}}.
 $$
 
-$\sigma$ squashes any number into the range 0 to 1, with $\sigma(0) = 0.5$ in the middle: no gap, coin flip. $\tau$ sets how many points of gap it takes to make the judge confident. I use $\tau = 2$.
+$\sigma$ squashes any number into the range 0 to 1, with $\sigma(0) = 0.5$ in the middle: no gap, coin flip. $\tau$ sets how many points of gap it takes to make the judge confident. I use $\tau = 2$. This is the realistic part: the judge’s mistakes track how hard the call actually is. Easy pairs are almost always right, and close pairs are close to a coin flip.
 
 Here are four pairs the judge ruled on.
 
@@ -68,7 +100,7 @@ Here are four pairs the judge ruled on.
 <figcaption>Four real pairs of clips. In each pair both clips start in the same cell, marked with a dot. The cells carry their names but not their scores, because the judge does not see scores. The line under each pair is for you, not the judge: what the two clips were truly worth, and how likely the judge was to pick A. The second pair is one the judge got wrong, and the fourth is a tie that the judge had to call anyway.</figcaption>
 </figure>
 
-*First pair:* one clip steps into fire and the other does not. Nobody needs to be told which is worse. *Second pair:* one clip goes through the mud and the other does not, a gap of one point. The judge should prefer the clean one, and does so about five times in eight. **This is one of the other three.** I went looking for it, because this is what a fallible judge looks like up close. *Third pair:* one clip reaches the treasure. *Fourth pair:* the two clips are worth exactly the same. The judge has to pick one anyway, and the pick means nothing.
+*First pair:* one clip steps into fire and the other does not. Nobody needs to be told which is worse. *Second pair:* one clip goes through the mud and the other does not, a gap of one point. The judge should prefer the clean one, and does so about five times in eight. **This time the judge picked the muddy one.** I went looking for a pair like this, because it is what a fallible judge looks like up close. *Third pair:* one clip reaches the treasure. *Fourth pair:* the two clips are worth exactly the same. The judge has to pick one anyway, and the pick means nothing.
 
 So the same judge is very different on easy pairs and hard ones.
 
@@ -78,23 +110,13 @@ So the same judge is very different on easy pairs and hard ones.
 | through the mud against around it | 1.0 | 62% |
 | one step more against one step fewer | 0.5 | 56% |
 
+### A few verdicts, one bit each
+
+Each verdict is one bit: A is better than B. No score, no reason, no “by how much.” On the grid there are about 6,900 different pairs of clips that start from the same cell, and over a run of 500 rounds the judge rules on about 1,500 pairs, some of them repeats. On a 25-cell grid that is a sizable share. For a written investment case the number of possible pairs is effectively unlimited, and a PM will only ever see a tiny fraction of them.
+
 No single verdict is reliable. Whatever the machine learns, it has to learn from the pile: over hundreds of pairs, the clean clip beats the muddy one more often than not.
 
-## The machine
-
-Where do the clips come from? The machine walks them itself.
-
-A clip is up to three steps from a cell. The machine sees where each step leads and whether the walk ended. **It never sees points.** Note the difference from the first post. Rungs 0 to 2 never touched the grid, and rung 3 had a verifier that reported the true points. This machine may walk, but walking tells it nothing about what is good. The only feedback it ever gets is a fallible judge choosing between two of its clips.
-
-It starts as the clone from rung 0, walking the way the people in the log walked. Then it goes round a loop. One round goes like this.
-
-- A starting cell is drawn from the log, and a length of one to three steps.
-- The machine walks four clips of that length from that cell. Three steps in ten are random, so that it tries things nobody has tried.
-- The judge compares every pair of clips that differ.
-
-Every 25 rounds the machine does two things. It turns all the verdicts so far into a reward, which is the next section. Then it re-runs rung 2 on every move made so far, the log’s and its own, with that learned reward where the points used to be, and from then on it walks from the result. A run is 500 rounds, and I ran it ten times.
-
-## From verdicts to a reward
+## Step 3: from verdicts to a reward
 
 The machine has a pile of verdicts and wants back what rung 2 had: a number for every move.
 
@@ -136,7 +158,15 @@ def fit_reward(X, y, ends_walk, start=None, l2=1e-4):
     return res.x.reshape(N, N)
 ```
 
-## The result
+## Step 4: Q-learning, just like before
+
+With the learned reward in hand, the machine does exactly what rung 2 did in the first post: Q-learning, with the learned reward where the true points used to be. It runs it on every move made so far, the log’s and its own.
+
+## Step 5: repeat
+
+From then on the machine walks from the result, and the loop goes around again. Every 25 rounds it refits the reward and re-runs Q-learning. A run is 500 rounds, and I ran it ten times.
+
+## Does it work?
 
 We grade the machine the way we graded every rung: the true score of its best route on the real grid. The machine never sees that grade. Here is where the ten runs stood as the rounds went by.
 
@@ -155,9 +185,13 @@ We grade the machine the way we graded every rung: the true score of its best ro
 <figcaption>Left: the machine’s route after 500 rounds in the first run (green), against the route the humans were taught (thin blue). It goes through the cell no human recording ever entered. Right: of ten runs, how many had beaten every human, and how many had found the best possible route, after each refit.</figcaption>
 </figure>
 
-**By 300 rounds every one of the ten runs had beaten every human, and by 400 rounds nine of the ten were on the best possible route, worth 6.0.** The judge picked the truly better clip on 85% of the pairs that had one. On the rest, and on every tie, the verdict was noise.
+**Yes. By 300 rounds every one of the ten runs had beaten every human, and by 400 rounds nine of the ten were on the best possible route, worth 6.0.** The judge picked the truly better clip on 85% of the pairs that had one. On the rest, and on every tie, the verdict was noise.
 
-Rung 2 in the first post had perfect points and scored 5.0. This machine had no points, only a judge who is sometimes wrong, and it went past 5.0. The reason is that it walked its own clips, and some of them went through the cell no human recording ever entered. The judge did not mind those clips. So the machine learned that the unknown cell is an ordinary cell, and the short route through it became available.
+That is better than rung 2 did in the first post. Rung 2 had perfect points and scored 5.0, and the route worth 6.0 took rung 3. This machine had no points at all, only a judge who is sometimes wrong, and it reached 6.0 in nine runs of ten.
+
+The reason is step 1. The machine walked its own clips, and some of them went through the cell no human recording ever entered. The judge did not object to those clips, so the learned reward treats the unknown cell as an ordinary one, and Q-learning could route through it. Exploration found the cell. The judge, not the world, said it was fine.
+
+That is the difference from rung 3. Both machines explored. Rung 3’s walks were scored by the world, one finished walk at a time. This machine’s were judged by a person, a few steps at a time, and nobody ever had to wait for a walk to finish.
 
 Here is the reward the machine learned in the first run, next to the truth.
 
@@ -219,27 +253,30 @@ All ten runs end on the best possible route, and they get there sooner than they
 
 ## Back to the analyst
 
-Now the fund. In a hedge fund today, analysts pitch stocks and the portfolio manager says yes or no. The PM does not write the pitch. The PM judges it. Every fund already has that judge.
+Now the fund. In fundamental investing an analyst’s “walk” is a write-up. It follows the firm’s format, section by section: the recommendation, the business, the thesis points, the valuation, the risks. And it reaches a conclusion: buy, sell or hold. The PM does not write it. The PM judges it. Every fund already has that judge.
 
 Here is what each part of the grid stands for.
 
 | On the grid | In the fund |
 |----|----|
-| The log of 600 recorded walks | The archive of old pitches |
+| The log of 600 recorded walks | The archive of historical write-ups |
 | A cell | A stock at a moment, with the analyst’s notes on it |
-| A clip: one to three steps from a cell | A section of a pitch |
-| The machine walking a clip | The machine writing a version of a section |
+| A walk | A write-up, ending in buy, sell or hold |
+| A clip | A section of a write-up |
+| The machine walking a clip | The LLM writing a version of a section |
 | The judge choosing between two clips | The PM choosing between two sections |
-| The learned reward table | A model of the PM’s taste |
-| The machine’s best route | The pitch it would write |
+| The learned reward table | A reward model of the PM’s taste |
+| Q-learning on the learned reward | RLHF on the LLM |
+| The machine’s best route | The write-up it would produce |
 | The true points | The P&L |
 
-And here is the loop, as a blueprint.
+And here is the recipe again, as a blueprint.
 
-1.  **Start by imitating.** Fine-tune a model on the firm’s archive of old pitches, so that it writes like the firm’s analysts. Every firm has that archive. On the grid this was the clone from rung 0.
-2.  **A human gathers, the machine writes.** An analyst still does the legwork a machine cannot: talking to management and to the sell side, collecting the data points, keeping notes. Then, from that same set of notes, the machine writes several versions of each section of the pitch.
-3.  **The PM judges pairs.** The PM is shown two versions of the same section and says which is better.
-4.  **Learn the PM’s taste, and write toward it.** Then go back to step 2.
+1.  **Train an LLM on the firm’s historical write-ups,** so that it writes like the firm’s analysts. On the grid this was the clone from rung 0.
+2.  **Have the LLM write new ones.** An analyst still does the legwork a machine cannot: talking to management and to the sell side, gathering data points for the mosaic, keeping notes. From that same set of notes, the LLM writes several versions of each section. On the grid this was the machine walking clips.
+3.  **The PM rates pairs.** The PM is shown two versions of the same section and says which is better. Nothing else.
+4.  **Train a reward model on the PM’s verdicts.** This is step 3 on the grid: Bradley–Terry, with a neural network in place of the table.
+5.  **Train the LLM with RLHF against the reward model.** Then go back to step 2.
 
 ### One pair, as the PM would see it
 
@@ -338,7 +375,7 @@ The grid’s judge is tireless and honest. A person is neither, and this is wher
 
 The AI labs use contractors, paid by the hour or by the task. Quality is enforced with a screening test, written guidelines, planted items with a known right answer, several raters on the same item, and removal of raters who fail. Nobody is paid on whether the model turns out better. It is a floor on carelessness.
 
-A fund is in a harder position. Step 4 produces two things: the writer, and the model of the PM’s taste. **The second is a fitted copy of the judge.** A PM who judges carefully is helping to replace the analysts and is also putting their own judgment into a file that belongs to the firm. The incentive to do it well is negative. And the P&L cannot referee: both sections in a pair are about the same stock, so they share one outcome.
+A fund is in a harder position. Steps 4 and 5 produce two things: a model of the PM’s taste, and the writer trained against it. **The first is a fitted copy of the judge.** A PM who judges carefully is helping to replace the analysts and is also putting their own judgment into a file that belongs to the firm. The incentive to do it well is negative. And the P&L cannot referee: both sections in a pair are about the same stock, so they share one outcome.
 
 So the judge cannot be assumed to be trying. A careless judge clicks through. That is random error, which the grid tolerates up to a point, and which repeated pairs detect. A sandbagging judge deliberately picks the worse section, consistently. That is worse than noise, because it pushes the machine the wrong way, and repeats do not catch it.
 
