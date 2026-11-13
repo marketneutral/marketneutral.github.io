@@ -122,15 +122,43 @@ No single verdict is reliable. Whatever the machine learns, it has to learn from
 
 The machine has a pile of verdicts and wants back what rung 2 had: a number for every move.
 
-Suppose it had some way of scoring a clip, $R(\text{clip})$. Then it could predict what the judge would say about any pair. If $R(A)$ is much bigger than $R(B)$ the judge should say A, and if they are close the judge should be near a coin flip:
+Think of how chess gets its ratings. A player’s **Elo rating** \[9\] is a number that goes up after a win and down after a loss, and it moves more when the result was a surprise. Nobody solves an equation. The ratings come from a great many small adjustments, one per game.
+
+Here the players are the 25 cells. Each cell has a rating, and every rating starts at zero. A clip’s score is the sum of the ratings of the cells it entered. A verdict is a game between two clips.
+
+**Before the verdict, predict it.** Let $S_A$ and $S_B$ be the two clips’ scores. The ratings say the judge will pick A with probability
 
 $$
-\Pr(A \succ B) = \sigma\big(R(A) - R(B)\big).
+p = \sigma(S_A - S_B),
 $$
 
-This is the **Bradley–Terry model** \[2\]. It was invented in 1952 for ranking players from match results, which is our situation: we know who beat whom and want to know how good each one is. The machine picks the scoring that best predicts the verdicts the judge actually gave.
+with the same $\sigma$ as before. Equal scores give $p = 0.5$, and the further A is ahead, the closer $p$ is to 1.
 
-Here $R$ is the simplest thing that can be printed and checked: a table with one number per cell, the reward for entering that cell. A clip’s score is the sum over the cells it entered. In real RLHF, $R$ is a neural network, usually a copy of the language model with its last layer replaced by a single output \[3\]. The data and the goal are the same.
+**After the verdict, adjust.** Let $y = 1$ if the judge picked A and $y = 0$ if the judge picked B. Every cell’s rating moves by
+
+$$
+K \times (y - p) \times (\text{times A entered the cell} - \text{times B entered the cell}).
+$$
+
+Read it one factor at a time.
+
+- $y - p$ is the surprise. If the ratings were sure of A and the judge picked A, it is close to zero and almost nothing moves. If the ratings were sure of A and the judge picked B, it is close to −1 and a lot moves.
+- The last factor says which cells get the credit. If the judge picked A, the cells A entered more often go up and the cells B entered more often go down. A cell that both clips entered equally often does not move, because it cannot be what made the difference.
+- $K$ is the size of one adjustment. Say $K = 0.1$.
+
+Suppose the first verdict is this one. Both clips start at (2, 0). Clip A steps up into (2, 1), an ordinary cell. Clip B steps right into the mud. Every rating is zero, so both scores are zero and $p = 0.5$. The judge picks A, so $y = 1$.
+
+- The cell A entered: $0 + 0.1 \times (1 - 0.5) \times (1 - 0) = +0.05$.
+- The mud: $0 + 0.1 \times (1 - 0.5) \times (0 - 1) = -0.05$.
+- Every other cell: no change.
+
+If the same pair came up again, the ratings would give A a probability of $\sigma(0.10) = 0.525$. One verdict moved the prediction from 50% to 52.5%.
+
+**Now keep going until the ratings stop moving.** Go through the whole pile of verdicts, then through it again, and again. The ratings drift, then settle. They have settled when the adjustments over the whole pile cancel out: for every cell, the ups and the downs add to zero. At that point the ratings predict the pile as well as any ratings can.
+
+That settled set of ratings is the machine’s reward. The machine does not actually take the adjustments one at a time. It uses a solver that jumps straight to where they settle. The answer is the same, and there is no $K$ to choose. Statisticians call this the **Bradley–Terry model** \[2\]. The math is not needed for anything that follows. If you want it, I have worked through it on small numbers in [a separate note](https://github.com/marketneutral/marketneutral.github.io/blob/main/notes/bradley-terry.md).
+
+The 25 ratings are the simplest reward model that can be printed and checked. In real RLHF the reward model is a neural network, usually a copy of the language model with its last layer replaced by a single output \[3\]. The verdicts and the goal are the same.
 
 One prior goes in before the fit: **steps are never free.** Every cell where the walk does not end is held at or below a small cost. A noisy judge will sometimes make an ordinary cell look free, and a machine that loses nothing by walking in circles will walk in circles forever. Real RLHF carries the same prior as a length penalty and a penalty for drifting from the starting model \[3\].
 
@@ -454,3 +482,4 @@ If you take away only one thing from this post, I want it to be the same thing a
 6.  Aaronson, S. (2006). *Reasons to believe.* Shtetl-Optimized. <https://scottaaronson.blog/?p=122>
 7.  Stiennon, N., Ouyang, L., Wu, J., Ziegler, D. M., Lowe, R., Voss, C., Radford, A., Amodei, D., & Christiano, P. (2020). *Learning to summarize from human feedback.* NeurIPS 2020. <https://arxiv.org/abs/2009.01325>
 8.  Nguyen, T., Listoe, E., & Karavaikin, D. (2025). *Carlisle Companies (NYSE: CSL) - Long.* First place, 18th Annual Pershing Square Challenge, Columbia Business School, 2025. Published in *Graham & Doddsville*, Spring 2025, pages 36 and 37. <https://business.columbia.edu/sites/default/files-efs/imce-uploads/Graham_Doddsville_Spring_2025_Issue_.pdf>
+9.  Elo, A. E. (1978). *The Rating of Chessplayers, Past and Present.* Arco.

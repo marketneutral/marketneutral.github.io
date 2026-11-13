@@ -1,0 +1,240 @@
+---
+title: "Bradley–Terry, worked through"
+format:
+  gfm:
+    wrap: none
+jupyter: python3
+execute:
+  echo: true
+  warning: false
+---
+
+This is a companion to the post [Bootstrapping a superhuman buyside equity analyst](https://marketneutral.github.io/posts/bootstrapping-an-analyst/). The post turns a judge's verdicts into a reward with a model called Bradley–Terry, and explains it with chess ratings. This note has the math, with every step worked on small numbers. The post does not depend on it.
+
+Source: [`notes/bradley-terry.qmd`](bradley-terry.qmd). Render with `quarto render notes/bradley-terry.qmd`.
+
+## The setup
+
+A machine walks short clips on a 5×5 grid. A judge is shown two clips, A and B, and says which went better. That is all the judge says. The machine wants a number for every cell, a **rating**, such that clips through better cells get better scores.
+
+- $r_s$ is the rating of cell $s$. There are 25 of them.
+- $n(A, s)$ is the number of times clip A entered cell $s$.
+- A clip's **score** is the sum of the ratings of the cells it entered:
+
+$$
+R(A) = \sum_{s} n(A, s)\, r_s .
+$$
+
+*Example:* a clip that enters an ordinary cell and then the mud scores $r_{\text{ordinary}} + r_{\text{mud}}$.
+
+## The model
+
+Bradley and Terry [1] wanted to rank players from match results. Give each player $i$ a strength $\pi_i > 0$ and say
+
+$$
+\Pr(i \text{ beats } j) = \frac{\pi_i}{\pi_i + \pi_j}.
+$$
+
+A player twice as strong wins two games in three. Now write each strength as $\pi_i = e^{R_i}$ and divide top and bottom by $e^{R_i}$:
+
+$$
+\Pr(i \text{ beats } j) = \frac{e^{R_i}}{e^{R_i} + e^{R_j}} = \frac{1}{1 + e^{-(R_i - R_j)}} = \sigma(R_i - R_j), \qquad \sigma(x) = \frac{1}{1 + e^{-x}}.
+$$
+
+Only the difference in $R$ matters. Here the players are clips, so
+
+$$
+\Pr(A \succ B) = \sigma\big(R(A) - R(B)\big).
+$$
+
+$\sigma$ turns a difference in score into a probability.
+
+```{python}
+import numpy as np
+
+def sigma(x):
+    return 1 / (1 + np.exp(-x))
+
+for gap in (-3, -1, 0, 0.5, 1, 3):
+    print(f"A ahead by {gap:+.1f}:  Pr(judge picks A) = {sigma(gap):.3f}")
+```
+
+## At the start, everything is zero
+
+Before any verdict, every rating is zero. So every clip scores zero, whatever cells it entered, and for every pair
+
+$$
+\Pr(A \succ B) = \sigma(0 - 0) = \frac{1}{1 + e^{0}} = \frac{1}{1 + 1} = 0.5 .
+$$
+
+That is the right place to start. The machine knows nothing, and the model says so: every pair is a coin flip.
+
+Three things follow from it.
+
+1. **The first verdict is always a surprise of exactly one half.** Whichever clip the judge picks, the model had given it 50%. So the first adjustment is the same size either way, and only its direction depends on the judge.
+2. **Zero is not special. Equal is.** Set every rating to 7 and two clips of the same length still tie, because only the difference in score enters $\sigma$. The model has an opinion only once two cells have different ratings, and only a verdict can make them different.
+3. **The starting point does not change the answer.** As shown below, the fit has a single best set of ratings, and the solver gets there from anywhere. The code in the post happens to start every rating at −0.05 instead of 0. Two clips of the same length still start at exactly 50%.
+
+```{python}
+rating = np.zeros(25)                  # one rating per cell, all zero
+
+clip_a = [7, 8, 13]                    # the cells clip A entered, numbered 0 to 24
+clip_b = [7, 2, 3]
+score_a, score_b = rating[clip_a].sum(), rating[clip_b].sum()
+print(f"Score of A: {score_a:.2f}.  Score of B: {score_b:.2f}.  Pr(judge picks A) = {sigma(score_a - score_b):.2f}")
+
+rating = np.full(25, 7.0)              # every rating the same, but not zero
+print(f"All ratings 7:  Pr(judge picks A) = {sigma(rating[clip_a].sum() - rating[clip_b].sum()):.2f}")
+```
+
+## One verdict, one adjustment
+
+This is the chess-rating rule from the post. Let $p$ be the model's probability that the judge picks A, and let $y = 1$ if the judge did pick A and $y = 0$ if not. After the verdict, every cell's rating moves by
+
+$$
+K \times (y - p) \times \big(n(A, s) - n(B, s)\big).
+$$
+
+$y - p$ is the surprise. The last factor gives the credit to the cells that one clip entered and the other did not. $K$ is the size of one adjustment.
+
+*Example, the very first verdict.* Clip A steps into an ordinary cell. Clip B steps into the mud. All ratings are zero, so $p = 0.5$. The judge picks A, so $y = 1$. Take $K = 0.1$.
+
+- The ordinary cell: $0 + 0.1 \times (1 - 0.5) \times (1 - 0) = +0.05$.
+- The mud: $0 + 0.1 \times (1 - 0.5) \times (0 - 1) = -0.05$.
+- Every other cell: no change.
+
+Now the two clips differ by $0.05 - (-0.05) = 0.10$, and the model's probability for A is $\sigma(0.10) = 0.525$.
+
+```{python}
+K = 0.1
+ORDINARY, MUD = 0, 1                   # two cells are enough for this example
+rating = np.zeros(2)
+visits_a = np.array([1, 0])            # clip A entered the ordinary cell once
+visits_b = np.array([0, 1])            # clip B entered the mud once
+
+p = sigma(rating @ visits_a - rating @ visits_b)
+y = 1                                  # the judge picked A
+print(f"Before: ratings {rating}, Pr(A) = {p:.3f}")
+rating += K * (y - p) * (visits_a - visits_b)
+print(f"After:  ratings {rating}, Pr(A) = {sigma(rating @ visits_a - rating @ visits_b):.3f}")
+```
+
+## The fit
+
+One adjustment uses one verdict. The fit uses all of them at once.
+
+Number the verdicts $k = 1, \dots, m$. Verdict $k$ is on the pair $(A_k, B_k)$, with $y_k = 1$ if the judge picked $A_k$ and $y_k = 0$ if not. Write $p_k = \sigma\big(R(A_k) - R(B_k)\big)$ for what the ratings predict.
+
+How likely was the whole pile of verdicts, according to the ratings? Each verdict for A had probability $p_k$, and each verdict for B had probability $1 - p_k$. Multiply them all together. The logarithm of that product is the **log-likelihood**
+
+$$
+\ell(r) = \sum_{k=1}^{m} \Big[\, y_k \log p_k + (1 - y_k) \log (1 - p_k) \Big].
+$$
+
+The fit is the set of ratings that makes $\ell$ as large as possible: the ratings under which the verdicts the judge actually gave were most likely.
+
+At the start, with every rating zero, every $p_k$ is 0.5 and $\ell = m \log 0.5$. Any fit has to beat that.
+
+## A fit by hand
+
+Take one pair. Clip A goes around the mud and clip B goes through it, and they are otherwise alike. Only one number matters: the gap $d = R(A) - R(B)$.
+
+Suppose the judge sees this pair 8 times and picks A 5 times. Then
+
+$$
+\ell(d) = 5 \log \sigma(d) + 3 \log\big(1 - \sigma(d)\big).
+$$
+
+The derivative of $\log \sigma(d)$ is $1 - \sigma(d)$. The derivative of $\log(1 - \sigma(d))$ is $-\sigma(d)$. So the slope is
+
+$$
+\ell'(d) = 5\,\big(1 - \sigma(d)\big) - 3\,\sigma(d) = 5 - 8\,\sigma(d).
+$$
+
+The top of the hill is where the slope is zero: $\sigma(d) = 5/8$, which is $d = \log(5/3) = 0.51$.
+
+**The fit sets the predicted frequency equal to the observed one.** The judge picked A five times in eight, so the fitted ratings say A wins five times in eight.
+
+And 0.51 is the right answer, in the judge's units. In the post the mud truly costs 1 point, and the judge says A with probability $\sigma(\text{gap in points} / \tau)$ with $\tau = 2$. So the gap the judge acts on is $1/2 = 0.5$. This is why the learned rewards in the post come out near the true points divided by $\tau$.
+
+```{python}
+def loglik(d, wins_a=5, wins_b=3):
+    return wins_a * np.log(sigma(d)) + wins_b * np.log(1 - sigma(d))
+
+for d in (0.0, 0.25, 0.51, 0.75, 1.0, 2.0):
+    print(f"gap d = {d:.2f}:  Pr(A) = {sigma(d):.3f}   log-likelihood = {loglik(d):.4f}   slope = {5 - 8 * sigma(d):+.3f}")
+print(f"\nlog(5/3) = {np.log(5 / 3):.4f}.  At the start, d = 0, the log-likelihood is 8 log 0.5 = {8 * np.log(0.5):.4f}.")
+```
+
+The log-likelihood is highest at 0.51, and the slope there is zero.
+
+## The slope in general
+
+Differentiate $\ell$ with respect to one cell's rating and the same thing happens, verdict by verdict:
+
+$$
+\frac{\partial \ell}{\partial r_s} = \sum_{k=1}^{m} (y_k - p_k)\,\big(n(A_k, s) - n(B_k, s)\big).
+$$
+
+Each term is surprise times the difference in visits. That is the adjustment from above for one verdict, without the $K$.
+
+**So one chess-style adjustment is one step uphill on the Bradley–Terry log-likelihood, using one verdict.** In machine-learning terms it is stochastic gradient ascent, and $K$ is the learning rate.
+
+The ratings have settled when every slope is zero. In words: over the whole pile of verdicts, the ups and the downs cancel for every cell.
+
+*Example:* back to the 8 verdicts. Put the gap at 0.51, so $p = 5/8 = 0.625$. Each of the 5 verdicts for A pushes up with surprise $1 - 0.625 = 0.375$. Each of the 3 verdicts for B pushes down with surprise $0.625$. The total is $5 \times 0.375 - 3 \times 0.625 = 0$. Nothing moves.
+
+Here are the adjustments doing the fit. Start with both ratings at zero and go through the 8 verdicts over and over, in a new order each pass, with a $K$ that shrinks from pass to pass.
+
+```{python}
+rng = np.random.default_rng(0)
+verdicts = np.array([1, 1, 1, 1, 1, 0, 0, 0])      # the judge picked A five times in eight
+rating = np.zeros(2)                               # [ordinary, mud], both zero at the start
+print(f"start:      ratings {rating.round(3)}   gap {rating[0] - rating[1]:.3f}   Pr(A) = {sigma(rating[0] - rating[1]):.3f}")
+for n_pass in range(1, 1001):
+    for y in rng.permutation(verdicts):
+        p = sigma(rating @ visits_a - rating @ visits_b)
+        rating += (0.5 / n_pass) * (y - p) * (visits_a - visits_b)
+    if n_pass in (1, 10, 100, 1000):
+        print(f"pass {n_pass:>5}:  ratings {rating.round(3)}   gap {rating[0] - rating[1]:.3f}   Pr(A) = {sigma(rating[0] - rating[1]):.3f}")
+```
+
+The gap settles at 0.51 and the probability at 5/8. The two ratings are equal and opposite because they started at zero and every adjustment moved them by the same amount in opposite directions.
+
+## One summit
+
+The second derivative of $\ell$ is never positive. In the example,
+
+$$
+\ell''(d) = -8\,\sigma(d)\big(1 - \sigma(d)\big) < 0 .
+$$
+
+So $\ell$ is a single hill with no false summits. Walking uphill in small enough steps arrives at the same place from any start, and it is the same place a solver jumps to. The post uses a solver, so it has no $K$ to choose.
+
+## What the verdicts cannot pin down
+
+**Only differences.** A verdict compares, so only differences in score are determined. In the example the fit says the gap is 0.51. It does not say whether the two ratings are +0.255 and −0.255, or 0 and −0.51.
+
+**A clip that never loses.** If one kind of clip wins every time, the likelihood keeps rising as its rating grows, and there is no summit. With 8 verdicts out of 8 for A, the slope is $8\,(1 - \sigma(d))$, which is positive for every $d$.
+
+The code in the post handles both with a very small penalty on large ratings. It also holds every cell where the walk goes on at or below −0.05, so that a step is never free.
+
+## Other names for the same thing
+
+**Logistic regression.** Give verdict $k$ one input per cell, $x_{k,s} = n(A_k, s) - n(B_k, s)$, and the model is $\Pr(y_k = 1) = \sigma\big(\sum_s x_{k,s}\, r_s\big)$. That is a logistic regression with no intercept, and the ratings are its coefficients. The post's code is written this way.
+
+**Elo.** Chess [2] writes its prediction as
+
+$$
+\Pr(A \text{ wins}) = \frac{1}{1 + 10^{-(S_A - S_B)/400}} = \sigma\!\left(\frac{(S_A - S_B)\,\ln 10}{400}\right).
+$$
+
+It is the same curve with the ratings in bigger units. A 400-point edge wins with probability $10/11 = 0.91$.
+
+**RLHF.** In reinforcement learning from human feedback, $R$ is a neural network that scores a piece of text [3]. $\ell$ is the same, and the fit is the same walk uphill, with the slopes computed by backpropagation.
+
+## References
+
+1. Bradley, R. A., & Terry, M. E. (1952). *Rank Analysis of Incomplete Block Designs: I. The Method of Paired Comparisons.* Biometrika 39, 324–345.
+2. Elo, A. E. (1978). *The Rating of Chessplayers, Past and Present.* Arco.
+3. Ouyang, L., et al. (2022). *Training language models to follow instructions with human feedback.* NeurIPS 2022. <https://arxiv.org/abs/2203.02155>
