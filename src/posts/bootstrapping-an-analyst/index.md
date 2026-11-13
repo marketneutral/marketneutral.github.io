@@ -156,37 +156,11 @@ If the same pair came up again, the ratings would give A a probability of $\sigm
 
 **Now keep going until the ratings stop moving.** Go through the whole pile of verdicts, then through it again, and again. The ratings drift, then settle. They have settled when the adjustments over the whole pile cancel out: for every cell, the ups and the downs add to zero. At that point the ratings predict the pile as well as any ratings can.
 
-That settled set of ratings is the machine’s reward. The machine does not actually take the adjustments one at a time. It uses a solver that jumps straight to where they settle. The answer is the same, and there is no $K$ to choose. Statisticians call this the **Bradley–Terry model** \[2\]. It is the more formal way to do what the chess ratings do, and the better one, but following it takes more background, such as gradient descent. So I have kept that math out of this post. You do not need Bradley–Terry for anything that follows. You need to understand how Elo works. The full math is in [a supporting notebook](https://github.com/marketneutral/marketneutral.github.io/blob/main/notes/bradley-terry.md), worked through on small numbers.
+That settled set of ratings is the machine’s reward. The machine does not actually take the adjustments one at a time. It uses a solver that jumps straight to where they settle. The answer is the same, and there is no $K$ to choose. Statisticians call this the **Bradley–Terry model** \[2\]. It is the more formal way to do what the chess ratings do, and the better one, but following it takes more background, such as gradient descent. So I have kept that math out of this post. You do not need Bradley–Terry for anything that follows. You need to understand how Elo works. The full math is in [a supporting notebook](https://github.com/marketneutral/marketneutral.github.io/blob/main/notes/bradley-terry.md), worked through on small numbers, along with the code for the fit.
 
 The 25 ratings are the simplest reward model that can be printed and checked. In real RLHF the reward model is a neural network, usually a copy of the language model with its last layer replaced by a single output \[3\]. The verdicts and the goal are the same.
 
 One prior goes in before the fit: **steps are never free.** Every cell where the walk does not end is held at or below a small cost. A noisy judge will sometimes make an ordinary cell look free, and a machine that loses nothing by walking in circles will walk in circles forever. Real RLHF carries the same prior as a length penalty and a penalty for drifting from the starting model \[3\].
-
-Here is the fit, in code.
-
-``` python
-from scipy.optimize import minimize
-
-STEP_FLOOR = 0.05   # every cell where the walk goes on is worth at most -0.05
-
-def fit_reward(X, y, ends_walk, start=None, l2=1e-4):
-    """Bradley-Terry with a table for the reward: logistic regression, no intercept, solved
-    to convergence. Each row of X is one pair: x_i = times clip A entered cell i, minus
-    times clip B did. y is 1 if the judge chose A. `start` is the previous fit, if there
-    is one. The answer does not depend on it; it only saves time."""
-    def loss_and_grad(beta):
-        z = X @ beta
-        p = 1 / (1 + np.exp(-z))
-        loss = np.mean(np.logaddexp(0, z) - y * z) + 0.5 * l2 * beta @ beta
-        return loss, X.T @ (p - y) / len(y) + l2 * beta
-    ceiling = np.where(ends_walk, np.inf, -STEP_FLOOR)      # steps are never free
-    x0 = np.full(N_CELLS, -STEP_FLOOR) if start is None else start.ravel()
-    x0 = np.minimum(x0, ceiling)
-    res = minimize(loss_and_grad, x0, jac=True, method="L-BFGS-B",
-                   bounds=[(None, None if np.isinf(c) else c) for c in ceiling],
-                   options={"maxiter": 10000, "gtol": 1e-10})
-    return res.x.reshape(N, N)
-```
 
 ## Step 4: Q-learning, just like before
 

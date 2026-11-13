@@ -237,11 +237,67 @@ So $\ell$ is a single hill with no false summits. Walking uphill in small enough
 
 **A clip that never loses.** If one kind of clip wins every time, the likelihood keeps rising as its rating grows, and there is no summit. With 8 verdicts out of 8 for A, the slope is $8\,(1 - \sigma(d))$, which is positive for every $d$.
 
-The code in the post handles both with a very small penalty on large ratings. It also holds every cell where the walk goes on at or below −0.05, so that a step is never free.
+The code below handles both with a very small penalty on large ratings. It also holds every cell where the walk goes on at or below −0.05, so that a step is never free.
+
+## The fit in code
+
+This is the function the post uses, unchanged. The post runs it every 25 rounds on all the verdicts so far.
+
+- `X` has one row per verdict and one column per cell: the number of times clip A entered the cell, minus the number of times clip B did.
+- `y` is 1 where the judge picked A and 0 where the judge picked B.
+- `ends_walk` marks the cells where a walk ends: the treasure, the exit and the fires. Every other cell is held at or below −0.05.
+
+It minimizes the average of $-\ell$ plus the small penalty, with a standard solver (L-BFGS-B), and hands back the ratings as a 5×5 table.
+
+``` python
+from scipy.optimize import minimize
+
+N = 5               # the grid is 5×5
+N_CELLS = N * N
+STEP_FLOOR = 0.05   # every cell where the walk goes on is worth at most -0.05
+
+def fit_reward(X, y, ends_walk, start=None, l2=1e-4):
+    """Bradley-Terry with a table for the reward: logistic regression, no intercept, solved
+    to convergence. Each row of X is one pair: x_i = times clip A entered cell i, minus
+    times clip B did. y is 1 if the judge chose A. `start` is the previous fit, if there
+    is one. The answer does not depend on it; it only saves time."""
+    def loss_and_grad(beta):
+        z = X @ beta
+        p = 1 / (1 + np.exp(-z))
+        loss = np.mean(np.logaddexp(0, z) - y * z) + 0.5 * l2 * beta @ beta
+        return loss, X.T @ (p - y) / len(y) + l2 * beta
+    ceiling = np.where(ends_walk, np.inf, -STEP_FLOOR)      # steps are never free
+    x0 = np.full(N_CELLS, -STEP_FLOOR) if start is None else start.ravel()
+    x0 = np.minimum(x0, ceiling)
+    res = minimize(loss_and_grad, x0, jac=True, method="L-BFGS-B",
+                   bounds=[(None, None if np.isinf(c) else c) for c in ceiling],
+                   options={"maxiter": 10000, "gtol": 1e-10})
+    return res.x.reshape(N, N)
+```
+
+Reading it against the math: `z` is the difference in score $R(A_k) - R(B_k)$ for every verdict at once, `p` is $p_k$, and `np.logaddexp(0, z) - y * z` is $-\big[y_k \log p_k + (1 - y_k)\log(1 - p_k)\big]$, written in a way that does not overflow. The gradient line, `X.T @ (p - y)`, is the slope from above with the sign flipped, because the solver walks downhill on $-\ell$ where the adjustments walk uphill on $\ell$.
+
+Now run it on the 8 verdicts from the example. Call the ordinary cell number 0 and the mud number 1. Neither ends a walk.
+
+``` python
+X = np.zeros((8, N_CELLS))
+X[:, 0], X[:, 1] = 1, -1                       # clip A entered the ordinary cell, clip B the mud
+y = np.array([1, 1, 1, 1, 1, 0, 0, 0.0])       # the judge picked A five times in eight
+ends_walk = np.zeros(N_CELLS, bool)            # no cell here ends a walk
+
+fit = fit_reward(X, y, ends_walk).ravel()
+print(f"ordinary cell: {fit[0]:+.3f}    mud: {fit[1]:+.3f}    gap: {fit[0] - fit[1]:.3f}    Pr(A) = {sigma(fit[0] - fit[1]):.3f}")
+print(f"a cell no verdict touched: {fit[2]:+.3f}")
+```
+
+    ordinary cell: -0.050    mud: -0.561    gap: 0.511    Pr(A) = 0.625
+    a cell no verdict touched: -0.050
+
+The gap is 0.51 and the probability is 5/8, as computed by hand. The two ratings are not ±0.255 this time. The ordinary cell sits at its ceiling of −0.05 and the mud is 0.51 below it, because the code holds every step at a small cost. Only the gap was ever pinned down by the verdicts, so the fit is just as good. A cell that no verdict touched stays where it started.
 
 ## Other names for the same thing
 
-**Logistic regression.** Give verdict $k$ one input per cell, $x_{k,s} = n(A_k, s) - n(B_k, s)$, and the model is $\Pr(y_k = 1) = \sigma\big(\sum_s x_{k,s}\, r_s\big)$. That is a logistic regression with no intercept, and the ratings are its coefficients. The post’s code is written this way.
+**Logistic regression.** Give verdict $k$ one input per cell, $x_{k,s} = n(A_k, s) - n(B_k, s)$, and the model is $\Pr(y_k = 1) = \sigma\big(\sum_s x_{k,s}\, r_s\big)$. That is a logistic regression with no intercept, and the ratings are its coefficients. The code below is written this way.
 
 **Elo.** Chess \[2\] writes its prediction as
 
