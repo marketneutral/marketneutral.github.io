@@ -5,3 +5,5 @@ _freeze/
 !README.md
 
 /.quarto/
+
+**/*.quarto_ipynb

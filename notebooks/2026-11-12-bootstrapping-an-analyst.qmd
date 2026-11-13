@@ -900,18 +900,22 @@ Here is what each part of the grid stands for.
 | The machine's best route | The write-up it would produce |
 | The true points | The P&L |
 
-And here is the recipe again, as a blueprint.
+And here is the recipe again, as an experiment a fund could run. Pick a date and call it $t$. **All of the training happens at $t$,** using only what exists on that date. Nothing in it waits for a stock to move. Then the result is tested out of sample, on what comes after $t$.
 
-1. **Train an LLM on the firm's historical write-ups,** so that it writes like the firm's analysts. Tie each write-up to the information that was available when it was written, so the model never learns from hindsight. On the grid this was the clone from rung 0.
-2. **Have the LLM write new ones.** An analyst still does the legwork a machine cannot: talking to management and to the sell side, gathering data points for the mosaic, keeping notes. From that same set of notes, the LLM writes several versions of each section. On the grid this was the machine walking clips.
-3. **The PM rates pairs.** The PM is shown two versions of the same section and says which is better. Nothing else.
+**At time $t$: train.**
+
+1. **Fine-tune an LLM on the firm's historical write-ups,** every one of them written before $t$, so that it writes like the firm's analysts. Tie each write-up to the information that was available when it was written, so the model never learns from hindsight. On the grid this was the clone from rung 0.
+2. **Have the LLM write lots of new ones.** Take the stocks the firm covers, with the information on each as it stands at $t$. An analyst still does the legwork a machine cannot: talking to management and to the sell side, gathering data points for the mosaic, keeping notes. From that same set of notes, the LLM writes several versions of each section. On the grid this was the machine walking clips.
+3. **The PM rates pairs.** The PM is shown two versions of the same section and says which is better. Nothing else. Nobody knows yet how any of these stocks will turn out, the PM included.
 4. **Train a reward model on the PM's verdicts.** This is step 3 on the grid: Bradley–Terry, with a neural network in place of the table.
-5. **Train the LLM with RLHF against the reward model,** with a constraint that keeps it grounded in the facts in the notes. Then go back to step 2.
+5. **Train the LLM with RLHF against the reward model,** with a constraint that keeps it grounded in the facts in the notes. Then go back to step 2. The loop goes around as many times as the PM has patience for, and the date is still $t$.
 
-Two more steps decide whether it worked.
+**After time $t$: test out of sample.**
 
-6. **Evaluate on held-out companies and periods,** against the firm's analysts, judged by PMs who did not do the training judgments.
+6. **Evaluate on companies and periods the training never touched.** New information arrives after $t$. The trained LLM writes from it, and so do the firm's analysts. PMs who did not do the training judgments compare the two, without being told which is which. This takes as long as the reading takes.
 7. **Separately, track investment outcomes,** to see whether better research turns into better decisions. This step is slow, and it is the only one that is.
+
+Why does step 2 write about today's stocks, when the archive is full of old ones? It is tempting to have the LLM rewrite a 2019 pitch from the 2019 notes, because every write-up in the archive would then supply pairs. But the PM who judges those pairs knows what the stock did after 2019, and so does the LLM. The reward model would learn hindsight, and hindsight is no help on a stock whose outcome is still ahead. So the archive teaches the LLM how to write, in step 1, and the judging is done only on stocks whose future nobody knows.
 
 None of the grid's numbers is a forecast for equity research. About 1,500 verdicts was enough on 25 cells. A fund may need far more, and how many has to be found by trying.
 
